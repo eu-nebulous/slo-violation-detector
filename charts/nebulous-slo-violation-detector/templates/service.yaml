@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nebulous-slo-violation-detector.fullname" . }}
+  labels:
+    {{- include "nebulous-slo-violation-detector.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "nebulous-slo-violation-detector.selectorLabels" . | nindent 4 }}
