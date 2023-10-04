@@ -1,0 +1,28 @@
+{
+  "id": "and-0",
+  "and-0": [
+    {
+      "id": "1",
+      "attribute": "cpu_usage",
+      "operator": ">",
+      "threshold": "70"
+    },
+    {
+      "id": "or-2",
+      "or-2": [
+        {
+          "id": "3",
+          "attribute": "memory",
+          "operator": ">",
+          "threshold": "70"
+        },
+        {
+          "id": "4",
+          "attribute": "disk",
+          "operator": ">",
+          "threshold": "95"
+        }
+      ]
+    }
+  ]
+}

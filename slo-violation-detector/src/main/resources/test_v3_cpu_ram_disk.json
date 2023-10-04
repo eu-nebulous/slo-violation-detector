@@ -1,0 +1,36 @@
+{
+  "name": "_",
+  "operator":"OR",
+  "constraints":[
+    {
+      "name":"cpu_and_memory_or_disk_too_high",
+      "operator":"AND",
+      "constraints": [
+        {
+          "name":"cpu_usage_high",
+          "metric":"cpu_usage",
+          "operator":">",
+          "threshold":70.0
+        },
+        {
+          "name": "memory_or_disk_usage_high",
+          "operator": "OR",
+          "constraints": [
+            {
+              "name":"memory_usage_high",
+              "metric":"memory",
+              "operator":">",
+              "threshold":70.0
+            },
+            {
+              "name": "disk_usage_high",
+              "metric":"disk",
+              "operator":">",
+              "threshold":95.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

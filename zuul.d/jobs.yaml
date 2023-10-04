@@ -8,15 +8,15 @@
       - nebulous-slo-violation-detector-container-images
     description: Build the container images.
     files: &image_files
-      - ^java-spring-boot-demo/
+      - ^slo-violation-detector/
     vars: &image_vars
       promote_container_image_job: nebulous-slo-violation-detector-upload-container-images
       container_images:
-        - context: java-spring-boot-demo
+        - context: slo-violation-detector
           registry: quay.io
-          repository: quay.io/nebulous/slo-violation-detector-java-spring-boot-demo
+          repository: quay.io/nebulous/slo-violation-detector
           namespace: nebulous
-          repo_shortname: slo-violation-detector-java-spring-boot-demo
+          repo_shortname: slo-violation-detector
           repo_description: ""
 
 - job:
@@ -44,7 +44,7 @@
     description: Run Hadolint on Dockerfile(s).
     vars:
       dockerfiles:
-        - java-spring-boot-demo/Dockerfile
+        - slo-violation-detector/Dockerfile
 
 - job:
     name: nebulous-slo-violation-detector-helm-lint

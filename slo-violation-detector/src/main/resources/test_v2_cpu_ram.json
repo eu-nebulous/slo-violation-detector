@@ -1,0 +1,17 @@
+{
+  "id": "and-0",
+  "and-0": [
+    {
+      "id": "1",
+      "attribute": "cpu",
+      "operator": ">",
+      "threshold": "80"
+    },
+    {
+      "id": "2",
+      "attribute": "ram",
+      "operator": ">",
+      "threshold": "70"
+    }
+  ]
+}

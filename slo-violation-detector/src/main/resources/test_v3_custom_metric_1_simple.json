@@ -1,0 +1,12 @@
+{
+  "name": "_",
+  "operator":"OR",
+  "constraints":[
+    {
+      "name":"custom_metric_1_too_high",
+      "metric": "custom_metric_1",
+      "operator":"\u003e",
+      "threshold": 1.0
+    }
+  ]
+}

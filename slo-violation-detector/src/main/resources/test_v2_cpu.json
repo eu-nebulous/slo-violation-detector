@@ -1,0 +1,6 @@
+{
+  "id":"1",
+  "attribute": "cpu",
+  "operator": ">",
+  "threshold": "70"
+}

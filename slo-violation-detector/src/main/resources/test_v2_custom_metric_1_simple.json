@@ -1,0 +1,6 @@
+{
+  "id":"1",
+  "attribute": "custom_metric_1",
+  "operator": ">=",
+  "threshold": "1"
+}

@@ -1,0 +1,24 @@
+{
+  "and-1": {
+    "attribute": "cpu",
+    "operator": ">",
+    "value": "80"
+  },
+  "and-2":{
+    "attribute": "ram",
+    "operator": ">",
+    "value": "70"
+  },
+  "and-3":{
+    "and-3.1":{
+      "attribute": "bandwidth",
+      "operator": ">",
+      "value": "70"
+    },
+    "or-3.2":{
+      "attribute": "disk",
+      "operator": ">",
+      "value": "90"
+    }
+  }
+}
