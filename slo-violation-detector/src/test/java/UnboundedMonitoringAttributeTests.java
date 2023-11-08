@@ -19,7 +19,7 @@ import org.junit.Test;
 import runtime.Main;
 import slo_processing.SLORule;
 import slo_processing.SLOSubRule;
-import utility_beans.MonitoringAttributeUtilities;
+import utilities.MonitoringAttributeUtilities;
 import utility_beans.PredictedMonitoringAttribute;
 import utility_beans.RealtimeMonitoringAttribute;
 
@@ -39,9 +39,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static runtime.Main.PREDICTION_EXISTS;
-import static runtime.Main.initialize_subrule_and_attribute_associations;
 import static slo_processing.SLORule.process_rule_value;
+import static utilities.SLOViolationDetectorUtils.initialize_subrule_and_attribute_associations;
+import static utilities.SLOViolationDetectorStateUtils.*;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 import static utility_beans.RealtimeMonitoringAttribute.*;
 
@@ -81,7 +81,7 @@ public class UnboundedMonitoringAttributeTests {
 
     public void unbounded_monitoring_attribute_test_core(String json_file_name, String metric_1_name, Double[] metric_lower_bound_range, Double[] metric_upper_bound_range, double severity_lower_bound, double base_metric_value, double metric_max_value, double forecasted_metric_value,double generated_data_confidence_interval, double probability) throws IOException, ParseException {
 
-        Main.can_modify_slo_rules.setValue(true);
+        can_modify_slo_rules.setValue(true);
         Properties prop = new Properties();
 
         URI absolute_configuration_file_path = new File(configuration_file_location).toURI();
@@ -153,15 +153,15 @@ public class UnboundedMonitoringAttributeTests {
                     long targeted_prediction_time = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.prediction_time)).longValue();
                     Logger.getAnonymousLogger().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
 
-                    synchronized (Main.can_modify_slo_rules) {
-                        if(!Main.can_modify_slo_rules.getValue()) {
-                            Main.can_modify_slo_rules.wait();
+                    synchronized (can_modify_slo_rules) {
+                        if(!can_modify_slo_rules.getValue()) {
+                            can_modify_slo_rules.wait();
                         }
-                        Main.can_modify_slo_rules.setValue(false);
+                        can_modify_slo_rules.setValue(false);
 
-                        if( Main.adaptation_times.size()==0 || (!Main.adaptation_times.contains(targeted_prediction_time)) && targeted_prediction_time>Main.adaptation_times.stream().min(Long::compare).get()){
+                        if( adaptation_times.size()==0 || (!adaptation_times.contains(targeted_prediction_time)) && targeted_prediction_time>adaptation_times.stream().min(Long::compare).get()){
                             Logger.getAnonymousLogger().log(info_logging_level,"Adding a new targeted prediction time "+targeted_prediction_time);
-                            Main.adaptation_times.add(targeted_prediction_time);
+                            adaptation_times.add(targeted_prediction_time);
                             synchronized (PREDICTION_EXISTS) {
                                 PREDICTION_EXISTS.setValue(true);
                                 PREDICTION_EXISTS.notifyAll();
@@ -181,7 +181,7 @@ public class UnboundedMonitoringAttributeTests {
                                 getPredicted_monitoring_attributes().get(subrule.getId()).put(targeted_prediction_time, prediction_attribute);
                             }
                         }
-                        Main.can_modify_slo_rules.setValue(true);
+                        can_modify_slo_rules.setValue(true);
                     }
                     //SLOViolationCalculator.get_Severity_all_metrics_method(prediction_attribute)
 
@@ -191,7 +191,7 @@ public class UnboundedMonitoringAttributeTests {
                 return message;
             };
             Thread forecasted_subscription_thread = new Thread(() -> {
-                synchronized (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
+                synchronized (HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
                     //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name).getValue())
                     forecasted_subscriber.subscribe(forecasted_function,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
                 }

@@ -106,9 +106,11 @@ then an SLO violation should be triggered.
 
 The component can be built using Maven (`mvn clean install -Dtest=!UnboundedMonitoringAttributeTests`). This command should succeed without errors, and verifying that all tests (except for the Unbounded monitoring attribute tests) are successfully executed. Then, any of the produced jar files (either the shaded or non-shaded version) can be run using the following command:
 
-`java -jar <jar_name> <configuration_file_location>`
+`java -jar <jar_name> <role_type> <configuration_file_location>`
 
 When the component starts correctly it will not display any error logs, and it may also display that it listens for events on the topic in which SLO rules are to be specified (by default **metrics.metric_list**).
+
+It is not mandatory to specify the <configuration_file_location> or the <role_type> but the defaults will be assumed (the location of the configuration file will be based on the Constants.java class and the role will be OperationalMode.DIRECTOR )
 
 When debugging/developing, the component can be started from the Java main method which is located inside the src/runtime/Main.java file.
 
@@ -133,6 +135,11 @@ To test the functionality of the component - provided that a working ActiveMQ Br
    ```
 
 To illustrate, in the case that an SLO message identical to the simple SLO example is sent at step 1, then monitoring messages should be sent in step 2 to the `cpu_usage` topic and predicted monitoring messages should be sent in step 3 to the `prediction.cpu_usage` topic. Finally, SLO violations will be announced at the `prediction.slo_severity_value` topic.
+
+### Development
+
+Starting new threads in the SLO Violation Detection component should only be done using the CharacterizedThread class, as opposed to using plain Threads - to reassure that Threads are being defined in a way which permits their appropriate management (registration/removal).
+
 
 ### Docker container build
 

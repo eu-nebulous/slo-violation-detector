@@ -8,7 +8,6 @@
 
 import org.junit.Test;
 import utility_beans.MonitoringAttributeStatistics;
-import utility_beans.MonitoringAttributeUtilities;
 import utility_beans.RealtimeMonitoringAttribute;
 import utility_beans.PredictedMonitoringAttribute;
 

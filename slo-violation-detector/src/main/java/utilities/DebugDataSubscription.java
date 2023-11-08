@@ -5,18 +5,19 @@ import eu.melodic.event.brokerclient.BrokerSubscriber;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import runtime.Main;
 import slo_processing.SLOSubRule;
+import utility_beans.CharacterizedThread;
 import utility_beans.RealtimeMonitoringAttribute;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.logging.Logger;
 
 import static configuration.Constants.amq_library_configuration_location;
 import static configuration.Constants.info_logging_level;
-import static runtime.Main.running_threads;
-import static runtime.Main.slo_violation_event_recording_queue;
+import static runtime.Main.*;
+import static utilities.SLOViolationDetectorStateUtils.*;
+import static utility_beans.CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread;
 
 /**
  * The objective of this class is to allow a structured synopsis of the current state of the SLO Violation Detector to be created, as a response to a request sent to it through an appropriate topic.
@@ -33,7 +34,18 @@ public class DebugDataSubscription {
         intermediate_debug_string = new StringBuilder(intermediate_debug_string + "The following threads are currently running" + "\n");
 
         boolean flag_first_element_iterated = true;
-        for (String s : running_threads.keySet()){
+        intermediate_debug_string.append("Persistent running threads:\n");
+        for (String s : persistent_running_threads.keySet()){
+            if (flag_first_element_iterated) {
+                intermediate_debug_string.append(s);
+                flag_first_element_iterated = false;
+            }else{
+                intermediate_debug_string.append(",\n").append(s);
+            }
+        }
+        flag_first_element_iterated = true;
+        intermediate_debug_string.append("SLO-bound running threads:\n");
+        for (String s : slo_bound_running_threads.keySet()){
             if (flag_first_element_iterated) {
                 intermediate_debug_string.append(s);
                 flag_first_element_iterated = false;
@@ -81,7 +93,7 @@ public class DebugDataSubscription {
         output_debug_data = output_debug_data+intermediate_debug_string;
         intermediate_debug_string = new StringBuilder();
 
-        output_debug_data = output_debug_data+"\nShowing the adaptation times that pend processing:\n"+ Main.adaptation_times_pending_processing;
+        output_debug_data = output_debug_data+"\nShowing the adaptation times that pend processing:\n"+ adaptation_times_pending_processing;
         intermediate_debug_string.append("\nThese are the timestamps of the latest adaptation events\n").append(slo_violation_event_recording_queue);
 
         Logger.getGlobal().log(info_logging_level,"Debug data generated:\n"+output_debug_data);
@@ -91,11 +103,11 @@ public class DebugDataSubscription {
     };
     public static void initiate(String broker_ip_address, String broker_username, String broker_password) {
         BrokerSubscriber debug_data_subscriber = new BrokerSubscriber(debug_data_trigger_topic_name, broker_ip_address, broker_username, broker_password, amq_library_configuration_location);
-        Thread debug_data_subscription_thread = new Thread(() -> {
+        Runnable debug_data_subscription_runnable = () -> {
             try {
-                synchronized (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_trigger_topic_name)) {
+                synchronized (HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_trigger_topic_name)) {
                     //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_topic_name).getValue())
-                    debug_data_subscriber.subscribe(debug_data_generation, Main.stop_signal);
+                    debug_data_subscriber.subscribe(debug_data_generation, stop_signal);
                 }
                 if (Thread.interrupted()) {
                     throw new InterruptedException();
@@ -107,10 +119,9 @@ public class DebugDataSubscription {
                 }
             } finally {
                 Logger.getAnonymousLogger().log(info_logging_level, "Removing debug data subscriber thread for " + debug_data_trigger_topic_name);
-                running_threads.remove("debug_data_subscription_thread_" + debug_data_trigger_topic_name);
+                slo_bound_running_threads.remove("debug_data_subscription_thread_" + debug_data_trigger_topic_name);
             }
-        });
-        running_threads.put("debug_data_subscription_thread_" + debug_data_trigger_topic_name, debug_data_subscription_thread);
-        debug_data_subscription_thread.start();
+        };
+        CharacterizedThread.create_new_thread(debug_data_subscription_runnable,"debug_data_subscription_thread_" + debug_data_trigger_topic_name,slo_bound_running_thread,true);
     }
 }

@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import static configuration.Constants.*;
 import static slo_processing.SLOSubRule.find_rule_type;
+import static utilities.SLOViolationDetectorStateUtils.severity_calculation_event_recording_queue;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
 public class SLORule {
@@ -225,7 +226,7 @@ public class SLORule {
                 calculation_logging_string.append("\nDue to the severity value being over 10000, it is replaced by 10000");
                 rule_result_value = 10000;
             }
-            Main.severity_calculation_event_recording_queue.add(calculation_logging_string.toString());
+            severity_calculation_event_recording_queue.add(calculation_logging_string.toString());
             return rule_result_value;
         }
 

@@ -13,7 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static utility_beans.MonitoringAttributeUtilities.isZero;
+import static utilities.MonitoringAttributeUtilities.isZero;
 import static utility_beans.RealtimeMonitoringAttribute.*;
 
 public class PredictedMonitoringAttribute {

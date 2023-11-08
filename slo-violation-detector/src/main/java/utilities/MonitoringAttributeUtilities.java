@@ -6,9 +6,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */        
 
-package utility_beans;
+package utilities;
 
 import slo_processing.SLOSubRule;
+import utility_beans.MonitoringAttributeStatistics;
+import utility_beans.RealtimeMonitoringAttribute;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -36,6 +36,8 @@ public class Constants {
     public static String configuration_file_location =  "src/main/resources/config/input_data.properties";
     public static String amq_library_configuration_location = "src/main/resources/config/eu.melodic.event.brokerclient.properties";
     public static String topic_for_severity_announcement = "prediction.slo_severity_value";
+    public static String topic_for_lost_device_announcement = "eu.nebulouscloud.device_lost";
+    public static String slo_rules_topic = "metrics.metric_list";
     public static double slo_violation_probability_threshold = 0.5; //The threshold over which the probability of a predicted slo violation should be to have a violation detection
     public static int kept_values_per_metric = 5; //Default to be overriden from the configuration file. This indicates how many metric values are kept to calculate the "previous" metric value during the rate of change calculation
     public static String roc_calculation_mode = "prototype";

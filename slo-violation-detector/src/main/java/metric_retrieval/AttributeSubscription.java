@@ -18,6 +18,7 @@ import org.json.simple.parser.ParseException;
 import runtime.Main;
 import slo_processing.SLORule;
 import slo_processing.SLOSubRule;
+import utility_beans.CharacterizedThread;
 import utility_beans.PredictedMonitoringAttribute;
 import utility_beans.RealtimeMonitoringAttribute;
 
@@ -28,13 +29,13 @@ import java.util.logging.Logger;
 
 import static configuration.Constants.*;
 import static runtime.Main.*;
+import static utilities.SLOViolationDetectorStateUtils.*;
+import static utility_beans.CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 import static utility_beans.RealtimeMonitoringAttribute.update_monitoring_attribute_value;
 
 public class AttributeSubscription {
     SLORule slo_rule;
-    private Thread realtime_subscription_thread, forecasted_subscription_thread;
-
 
     public AttributeSubscription(SLORule slo_rule, String broker_ip_address, String broker_username, String broker_password){
         this.slo_rule = slo_rule;
@@ -59,9 +60,9 @@ public class AttributeSubscription {
                 }
                 return message;
             };
-            realtime_subscription_thread = new Thread(() -> {
+            Runnable realtime_subscription_runnable = () -> {
                 try {
-                    subscriber.subscribe(function, Main.stop_signal);
+                    subscriber.subscribe(function, stop_signal);
                     if(Thread.interrupted()){
                         throw new InterruptedException();
                     }
@@ -72,11 +73,10 @@ public class AttributeSubscription {
                     }
                 }finally{
                     Logger.getAnonymousLogger().log(info_logging_level,"Removing realtime subscriber thread for "+realtime_metric_topic_name);
-                    running_threads.remove("realtime_subscriber_thread_" + realtime_metric_topic_name);
+                    slo_bound_running_threads.remove("realtime_subscriber_thread_" + realtime_metric_topic_name);
                 }
-            });
-            running_threads.put("realtime_subscriber_thread_"+realtime_metric_topic_name,realtime_subscription_thread);
-            realtime_subscription_thread.start();
+            };
+            CharacterizedThread.create_new_thread(realtime_subscription_runnable,"realtime_subscriber_thread_"+realtime_metric_topic_name,slo_bound_running_thread,true);
 
 
 
@@ -137,11 +137,11 @@ public class AttributeSubscription {
                             ADAPTATION_TIMES_MODIFY.setValue(true);
                             ADAPTATION_TIMES_MODIFY.notifyAll();
                         }
-                    synchronized (Main.can_modify_slo_rules) {
-                        while(!Main.can_modify_slo_rules.getValue()) {
-                            Main.can_modify_slo_rules.wait();
+                    synchronized (can_modify_slo_rules) {
+                        while(!can_modify_slo_rules.getValue()) {
+                            can_modify_slo_rules.wait();
                         }
-                        Main.can_modify_slo_rules.setValue(false);
+                        can_modify_slo_rules.setValue(false);
                         for (SLOSubRule subrule : SLOSubRule.getSlo_subrules_per_monitoring_attribute().get(predicted_attribute_name)) { //Get the subrules which are associated to the monitoring attribute which is predicted, and perform the following processing to each one of them
 
                             getPredicted_monitoring_attributes().computeIfAbsent(subrule.getId(), k -> new HashMap<>());
@@ -173,12 +173,11 @@ public class AttributeSubscription {
                 return message;
             };
 
-
-            forecasted_subscription_thread = new Thread(() -> {
+            Runnable forecasted_subscription_runnable = () -> {
                 try {
-                    synchronized (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
+                    synchronized (HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
                         //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name).getValue())
-                        forecasted_subscriber.subscribe(forecasted_function,Main.stop_signal);
+                        forecasted_subscriber.subscribe(forecasted_function,stop_signal);
                     }
                     if (Thread.interrupted()) {
                         throw new InterruptedException();
@@ -190,12 +189,10 @@ public class AttributeSubscription {
                     }
                 }finally {
                     Logger.getAnonymousLogger().log(info_logging_level,"Removing forecasting subscriber thread for "+forecasted_metric_topic_name);
-                    running_threads.remove("forecasting_subscriber_thread_"+forecasted_metric_topic_name);
+                    slo_bound_running_threads.remove("forecasting_subscriber_thread_"+forecasted_metric_topic_name);
                 }
-            });
-            running_threads.put("forecasting_subscriber_thread_"+forecasted_metric_topic_name,forecasted_subscription_thread);
-            forecasted_subscription_thread.start();
-
+            };
+            CharacterizedThread.create_new_thread(forecasted_subscription_runnable, "forecasting_subscriber_thread_" + forecasted_metric_topic_name, slo_bound_running_thread, true);
         }
     }
 }
