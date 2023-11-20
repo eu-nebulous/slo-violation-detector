@@ -6,8 +6,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */        
 
-package slo_processing;
+package slo_rule_modelling;
 
+import slo_violation_detector_engine.DetectorSubcomponent;
 import utility_beans.PredictedMonitoringAttribute;
 
 import java.util.ArrayList;
@@ -24,12 +25,12 @@ public class SLOSubRule {
     private Integer id;
     private PredictedMonitoringAttribute associated_predicted_monitoring_attribute;
 
-    public SLOSubRule(String metric, String operator, Double threshold,Integer id){
+    public SLOSubRule(DetectorSubcomponent detector,String metric, String operator, Double threshold, Integer id){
         this.metric = metric;
         this.operator = operator;
         this.threshold = threshold;
         this.id = id;
-        this.associated_predicted_monitoring_attribute = new PredictedMonitoringAttribute(metric);
+        this.associated_predicted_monitoring_attribute = new PredictedMonitoringAttribute(detector, metric);
         this.rule_type = find_rule_type(operator);
     }
     public static RuleType find_rule_type(String operator){

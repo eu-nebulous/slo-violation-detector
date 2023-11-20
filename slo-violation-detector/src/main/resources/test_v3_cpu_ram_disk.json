@@ -1,6 +1,7 @@
 {
   "name": "_",
   "operator":"OR",
+  "version": 1,
   "constraints":[
     {
       "name":"cpu_and_memory_or_disk_too_high",

@@ -4,10 +4,12 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */        
+ */
 
-import eu.melodic.event.brokerclient.BrokerPublisher;
-import eu.melodic.event.brokerclient.BrokerSubscriber;
+//import eu.melodic.event.brokerclient.BrokerPublisher;
+//import eu.melodic.event.brokerclient.BrokerSubscriber;
+import utility_beans.BrokerPublisher;
+import utility_beans.BrokerSubscriber;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -24,7 +26,6 @@ import java.util.function.BiFunction;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static utilities.SLOViolationDetectorStateUtils.slo_bound_running_threads;
 
 
 public class ConnectivityTests {
@@ -72,7 +73,7 @@ public class ConnectivityTests {
                 subscriber.subscribe(slo_function,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
             });
             subscription_thread.start();
-            slo_bound_running_threads.put("Test topic subscription thread",subscription_thread);
+            //slo_bound_running_threads.put("Test topic subscription thread",subscription_thread);
 
             publisher.publish(object_to_publish.toJSONString());
             try {

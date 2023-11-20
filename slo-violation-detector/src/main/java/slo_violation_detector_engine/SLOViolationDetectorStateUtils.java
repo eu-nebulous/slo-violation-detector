@@ -1,7 +1,7 @@
-package utilities;
+package slo_violation_detector_engine;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
-import slo_processing.SLORule;
+import slo_rule_modelling.SLORule;
 import utility_beans.*;
 
 import java.io.File;
@@ -19,28 +19,11 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 
 public class SLOViolationDetectorStateUtils {
-    public static ArrayList<SLORule> slo_rules = new ArrayList<>();
-    public static HashMap<String,Thread> slo_bound_running_threads = new HashMap<>();
-    public static HashMap<String,Thread> persistent_running_threads = new HashMap<>();
-    public static HashSet<Long> adaptation_times = new HashSet<>();
-    public static HashSet<Long> adaptation_times_pending_processing = new HashSet<>();
-    public static Long last_processed_adaptation_time = -1L;//initialization
-    public  static int slo_violation_detection_component_instance_identifier;
     private static String self_starting_command_string = "java -jar SLOSeverityCalculator-4.0-SNAPSHOT.jar > $LOG_FILE 2>&1";
     public static OperationalMode operational_mode;
-    public static final AtomicBoolean stop_signal = new AtomicBoolean(false);
-    public static final SynchronizedInteger create_new_slo_detector = new SynchronizedInteger(0);
-    public static final SynchronizedBoolean PREDICTION_EXISTS = new SynchronizedBoolean(false);
-    public static final SynchronizedBoolean ADAPTATION_TIMES_MODIFY = new SynchronizedBoolean(true);
-    public static SynchronizedBooleanMap HAS_MESSAGE_ARRIVED = new SynchronizedBooleanMap();
+    public final SynchronizedInteger create_new_slo_detector = new SynchronizedInteger(0);
     public static SynchronizedStringMap MESSAGE_CONTENTS = new SynchronizedStringMap();
 
-    public static final AtomicBoolean slo_rule_arrived = new AtomicBoolean(false);
-    public static final SynchronizedBoolean can_modify_slo_rules = new SynchronizedBoolean(false);
-
-    //Debugging variables
-    public static CircularFifoQueue<Long> slo_violation_event_recording_queue = new CircularFifoQueue<>(50);
-    public static CircularFifoQueue<String> severity_calculation_event_recording_queue = new CircularFifoQueue<>(50);
     public static Properties prop = new Properties();
 
 

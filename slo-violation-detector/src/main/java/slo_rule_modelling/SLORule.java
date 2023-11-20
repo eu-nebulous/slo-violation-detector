@@ -6,13 +6,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */        
 
-package slo_processing;
+package slo_rule_modelling;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import runtime.Main;
+import slo_violation_detector_engine.DetectorSubcomponent;
 import utilities.MathUtils;
 import utilities.SLOViolationCalculator;
 import utility_beans.RealtimeMonitoringAttribute;
@@ -26,26 +26,45 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static configuration.Constants.*;
-import static slo_processing.SLOSubRule.find_rule_type;
-import static utilities.SLOViolationDetectorStateUtils.severity_calculation_event_recording_queue;
+import static slo_rule_modelling.SLOSubRule.find_rule_type;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
 public class SLORule {
+    private DetectorSubcomponent associated_detector;
     private static HashMap<String,Integer> attribute_ids = new HashMap<>(6);
     private ArrayList<SLOSubRule> slo_subrules = new ArrayList<>(6);
     private ArrayList<String> monitoring_attributes  = new ArrayList<>();
     private JSONObject rule_representation;
     private SLOFormatVersion rule_format;
+
+    public DetectorSubcomponent getAssociated_detector() {
+        return associated_detector;
+    }
+
+    public void setAssociated_detector(DetectorSubcomponent associated_detector) {
+        this.associated_detector = associated_detector;
+    }
+
     private enum SLOFormatVersion {invalid,older,newer}
     private static int id = 0;
     //double SLO_severity;
-
-    public SLORule(String rule_representation, ArrayList<String> metric_list){
+    public SLORule (DetectorSubcomponent detector, String rule_representation){
+        //A very simple initializer, meant for tests and encapsulated SLO rules inside other SLO rules
+        try {
+            this.rule_representation = (JSONObject) new JSONParser().parse(rule_representation);
+        }catch (ParseException p){
+            p.printStackTrace();
+        }
+        this.rule_format = find_rule_format(this.rule_representation);
+        this.slo_subrules = parse_subrules(detector,this.rule_representation,this.rule_format);
+        this.associated_detector = detector;
+    }
+    public SLORule(String rule_representation, ArrayList<String> metric_list, DetectorSubcomponent associated_detector){
         for (String metric: metric_list) {
             RealtimeMonitoringAttribute monitoring_attribute;
-            if (!RealtimeMonitoringAttribute.getMonitoring_attributes().containsKey(metric)){
+            if (!associated_detector.getSubcomponent_state().getMonitoring_attributes().containsKey(metric)){
                 monitoring_attribute = new RealtimeMonitoringAttribute(metric);
-                RealtimeMonitoringAttribute.getMonitoring_attributes().put(metric,monitoring_attribute);
+                associated_detector.getSubcomponent_state().getMonitoring_attributes().put(metric,monitoring_attribute);
             }
             monitoring_attributes.add(metric);
         }
@@ -55,7 +74,8 @@ public class SLORule {
             p.printStackTrace();
         }
         this.rule_format = find_rule_format(this.rule_representation);
-        this.slo_subrules = parse_subrules(this.rule_representation,this.rule_format);
+        this.slo_subrules = parse_subrules(associated_detector,this.rule_representation,this.rule_format);
+        this.associated_detector = associated_detector;
     }
 
     private static SLOFormatVersion find_rule_format(JSONObject rule_representation) {
@@ -78,7 +98,7 @@ public class SLORule {
         return rule_format;
     }
 
-    public static ArrayList<SLOSubRule> parse_subrules(JSONObject rule_json, SLOFormatVersion rule_format){
+    public static ArrayList<SLOSubRule> parse_subrules(DetectorSubcomponent detector, JSONObject rule_json, SLOFormatVersion rule_format){
         ArrayList<SLOSubRule> subrules = new ArrayList<>(); //initialization
         String rule_id = (String) rule_json.get("id");
         String rule_operator = (String) rule_json.get("operator");
@@ -88,16 +108,16 @@ public class SLORule {
                 JSONArray subrules_json_array = (JSONArray) rule_json.get(rule_id);
                 for (Object subrule : subrules_json_array) {
                     JSONObject json_subrule = (JSONObject) subrule;
-                    subrules.addAll(parse_subrules(json_subrule,rule_format));
+                    subrules.addAll(parse_subrules(detector, json_subrule,rule_format));
                 }
             } else {
                 String attribute = (String) rule_json.get("attribute");
                 String threshold = (String) rule_json.get("threshold");
                 if (rule_operator.equals("<>")) {
-                    subrules.add(new SLOSubRule(attribute, "<", Double.parseDouble(threshold), Integer.parseInt(rule_id)));
-                    subrules.add(new SLOSubRule(attribute, ">", Double.parseDouble(threshold), Integer.parseInt(rule_id)+1000000)); //assuming that there are less than 1000000 subrules
+                    subrules.add(new SLOSubRule(detector,attribute, "<", Double.parseDouble(threshold), Integer.parseInt(rule_id)));
+                    subrules.add(new SLOSubRule(detector, attribute, ">", Double.parseDouble(threshold), Integer.parseInt(rule_id)+1000000)); //assuming that there are less than 1000000 subrules
                 } else {
-                    subrules.add(new SLOSubRule(attribute, rule_operator, Double.parseDouble(threshold), Integer.parseInt(rule_id)));
+                    subrules.add(new SLOSubRule(detector,attribute, rule_operator, Double.parseDouble(threshold), Integer.parseInt(rule_id)));
                 }
             }
         }
@@ -107,16 +127,16 @@ public class SLORule {
                 JSONArray subrules_json_array = (JSONArray) rule_json.get("constraints");
                 for (Object subrule : subrules_json_array) {
                     JSONObject json_subrule = (JSONObject) subrule;
-                    subrules.addAll(parse_subrules(json_subrule,rule_format));
+                    subrules.addAll(parse_subrules(detector,json_subrule,rule_format));
                 }
             } else {
                 String attribute = (String) rule_json.get("metric");
                 Double threshold = (Double) rule_json.get("threshold");
                 if (is_composite_rule_from_threshold_operator(rule_operator)) {
-                    subrules.add(new SLOSubRule(attribute, ">", threshold,get_id_for(attribute)));
-                    subrules.add(new SLOSubRule(attribute, "<", threshold,get_id_for(attribute))); //TODO perhaps here change the id
+                    subrules.add(new SLOSubRule(detector,attribute, ">", threshold,get_id_for(attribute)));
+                    subrules.add(new SLOSubRule(detector, attribute, "<", threshold,get_id_for(attribute))); //TODO perhaps here change the id
                 }else{
-                    subrules.add(new SLOSubRule(attribute, rule_operator, threshold,get_id_for(attribute)));
+                    subrules.add(new SLOSubRule(detector,attribute, rule_operator, threshold,get_id_for(attribute)));
                 }
             }
         }
@@ -136,8 +156,10 @@ public class SLORule {
         }
     }
 
-    public static double process_rule_value(JSONObject rule_json,Long targeted_prediction_time, SLOFormatVersion rule_format) {
+    public static double process_rule_value(SLORule rule,Long targeted_prediction_time) {
 
+        JSONObject rule_json = rule.rule_representation;
+        SLOFormatVersion rule_format = rule.rule_format;
         StringBuilder calculation_logging_string = new StringBuilder();
         double rule_result_value = -1; //initialization
         String rule_id = (String)rule_json.get("id");
@@ -182,7 +204,8 @@ public class SLORule {
             for (Object subrule: subrules_json_array) {
                 JSONObject json_subrule = (JSONObject) subrule;
                 //String json_subrule_id = (String) json_subrule.get("id");
-                double subrule_result = process_rule_value(json_subrule,targeted_prediction_time,rule_format);
+                SLORule internal_slo_rule = new SLORule(rule.getAssociated_detector(),json_subrule.toJSONString());
+                double subrule_result = process_rule_value(internal_slo_rule,targeted_prediction_time);
                 calculation_logging_string.append("\nThe severity calculation for subrule ").append(json_subrule).append(" is ").append(subrule_result).append("\n");
                 String logical_operator = EMPTY;
                 if (rule_format.equals(SLOFormatVersion.older)){
@@ -226,7 +249,7 @@ public class SLORule {
                 calculation_logging_string.append("\nDue to the severity value being over 10000, it is replaced by 10000");
                 rule_result_value = 10000;
             }
-            severity_calculation_event_recording_queue.add(calculation_logging_string.toString());
+            rule.getAssociated_detector().getSubcomponent_state().severity_calculation_event_recording_queue.add(calculation_logging_string.toString());
             return rule_result_value;
         }
 

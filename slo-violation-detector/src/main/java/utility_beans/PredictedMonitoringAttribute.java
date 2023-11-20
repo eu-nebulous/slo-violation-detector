@@ -8,6 +8,8 @@
 
 package utility_beans;
 
+import slo_violation_detector_engine.DetectorSubcomponent;
+
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,18 +35,22 @@ public class PredictedMonitoringAttribute {
     private double probability_confidence; //the probability confidence for the prediction
     private double confidence_interval_width;
     private long timestamp;
+
+    private DetectorSubcomponent detector;
     private long targeted_prediction_time;
 
-    public PredictedMonitoringAttribute(String name){
+    public PredictedMonitoringAttribute(DetectorSubcomponent detector, String name){
+        this.detector = detector;
         this.name = name;
     }
-    public PredictedMonitoringAttribute(String name, double threshold, int associated_subrule_id, Double forecasted_value, double probability_confidence, double confidence_interval_width,long timestamp, long targeted_prediction_time){
+    public PredictedMonitoringAttribute(DetectorSubcomponent detector, String name, double threshold, int associated_subrule_id, Double forecasted_value, double probability_confidence, double confidence_interval_width,long timestamp, long targeted_prediction_time){
 
         //Below, it is assumed that the maximum of an attribute is 100, and the minimum of an attribute is 0
+        this.detector = detector;
         this.initialized = true;
         this.name = name;
         this.threshold = threshold;
-        double current_value = RealtimeMonitoringAttribute.get_metric_value(name);
+        double current_value = RealtimeMonitoringAttribute.get_metric_value(detector,name);
         if (Double.isNaN(current_value)){
             Logger.getAnonymousLogger().log(info_logging_level,"Detected NaN value for metric "+name+". Thus we cannot compute severity although a predicted value of "+forecasted_value+" has arrived");
             this.initialized = false;
@@ -55,8 +61,8 @@ public class PredictedMonitoringAttribute {
 
         //Calculations for greater_than rule delta metric
 
-        if(getMonitoring_attributes_statistics().get(name).getUpper_bound()>threshold){
-            this.delta_for_greater_than_rule = 100*(forecasted_value - threshold)/(getMonitoring_attributes_statistics().get(name).getUpper_bound()-threshold);
+        if(detector.getSubcomponent_state().getMonitoring_attributes_statistics().get(name).getUpper_bound()>threshold){
+            this.delta_for_greater_than_rule = 100*(forecasted_value - threshold)/(detector.getSubcomponent_state().getMonitoring_attributes_statistics().get(name).getUpper_bound()-threshold);
         }else /*if (getMonitoring_attributes_statistics().get(name).getUpper_bound()<=threshold)*/{
             if (forecasted_value>threshold){
                 this.delta_for_greater_than_rule = 100;
@@ -71,9 +77,9 @@ public class PredictedMonitoringAttribute {
 
         //Calculations for less_than rule delta metric
 
-        if(threshold>getMonitoring_attributes_statistics().get(name).getLower_bound()) {
+        if(threshold>detector.getSubcomponent_state().getMonitoring_attributes_statistics().get(name).getLower_bound()) {
 
-            this.delta_for_less_than_rule = 100 * (threshold - forecasted_value) / (threshold - getMonitoring_attributes_statistics().get(name).getLower_bound());
+            this.delta_for_less_than_rule = 100 * (threshold - forecasted_value) / (threshold - detector.getSubcomponent_state().getMonitoring_attributes_statistics().get(name).getLower_bound());
 
             //this.previous_delta = 100*Math.abs(current_value-threshold)/(threshold-getMonitoring_attributes_statistics().get(name).getLower_bound());
         }else{
@@ -148,7 +154,7 @@ public class PredictedMonitoringAttribute {
         }
 
         //Streaming percentile calculation, using non-normalized rate of change
-        getMonitoring_attributes_roc_statistics().get(name).update_attribute_statistics(rate_of_change);
+        detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).update_attribute_statistics(rate_of_change);
 
         if (attributes_maximum_rate_of_change.get(name)!=null) {
             attributes_maximum_rate_of_change.remove(name);
@@ -158,16 +164,16 @@ public class PredictedMonitoringAttribute {
             attributes_minimum_rate_of_change.remove(name);
         }
 
-        attributes_maximum_rate_of_change.put(name,Math.min(getMonitoring_attributes_roc_statistics().get(name).getUpper_bound(),roc_limit));
+        attributes_maximum_rate_of_change.put(name,Math.min(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getUpper_bound(),roc_limit));
 
-        attributes_minimum_rate_of_change.put(name,Math.max(getMonitoring_attributes_roc_statistics().get(name).getLower_bound(),-roc_limit));
+        attributes_minimum_rate_of_change.put(name,Math.max(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getLower_bound(),-roc_limit));
 
-        if (Double.isNaN(getMonitoring_attributes_roc_statistics().get(name).getUpper_bound())){
-            Logger.getAnonymousLogger().log(info_logging_level,"NaN value detected for maximum rate of change. The individual metric values are "+getMonitoring_attributes_roc_statistics().get(name).toString());
+        if (Double.isNaN(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getUpper_bound())){
+            Logger.getAnonymousLogger().log(info_logging_level,"NaN value detected for maximum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
         }
 
-        if (Double.isNaN(getMonitoring_attributes_roc_statistics().get(name).getLower_bound())){
-            Logger.getAnonymousLogger().log(info_logging_level,"NaN value detected for minimum rate of change. The individual metric values are "+getMonitoring_attributes_roc_statistics().get(name).toString());
+        if (Double.isNaN(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getLower_bound())){
+            Logger.getAnonymousLogger().log(info_logging_level,"NaN value detected for minimum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
         }
 
         return Math.max(Math.min(normalized_rate_of_change,100.0),-100.0);
@@ -176,8 +182,8 @@ public class PredictedMonitoringAttribute {
     public double getNormalizedConfidenceIntervalWidth(){
 
         double normalized_interval;
-        double maximum_metric_value = getMonitoring_attributes_statistics().get(name).getUpper_bound();
-        double minimum_metric_value = getMonitoring_attributes_statistics().get(name).getLower_bound();
+        double maximum_metric_value = detector.getSubcomponent_state().getMonitoring_attributes_statistics().get(name).getUpper_bound();
+        double minimum_metric_value = detector.getSubcomponent_state().getMonitoring_attributes_statistics().get(name).getLower_bound();
 
         if (Double.isInfinite(this.confidence_interval_width)){
             Logger.getAnonymousLogger().log(info_logging_level,"Since the confidence interval is deemed to be infinite, it will be set to 100 and the relevant probability confidence factor should be reduced to the lowest value");

@@ -6,7 +6,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */        
 
-package slo_processing;
+package slo_rule_modelling;
 
 public enum SLORuleJoin {
     and,or

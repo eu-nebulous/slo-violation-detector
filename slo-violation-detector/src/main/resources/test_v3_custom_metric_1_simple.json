@@ -1,6 +1,7 @@
 {
   "name": "_",
   "operator":"OR",
+  "version": 1,
   "constraints":[
     {
       "name":"custom_metric_1_too_high",

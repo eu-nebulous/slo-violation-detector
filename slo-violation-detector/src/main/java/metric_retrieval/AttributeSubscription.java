@@ -8,16 +8,19 @@
 
 package metric_retrieval;
 
-import eu.melodic.event.brokerclient.BrokerSubscriber;
-import eu.melodic.event.brokerclient.templates.EventFields;
-import eu.melodic.event.brokerclient.templates.TopicNames;
+//import eu.melodic.event.brokerclient.BrokerSubscriber;
+//import eu.melodic.event.brokerclient.templates.EventFields;
+//import eu.melodic.event.brokerclient.templates.TopicNames;
+import slo_violation_detector_engine.DetectorSubcomponent;
+import utility_beans.BrokerSubscriber;
+import utility_beans.BrokerSubscriber.EventFields;
+import utility_beans.BrokerSubscriber.TopicNames;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import runtime.Main;
-import slo_processing.SLORule;
-import slo_processing.SLOSubRule;
+import slo_rule_modelling.SLORule;
+import slo_rule_modelling.SLOSubRule;
 import utility_beans.CharacterizedThread;
 import utility_beans.PredictedMonitoringAttribute;
 import utility_beans.RealtimeMonitoringAttribute;
@@ -28,8 +31,7 @@ import java.util.function.BiFunction;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static runtime.Main.*;
-import static utilities.SLOViolationDetectorStateUtils.*;
+import static slo_violation_detector_engine.SLOViolationDetectorStateUtils.*;
 import static utility_beans.CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 import static utility_beans.RealtimeMonitoringAttribute.update_monitoring_attribute_value;
@@ -39,15 +41,17 @@ public class AttributeSubscription {
 
     public AttributeSubscription(SLORule slo_rule, String broker_ip_address, String broker_username, String broker_password){
         this.slo_rule = slo_rule;
+        DetectorSubcomponent detector = slo_rule.getAssociated_detector();
         for (String metric:slo_rule.get_monitoring_attributes()){
 
             String realtime_metric_topic_name = TopicNames.realtime_metric_values_topic(metric);
             Logger.getAnonymousLogger().log(info_logging_level,"Starting realtime subscription at "+realtime_metric_topic_name);
             BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location);
             BiFunction<String,String,String> function = (topic, message) ->{
-                synchronized (RealtimeMonitoringAttribute.getMonitoring_attributes().get(topic)) {
+                RealtimeMonitoringAttribute realtimeMonitoringAttribute = new RealtimeMonitoringAttribute(topic);
+                synchronized (detector.getSubcomponent_state().getMonitoring_attributes().get(topic)) {
                     try {
-                        update_monitoring_attribute_value(topic,((Number)((JSONObject)new JSONParser().parse(message)).get("metricValue")).doubleValue());
+                        update_monitoring_attribute_value(detector,topic,((Number)((JSONObject)new JSONParser().parse(message)).get("metricValue")).doubleValue());
 
                         Logger.getAnonymousLogger().log(info_logging_level,"RECEIVED message with value for "+topic+" equal to "+(((JSONObject)new JSONParser().parse(message)).get("metricValue")));
                     } catch (ParseException e) {
@@ -62,7 +66,7 @@ public class AttributeSubscription {
             };
             Runnable realtime_subscription_runnable = () -> {
                 try {
-                    subscriber.subscribe(function, stop_signal);
+                    subscriber.subscribe(function, detector.stop_signal);
                     if(Thread.interrupted()){
                         throw new InterruptedException();
                     }
@@ -73,10 +77,10 @@ public class AttributeSubscription {
                     }
                 }finally{
                     Logger.getAnonymousLogger().log(info_logging_level,"Removing realtime subscriber thread for "+realtime_metric_topic_name);
-                    slo_bound_running_threads.remove("realtime_subscriber_thread_" + realtime_metric_topic_name);
+                    detector.getSubcomponent_state().slo_bound_running_threads.remove("realtime_subscriber_thread_" + realtime_metric_topic_name);
                 }
             };
-            CharacterizedThread.create_new_thread(realtime_subscription_runnable,"realtime_subscriber_thread_"+realtime_metric_topic_name,slo_bound_running_thread,true);
+            CharacterizedThread.create_new_thread(realtime_subscription_runnable,"realtime_subscriber_thread_"+realtime_metric_topic_name,true,detector);
 
 
 
@@ -105,59 +109,59 @@ public class AttributeSubscription {
                     Logger.getAnonymousLogger().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
 
 
-                        synchronized (ADAPTATION_TIMES_MODIFY) {
-                            while (!ADAPTATION_TIMES_MODIFY.getValue()){
+                        synchronized (detector.ADAPTATION_TIMES_MODIFY) {
+                            while (!detector.ADAPTATION_TIMES_MODIFY.getValue()){
                                 try {
-                                    ADAPTATION_TIMES_MODIFY.wait();
+                                    detector.ADAPTATION_TIMES_MODIFY.wait();
                                 } catch (InterruptedException e) {
                                     Logger.getAnonymousLogger().log(warning_logging_level,"Interrupted while waiting to access the lock for adaptation times object");
                                     e.printStackTrace();
                                 }
                             }
-                            ADAPTATION_TIMES_MODIFY.setValue(false);
-                            if (!adaptation_times.contains(targeted_prediction_time) && (!adaptation_times_pending_processing.contains(targeted_prediction_time)) && ((targeted_prediction_time * 1000 - time_horizon_seconds * 1000L) > (Clock.systemUTC()).millis())) {
+                            detector.ADAPTATION_TIMES_MODIFY.setValue(false);
+                            if (!detector.getSubcomponent_state().adaptation_times.contains(targeted_prediction_time) && (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(targeted_prediction_time)) && ((targeted_prediction_time * 1000 - time_horizon_seconds * 1000L) > (Clock.systemUTC()).millis())) {
                                 Logger.getAnonymousLogger().log(info_logging_level, "Adding a new targeted prediction time " + targeted_prediction_time + " expiring in "+(targeted_prediction_time*1000-System.currentTimeMillis())+" from topic "+topic);
-                                adaptation_times.add(targeted_prediction_time);
-                                synchronized (PREDICTION_EXISTS) {
-                                    PREDICTION_EXISTS.setValue(true);
-                                    PREDICTION_EXISTS.notifyAll();
+                                detector.getSubcomponent_state().adaptation_times.add(targeted_prediction_time);
+                                synchronized (detector.PREDICTION_EXISTS) {
+                                    detector.PREDICTION_EXISTS.setValue(true);
+                                    detector.PREDICTION_EXISTS.notifyAll();
                                 }
                             }else {
-                                if (adaptation_times.contains(targeted_prediction_time)) {
+                                if (detector.getSubcomponent_state().adaptation_times.contains(targeted_prediction_time)) {
                                     Logger.getAnonymousLogger().log(info_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + topic + " as it is already present");
-                                } else if (!adaptation_times_pending_processing.contains(targeted_prediction_time)) {
+                                } else if (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(targeted_prediction_time)) {
                                     if (targeted_prediction_time * 1000 - time_horizon_seconds * 1000L - (Clock.systemUTC()).millis() <= 0) {
                                     Logger.getAnonymousLogger().log(info_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + topic + " as it would expire in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()) + " milliseconds and the prediction horizon is " + time_horizon_seconds * 1000L + " milliseconds");
                                     }else{
                                         Logger.getAnonymousLogger().log(info_logging_level,"Adding new prediction time "+targeted_prediction_time+" which expires in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()));
-                                        adaptation_times_pending_processing.add(targeted_prediction_time);
+                                        detector.getSubcomponent_state().adaptation_times_pending_processing.add(targeted_prediction_time);
                                     }
                                 }
                             }
-                            ADAPTATION_TIMES_MODIFY.setValue(true);
-                            ADAPTATION_TIMES_MODIFY.notifyAll();
+                            detector.ADAPTATION_TIMES_MODIFY.setValue(true);
+                            detector.ADAPTATION_TIMES_MODIFY.notifyAll();
                         }
-                    synchronized (can_modify_slo_rules) {
-                        while(!can_modify_slo_rules.getValue()) {
-                            can_modify_slo_rules.wait();
+                    synchronized (detector.can_modify_slo_rules) {
+                        while(!detector.can_modify_slo_rules.getValue()) {
+                            detector.can_modify_slo_rules.wait();
                         }
-                        can_modify_slo_rules.setValue(false);
+                        detector.can_modify_slo_rules.setValue(false);
                         for (SLOSubRule subrule : SLOSubRule.getSlo_subrules_per_monitoring_attribute().get(predicted_attribute_name)) { //Get the subrules which are associated to the monitoring attribute which is predicted, and perform the following processing to each one of them
 
                             getPredicted_monitoring_attributes().computeIfAbsent(subrule.getId(), k -> new HashMap<>());
                             //if ( (getPredicted_monitoring_attributes().get(subrule.getId()).get(targeted_prediction_time)!=null) &&(getPredicted_monitoring_attributes().get(subrule.getId()).get(targeted_prediction_time).getTimestamp()>timestamp)){
-                            if (last_processed_adaptation_time>=targeted_prediction_time){
+                            if (detector.last_processed_adaptation_time>=targeted_prediction_time){
                                 //Do nothing, as in this case the targeted prediction time of the 'new' prediction is older than or equal to the last processed adaptation timepoint. This means that this prediction has arrived delayed, and so it should be disregarded
                             }else {
-                                PredictedMonitoringAttribute prediction_attribute = new PredictedMonitoringAttribute(predicted_attribute_name, subrule.getThreshold(), subrule.getId(), forecasted_value, probability_confidence, confidence_interval,timestamp, targeted_prediction_time);
+                                PredictedMonitoringAttribute prediction_attribute = new PredictedMonitoringAttribute(detector,predicted_attribute_name, subrule.getThreshold(), subrule.getId(), forecasted_value, probability_confidence, confidence_interval,timestamp, targeted_prediction_time);
 
                                 subrule.setAssociated_predicted_monitoring_attribute(prediction_attribute);
 
                                 getPredicted_monitoring_attributes().get(subrule.getId()).put(targeted_prediction_time, prediction_attribute);
                             }
                         }
-                        can_modify_slo_rules.setValue(true);
-                        can_modify_slo_rules.notifyAll();
+                        detector.can_modify_slo_rules.setValue(true);
+                        detector.can_modify_slo_rules.notifyAll();
                     }
                     //SLOViolationCalculator.get_Severity_all_metrics_method(prediction_attribute)
 
@@ -175,9 +179,9 @@ public class AttributeSubscription {
 
             Runnable forecasted_subscription_runnable = () -> {
                 try {
-                    synchronized (HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
+                    synchronized (detector.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
                         //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name).getValue())
-                        forecasted_subscriber.subscribe(forecasted_function,stop_signal);
+                        forecasted_subscriber.subscribe(forecasted_function,detector.stop_signal);
                     }
                     if (Thread.interrupted()) {
                         throw new InterruptedException();
@@ -189,10 +193,10 @@ public class AttributeSubscription {
                     }
                 }finally {
                     Logger.getAnonymousLogger().log(info_logging_level,"Removing forecasting subscriber thread for "+forecasted_metric_topic_name);
-                    slo_bound_running_threads.remove("forecasting_subscriber_thread_"+forecasted_metric_topic_name);
+                    detector.getSubcomponent_state().persistent_running_detector_threads.remove("forecasting_subscriber_thread_"+forecasted_metric_topic_name);
                 }
             };
-            CharacterizedThread.create_new_thread(forecasted_subscription_runnable, "forecasting_subscriber_thread_" + forecasted_metric_topic_name, slo_bound_running_thread, true);
+            CharacterizedThread.create_new_thread(forecasted_subscription_runnable, "forecasting_subscriber_thread_" + forecasted_metric_topic_name, true,detector);
         }
     }
 }

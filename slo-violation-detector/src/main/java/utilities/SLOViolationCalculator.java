@@ -8,8 +8,7 @@
 
 package utilities;
 
-import slo_processing.SLORule;
-import slo_processing.SLOSubRule;
+import slo_rule_modelling.SLOSubRule;
 import utility_beans.PredictedMonitoringAttribute;
 
 import java.util.logging.Logger;

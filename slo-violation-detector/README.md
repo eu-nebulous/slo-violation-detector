@@ -45,6 +45,7 @@ Multiple SLOs can be joined using an 'AND' or 'OR'-separated syntax. Examples of
 {
   "name": "_",
   "operator": "OR",
+  "version": 1, 
   "constraints": [
     {
       "name": "cpu_usage_too_high",
@@ -60,8 +61,9 @@ Multiple SLOs can be joined using an 'AND' or 'OR'-separated syntax. Examples of
 
 ```json
 {
-  "name": "_",
+  "name": "application_1",
   "operator": "OR",
+  "version": 1,
   "constraints": [
     {
       "name": "cpu_and_memory_or_swap_too_high",
@@ -107,6 +109,8 @@ then an SLO violation should be triggered.
 The component can be built using Maven (`mvn clean install -Dtest=!UnboundedMonitoringAttributeTests`). This command should succeed without errors, and verifying that all tests (except for the Unbounded monitoring attribute tests) are successfully executed. Then, any of the produced jar files (either the shaded or non-shaded version) can be run using the following command:
 
 `java -jar <jar_name> <role_type> <configuration_file_location>`
+
+In the above command, jar_name is the file name of the executable jar of the slo-violation-detector; role_type is a string - either DIRECTOR or DETECTOR; and <configuration_file_location> is another string holding the path to the configuration file.
 
 When the component starts correctly it will not display any error logs, and it may also display that it listens for events on the topic in which SLO rules are to be specified (by default **metrics.metric_list**).
 

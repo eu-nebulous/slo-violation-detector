@@ -8,17 +8,17 @@
 
 package utilities;
 
-import slo_processing.SLOSubRule;
+import slo_rule_modelling.SLOSubRule;
+import slo_violation_detector_engine.DetectorSubcomponentState;
 import utility_beans.MonitoringAttributeStatistics;
 import utility_beans.RealtimeMonitoringAttribute;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import static configuration.Constants.epsilon;
 import static configuration.Constants.roc_limit;
 import static utility_beans.PredictedMonitoringAttribute.*;
-import static utility_beans.RealtimeMonitoringAttribute.*;
+import slo_violation_detector_engine.DetectorSubcomponentState.*;
 
 public class MonitoringAttributeUtilities {
 
@@ -26,44 +26,44 @@ public class MonitoringAttributeUtilities {
         return ((number <= epsilon) && (number>= -epsilon));
     }
 
-    public static void initialize_values(String monitoring_metric_name, Double monitoring_attribute_value) throws Exception {
+    public void initialize_values(String monitoring_metric_name, Double monitoring_attribute_value, DetectorSubcomponentState detector_state) throws Exception {
         if (monitoring_attribute_value == null) {
             throw new Exception("Empty input of previous metric values for metric " + monitoring_metric_name);
         }
 
-        if (getMonitoring_attributes().get(monitoring_metric_name) != null) {
-            getMonitoring_attributes().remove(monitoring_metric_name);
+        if (detector_state.getMonitoring_attributes().get(monitoring_metric_name) != null) {
+            detector_state.getMonitoring_attributes().remove(monitoring_metric_name);
         }
         ArrayList<SLOSubRule> subrules_related_to_monitoring_attribute = SLOSubRule.getSlo_subrules_per_monitoring_attribute().get(monitoring_metric_name);
         for (SLOSubRule subrule : subrules_related_to_monitoring_attribute) {
             getPredicted_monitoring_attributes().remove(subrule.getId());
         }
 
-        getMonitoring_attributes().put(monitoring_metric_name, new RealtimeMonitoringAttribute(monitoring_metric_name, monitoring_attribute_value));
+        detector_state.getMonitoring_attributes().put(monitoring_metric_name, new RealtimeMonitoringAttribute(monitoring_metric_name, monitoring_attribute_value));
 
     }
 
-    public static void initialize_values(String monitoring_metric_name){
+    public static void initialize_values(String monitoring_metric_name, DetectorSubcomponentState detector_state){
         //First remove any pre-existing data then add new data
-        if (getMonitoring_attributes().get(monitoring_metric_name) != null) {
-            getMonitoring_attributes().remove(monitoring_metric_name);
+        if (detector_state.getMonitoring_attributes().get(monitoring_metric_name) != null) {
+            detector_state.getMonitoring_attributes().remove(monitoring_metric_name);
         }
 
-        getMonitoring_attributes().put(monitoring_metric_name, new RealtimeMonitoringAttribute(monitoring_metric_name));
+        detector_state.getMonitoring_attributes().put(monitoring_metric_name, new RealtimeMonitoringAttribute(monitoring_metric_name));
 
-        getMonitoring_attributes_roc_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics()); //The rate of change of a metric, is a metric which itself should be monitored for its upper bound
+        detector_state.getMonitoring_attributes_roc_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics()); //The rate of change of a metric, is a metric which itself should be monitored for its upper bound
 
-        if (!get_initial_upper_bound(monitoring_metric_name).equals(Double.NEGATIVE_INFINITY) &&
-            !get_initial_lower_bound(monitoring_metric_name).equals(Double.POSITIVE_INFINITY))    {
+        if (!detector_state.get_initial_upper_bound(monitoring_metric_name).equals(Double.NEGATIVE_INFINITY) &&
+            !detector_state.get_initial_lower_bound(monitoring_metric_name).equals(Double.POSITIVE_INFINITY))    {
 
-            getMonitoring_attributes_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics(get_initial_lower_bound(monitoring_metric_name), get_initial_upper_bound(monitoring_metric_name)));
+            detector_state.getMonitoring_attributes_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics(detector_state.get_initial_lower_bound(monitoring_metric_name), detector_state.get_initial_upper_bound(monitoring_metric_name)));
 
-        }else if (!get_initial_upper_bound(monitoring_metric_name).equals(Double.NEGATIVE_INFINITY)){
-            getMonitoring_attributes_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics(get_initial_upper_bound(monitoring_metric_name),true));
-        }else if (!get_initial_lower_bound(monitoring_metric_name).equals(Double.POSITIVE_INFINITY)){
-            getMonitoring_attributes_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics(get_initial_lower_bound(monitoring_metric_name),false));
+        }else if (!detector_state.get_initial_upper_bound(monitoring_metric_name).equals(Double.NEGATIVE_INFINITY)){
+            detector_state.getMonitoring_attributes_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics(detector_state.get_initial_upper_bound(monitoring_metric_name),true));
+        }else if (!detector_state.get_initial_lower_bound(monitoring_metric_name).equals(Double.POSITIVE_INFINITY)){
+            detector_state.getMonitoring_attributes_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics(detector_state.get_initial_lower_bound(monitoring_metric_name),false));
         }else {
-            getMonitoring_attributes_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics());
+            detector_state.getMonitoring_attributes_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics());
         }
 
 
