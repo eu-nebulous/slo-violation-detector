@@ -46,7 +46,7 @@ public class Main {
 
         try {
             {
-                InputStream inputStream = null;
+                InputStream inputStream;
                 if (args.length == 0) {
                     operational_mode = getSLOViolationDetectionOperationalMode("DIRECTOR");
                     inputStream = getPreferencesFileInputStream(EMPTY);
@@ -70,9 +70,9 @@ public class Main {
                 slo_violation_probability_threshold = Double.parseDouble(prop.getProperty("slo_violation_probability_threshold"));
                 slo_violation_determination_method = prop.getProperty("slo_violation_determination_method");
                 maximum_acceptable_forward_predictions = Integer.parseInt(prop.getProperty("maximum_acceptable_forward_predictions"));
-                DetectorSubcomponent detector = new DetectorSubcomponent(detached);
+                DetectorSubcomponent detector = new DetectorSubcomponent(default_handled_application_name,detached);
                 detectors.add(detector);
-                ArrayList<String> unbounded_metric_strings = new ArrayList<String>(Arrays.asList(prop.getProperty("metrics_bounds").split(",")));
+                ArrayList<String> unbounded_metric_strings = new ArrayList<>(Arrays.asList(prop.getProperty("metrics_bounds").split(",")));
                 for (String metric_string : unbounded_metric_strings) {
                     detector.getSubcomponent_state().getMonitoring_attributes_bounds_representation().put(metric_string.split(";")[0], metric_string.split(";", 2)[1]);
                 }

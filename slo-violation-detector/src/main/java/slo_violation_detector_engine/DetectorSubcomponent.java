@@ -19,8 +19,6 @@ import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.attac
 public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent{
     public static final SynchronizedInteger detector_integer_id = new SynchronizedInteger();
     public static HashMap<String,DetectorSubcomponent> detector_subcomponents = new HashMap<>(); //A HashMap containing all detector subcomponents
-    private DetectorSubcomponentUtilities utilities;
-
     private DetectorSubcomponentState subcomponent_state;
     public final AtomicBoolean stop_signal = new AtomicBoolean(false);
     public final SynchronizedBoolean can_modify_slo_rules = new SynchronizedBoolean(false);
@@ -34,11 +32,10 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent{
     public Long last_processed_adaptation_time = -1L;//initialization
 
 
-    public DetectorSubcomponent(CharacterizedThread.CharacterizedThreadRunMode characterized_thread_run_mode) {
+    public DetectorSubcomponent(String application_name, CharacterizedThread.CharacterizedThreadRunMode characterized_thread_run_mode) {
         super.thread_type = CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread;
         subcomponent_state = new DetectorSubcomponentState();
-        utilities = new DetectorSubcomponentUtilities();
-        Integer current_detector_id = -1;//initialization
+        Integer current_detector_id;
         synchronized (detector_integer_id){
             /*try {
                 detector_integer_id.wait();
@@ -54,7 +51,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent{
         }else/*detached mode*/{
             CharacterizedThread.create_new_thread(new Runnables.SLODetectionEngineRunnable(this), "detector_"+current_detector_id+"_master_thread", true,this);
         }
-        detector_subcomponents.put(String.valueOf(current_detector_id),this);
+        detector_subcomponents.put(application_name+"_"+current_detector_id,this);
     }
 
     public BiFunction<String, String, String> slo_rule_topic_subscriber_function = (topic, message) -> {
@@ -84,15 +81,6 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent{
         //TODO possibly necessary to remove the next adaptation time as it will probably not be possible to start an adaptation during it
         return topic + ":MSG:" + message;
     };
-
-    public DetectorSubcomponentUtilities getUtilities() {
-        return utilities;
-    }
-
-    public void setUtilities(DetectorSubcomponentUtilities utilities) {
-        this.utilities = utilities;
-    }
-
     public static String get_detector_subcomponent_statistics() {
         return "Currently, the number of active detectors are "+detector_integer_id;
     }

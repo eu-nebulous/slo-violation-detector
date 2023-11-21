@@ -14,7 +14,9 @@ import utility_beans.RealtimeMonitoringAttribute;
 import utility_beans.PredictedMonitoringAttribute;
 
 import java.util.Arrays;
+import java.util.List;
 
+import static configuration.Constants.default_handled_application_name;
 import static configuration.Constants.roc_limit;
 import static utility_beans.PredictedMonitoringAttribute.getAttributes_maximum_rate_of_change;
 import static utility_beans.PredictedMonitoringAttribute.getAttributes_minimum_rate_of_change;
@@ -23,13 +25,11 @@ import static utility_beans.RealtimeMonitoringAttribute.update_monitoring_attrib
 
 public class DerivedMonitoringAttributeTests {
 
-    DetectorSubcomponent detector = new DetectorSubcomponent(CharacterizedThread.CharacterizedThreadRunMode.detached);
+    DetectorSubcomponent detector = new DetectorSubcomponent(default_handled_application_name,CharacterizedThread.CharacterizedThreadRunMode.detached);
     @Test
     public void roc_calculation_test(){
 
-        RealtimeMonitoringAttribute realtimeMonitoringAttribute = new RealtimeMonitoringAttribute("cpu");
-
-        simple_initialize_0_100_bounded_attributes(detector,Arrays.asList(new String[]{"cpu"}));
+        simple_initialize_0_100_bounded_attributes(detector, List.of("cpu"));
         update_monitoring_attribute_value(detector,"cpu",0.0);
         detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().put("cpu", new MonitoringAttributeStatistics()); //The rate of change of a metric, is a metric which itself should be monitored for its upper bound
 

@@ -22,21 +22,34 @@ import static utility_beans.PredictedMonitoringAttribute.*;
 public class RealtimeMonitoringAttribute {
 
     protected String name;
+    private Integer upper_bound;
+    private Integer lower_bound;
+    private CircularFifoQueue<Double> actual_metric_values = new CircularFifoQueue<>(kept_values_per_metric); //the previous actual values of the metric
 
-    private CircularFifoQueue<Double> actual_metric_values = new CircularFifoQueue<Double>(kept_values_per_metric); //the previous actual values of the metric
-
+    public RealtimeMonitoringAttribute(String name, Integer lower_bound, Integer upper_bound){
+        this.name = name;
+        this.lower_bound = lower_bound;
+        this.upper_bound = upper_bound;
+    }
 
     public RealtimeMonitoringAttribute(String name, Collection<Double> values){
         this.name = name;
-        values.stream().forEach(x -> actual_metric_values.add(x));
+        this.lower_bound = 0;
+        this.upper_bound = 100;
+        //Equivalent to below: values.stream().forEach(x -> actual_metric_values.add(x));
+        actual_metric_values.addAll(values);
     }
     public RealtimeMonitoringAttribute(String name, Double value){
         this.name = name;
+        this.lower_bound = 0;
+        this.upper_bound = 100;
         actual_metric_values.add(value);
     }
 
     public RealtimeMonitoringAttribute(String name){
         this.name = name;
+        this.lower_bound = 0;
+        this.upper_bound = 100;
     }
 
     public static Double get_metric_value(DetectorSubcomponent detector, String metric_name){
@@ -88,43 +101,16 @@ public class RealtimeMonitoringAttribute {
         }
     }
 
-
-    /*
-    public static <T extends Iterable<String>> void initialize_monitoring_attribute_min_values(T metric_names){
-        initialize_attribute_value_hashmap(monitoring_attributes_min_values,metric_names);
-    }
-
-    public static <T extends Iterable<String>> void initialize_monitoring_attribute_max_values(T metric_names){
-        initialize_attribute_value_hashmap(monitoring_attributes_max_values,metric_names);
-    }
-*/
-    private static <T extends Iterable<String>> void initialize_attribute_value_hashmap(HashMap<String,Double> hashmap ,T metric_names){
-        for (String metric_name: metric_names){
-            hashmap.put(metric_name,0.0);
+    public static <T extends HashMap<String, RealtimeMonitoringAttribute>> void initialize_monitoring_attributes (DetectorSubcomponent detector, T metric_names_bounds){
+        for (String metric_name : metric_names_bounds.keySet()) {
+            detector.getSubcomponent_state().getMonitoring_attributes_statistics().put(metric_name, new
+                    MonitoringAttributeStatistics(metric_names_bounds.get(metric_name).lower_bound,metric_names_bounds.get(metric_name).upper_bound));
         }
     }
 
-
-/*
-    public static HashMap<String, Double> getMonitoring_attributes_min_values() {
-        return monitoring_attributes_min_values;
-    }
-
-    public static void setMonitoring_attributes_min_values(HashMap<String, Double> monitoring_attributes_min_values) {
-        RealtimeMonitoringAttribute.monitoring_attributes_min_values = monitoring_attributes_min_values;
-    }
-
-    public static HashMap<String, Double> getMonitoring_attributes_max_values() {
-        return monitoring_attributes_max_values;
-    }
-
-    public static void setMonitoring_attributes_max_values(HashMap<String, Double> monitoring_attributes_max_values) {
-        RealtimeMonitoringAttribute.monitoring_attributes_max_values = monitoring_attributes_max_values;
-    }
-*/
-    public static void update_monitoring_attributes_values_map(DetectorSubcomponent detector, HashMap<String, Double> input_data) {
-        for (HashMap.Entry<String,Double> entry: input_data.entrySet()){
-            update_monitoring_attribute_value(detector, entry.getKey(),entry.getValue());
+    private static <T extends Iterable<String>> void initialize_attribute_value_hashmap(HashMap<String,Double> hashmap ,T metric_names){
+        for (String metric_name: metric_names){
+            hashmap.put(metric_name,0.0);
         }
     }
 
@@ -144,5 +130,19 @@ public class RealtimeMonitoringAttribute {
         this.actual_metric_values = actual_metric_values;
     }
 
+    public Integer getUpper_bound() {
+        return upper_bound;
+    }
 
+    public void setUpper_bound(Integer upper_bound) {
+        this.upper_bound = upper_bound;
+    }
+
+    public Integer getLower_bound() {
+        return lower_bound;
+    }
+
+    public void setLower_bound(Integer lower_bound) {
+        this.lower_bound = lower_bound;
+    }
 }

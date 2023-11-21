@@ -5,19 +5,18 @@ import slo_violation_detector_engine.DetectorSubcomponent;
 
 import java.io.IOException;
 
-import static configuration.Constants.EMPTY;
+import static configuration.Constants.default_handled_application_name;
 import static runtime.Main.detectors;
 import static slo_violation_detector_engine.DetectorSubcomponent.detector_integer_id;
 import static utilities.DebugDataSubscription.debug_data_generation;
-import static utilities.DebugDataSubscription.debug_data_output_topic_name;
 import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.detached;
 @RestController
 @RequestMapping("/api")
 public class DetectorRequestMappings {
 
     @RequestMapping("/add-new-detector")
-    public static String start_new_detector_subcomponent() throws IOException {
-        detectors.add(new DetectorSubcomponent(detached));
+    public static String start_new_detector_subcomponent() {
+        detectors.add(new DetectorSubcomponent(default_handled_application_name,detached));
         return ("Spawned new SLO Detector subcomponent instance! Currently, there have been "+detector_integer_id+" detectors spawned");
     }
 

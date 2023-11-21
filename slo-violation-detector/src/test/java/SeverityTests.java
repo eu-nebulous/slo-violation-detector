@@ -17,9 +17,11 @@ import utility_beans.PredictedMonitoringAttribute;
 
 import java.util.ArrayList;
 
+import static configuration.Constants.default_handled_application_name;
+
 
 public class SeverityTests {
-    DetectorSubcomponent detector = new DetectorSubcomponent(CharacterizedThread.CharacterizedThreadRunMode.detached);
+    DetectorSubcomponent detector = new DetectorSubcomponent(default_handled_application_name, CharacterizedThread.CharacterizedThreadRunMode.detached);
     @Test
     public void all_metrics_Severity_test_1(){
 

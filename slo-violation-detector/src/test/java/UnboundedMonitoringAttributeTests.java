@@ -68,8 +68,8 @@ public class UnboundedMonitoringAttributeTests {
      */
 
     //private String metric_1_name = "custom_metric_1";
-    private static Long targeted_prediction_time = 100000000000L;
-    private DetectorSubcomponent detector = new DetectorSubcomponent(detached);
+    private static final Long targeted_prediction_time = 100000000000L;
+    private final DetectorSubcomponent detector = new DetectorSubcomponent(default_handled_application_name,detached);
     @Test
     public void unbounded_monitoring_attribute_test_1() throws IOException, ParseException {
         unbounded_monitoring_attribute_test_core("src/main/resources/test_v3_custom_metric_1_simple.json","custom_metric_1",new Double[]{20.0,35.0},new Double[]{110.0,130.0},0.0,50,100, 90,10,0.80);
@@ -105,7 +105,7 @@ public class UnboundedMonitoringAttributeTests {
         JSONObject rule_json = (JSONObject) new JSONParser().parse(String.join(EMPTY, Files.readAllLines(Paths.get(new File(json_file_name).getAbsolutePath()))));
 
         ArrayList<SLORule> slo_rules = new ArrayList<>();
-        SLORule slo_rule = new SLORule(rule_json.toJSONString(), new ArrayList<>(Arrays.asList(new String[]{metric_1_name})),detector);
+        SLORule slo_rule = new SLORule(rule_json.toJSONString(), new ArrayList<>(Arrays.asList(metric_1_name)),detector);
         slo_rules.add(slo_rule);
         initialize_subrule_and_attribute_associations(slo_rules,new SynchronizedBoolean());
 
@@ -238,9 +238,7 @@ public class UnboundedMonitoringAttributeTests {
         metrics.add(custom_metric_1);
 
         for (MetricConfiguration metric: metrics) {
-            Thread publishing_thread = new Thread(() -> {
-                perpetual_metric_publisher(metric.name,metric.base_metric_value,metric.forecasted_metric_value,metric.confidence_interval,metric.probability, metric_max_value, publish_interval_in_milliseconds);
-            });
+            Thread publishing_thread = new Thread(() -> perpetual_metric_publisher(metric.name,metric.base_metric_value,metric.forecasted_metric_value,metric.confidence_interval,metric.probability, metric_max_value, publish_interval_in_milliseconds));
             publishing_thread.start();
         }
     }
