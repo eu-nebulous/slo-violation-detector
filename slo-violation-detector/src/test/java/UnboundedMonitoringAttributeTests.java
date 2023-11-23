@@ -11,7 +11,7 @@
 //import eu.melodic.event.brokerclient.templates.EventFields;
 //import eu.melodic.event.brokerclient.templates.TopicNames;
 
-import slo_violation_detector_engine.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utility_beans.*;
 import utility_beans.BrokerSubscriber.*;
 import org.json.simple.JSONArray;
@@ -41,7 +41,7 @@ import java.util.logging.Logger;
 
 import static configuration.Constants.*;
 import static slo_rule_modelling.SLORule.process_rule_value;
-import static slo_violation_detector_engine.DetectorSubcomponentUtilities.initialize_subrule_and_attribute_associations;
+import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.initialize_subrule_and_attribute_associations;
 import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.detached;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 import static utility_beans.RealtimeMonitoringAttribute.update_monitoring_attribute_value;

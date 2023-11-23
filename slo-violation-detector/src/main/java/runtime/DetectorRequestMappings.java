@@ -1,13 +1,11 @@
 package runtime;
 
 import org.springframework.web.bind.annotation.*;
-import slo_violation_detector_engine.DetectorSubcomponent;
-
-import java.io.IOException;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
 
 import static configuration.Constants.default_handled_application_name;
 import static runtime.Main.detectors;
-import static slo_violation_detector_engine.DetectorSubcomponent.detector_integer_id;
+import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_integer_id;
 import static utilities.DebugDataSubscription.debug_data_generation;
 import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.detached;
 @RestController

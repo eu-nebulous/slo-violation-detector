@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import slo_violation_detector_engine.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utility_beans.CharacterizedThread;
 import utility_beans.RealtimeMonitoringAttribute;
 

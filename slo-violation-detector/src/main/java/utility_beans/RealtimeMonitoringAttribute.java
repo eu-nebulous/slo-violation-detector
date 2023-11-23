@@ -9,7 +9,7 @@
 package utility_beans;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
-import slo_violation_detector_engine.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utilities.MathUtils;
 
 import java.util.Collection;

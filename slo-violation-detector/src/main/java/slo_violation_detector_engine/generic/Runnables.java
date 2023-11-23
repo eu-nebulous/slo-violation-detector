@@ -1,15 +1,13 @@
-package processing_logic;
+package slo_violation_detector_engine.generic;
 
 //import eu.melodic.event.brokerclient.BrokerPublisher;
-import slo_violation_detector_engine.DetectorSubcomponent;
-import slo_violation_detector_engine.DetectorSubcomponentUtilities;
-import slo_violation_detector_engine.SLOViolationDetectorStateUtils;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponentUtilities;
 import utility_beans.BrokerPublisher;
 import org.json.simple.JSONObject;
 import slo_rule_modelling.SLORule;
 import utility_beans.CharacterizedThread;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.util.Date;
@@ -20,9 +18,9 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 import static java.lang.Thread.sleep;
 import static slo_rule_modelling.SLORule.process_rule_value;
-import static slo_violation_detector_engine.DetectorSubcomponent.*;
-import static slo_violation_detector_engine.SLOViolationDetectorStateUtils.*;
-import static slo_violation_detector_engine.DetectorSubcomponentUtilities.*;
+import static slo_violation_detector_engine.detector.DetectorSubcomponent.*;
+import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
+import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.*;
 import static utilities.DebugDataSubscription.*;
 
 public class Runnables {
@@ -57,7 +55,7 @@ public class Runnables {
     public static Runnable device_lost_topic_subscriber_runnable = () -> {
         while (true) {
             device_lost_subscriber.subscribe(device_lost_subscriber_function, new AtomicBoolean(false)); //This subscriber should be immune to stop signals
-            Logger.getAnonymousLogger().log(info_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
+            Logger.getAnonymousLogger().log(info_logging_level,"A device used by the platform was lost, will therefore trigger a reconfiguration");
             try {
                 Thread.sleep(10000);
             }catch (InterruptedException i){
@@ -84,11 +82,6 @@ public class Runnables {
             BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
 
             while (!detector.stop_signal.get()) {
-                    /*try {
-                        Thread.sleep(time_horizon_seconds*1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }*/
                 synchronized (detector.PREDICTION_EXISTS) {
                     while (!detector.PREDICTION_EXISTS.getValue()) {
                         try {
@@ -132,19 +125,6 @@ public class Runnables {
                     Logger.getAnonymousLogger().log(info_logging_level, "Targeted_prediction_time " + targeted_prediction_time);
                     Runnable internal_severity_calculation_runnable = () -> {
                         try {
-                                /*
-                                synchronized (ADAPTATION_TIMES_MODIFY) {
-                                    while (!ADAPTATION_TIMES_MODIFY.getValue()) {
-                                        ADAPTATION_TIMES_MODIFY.wait();
-                                    }
-                                    ADAPTATION_TIMES_MODIFY.setValue(false);
-                                    adaptation_times.remove(targeted_prediction_time);//remove from the list of timepoints which should be processed. Later this timepoint will be added to the adaptation_times_to_remove HashSet to remove any data associated with it
-                                    ADAPTATION_TIMES_MODIFY.setValue(true);
-                                    ADAPTATION_TIMES_MODIFY.notifyAll();
-                                }
-                                //adaptation_times_pending_processing.add(targeted_prediction_time);
-
-                                 */
                             synchronized (detector.PREDICTION_EXISTS) {
                                 detector.PREDICTION_EXISTS.setValue(detector.getSubcomponent_state().adaptation_times.size() > 0);
                             }

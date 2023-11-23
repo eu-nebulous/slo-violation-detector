@@ -7,13 +7,11 @@
  */        
 
 import org.junit.Test;
-import slo_violation_detector_engine.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utility_beans.CharacterizedThread;
 import utility_beans.MonitoringAttributeStatistics;
-import utility_beans.RealtimeMonitoringAttribute;
 import utility_beans.PredictedMonitoringAttribute;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static configuration.Constants.default_handled_application_name;

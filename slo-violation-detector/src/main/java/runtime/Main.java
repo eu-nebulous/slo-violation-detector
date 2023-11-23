@@ -12,7 +12,8 @@ package runtime;
 //import eu.melodic.event.brokerclient.BrokerSubscriber;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import slo_violation_detector_engine.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
+import slo_violation_detector_engine.director.DirectorSubcomponent;
 import utility_beans.*;
 
 import java.io.IOException;
@@ -24,7 +25,8 @@ import static configuration.Constants.*;
 
 import static java.util.logging.Level.INFO;
 import static utilities.OperationalModeUtils.getSLOViolationDetectionOperationalMode;
-import static slo_violation_detector_engine.SLOViolationDetectorStateUtils.*;
+import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
+import static utilities.OperationalModeUtils.get_director_subscription_topics;
 import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.detached;
 
 
@@ -70,17 +72,19 @@ public class Main {
                 slo_violation_probability_threshold = Double.parseDouble(prop.getProperty("slo_violation_probability_threshold"));
                 slo_violation_determination_method = prop.getProperty("slo_violation_determination_method");
                 maximum_acceptable_forward_predictions = Integer.parseInt(prop.getProperty("maximum_acceptable_forward_predictions"));
+                director_subscription_topics = get_director_subscription_topics();
                 DetectorSubcomponent detector = new DetectorSubcomponent(default_handled_application_name,detached);
                 detectors.add(detector);
                 ArrayList<String> unbounded_metric_strings = new ArrayList<>(Arrays.asList(prop.getProperty("metrics_bounds").split(",")));
                 for (String metric_string : unbounded_metric_strings) {
-                    detector.getSubcomponent_state().getMonitoring_attributes_bounds_representation().put(metric_string.split(";")[0], metric_string.split(";", 2)[1]);
+                    detector.getSubcomponent_state().getMonitoring_attributes_bounds_representation().put(metric_string.split(";")[0], metric_string.split(";", 2)[1]); //TODO delete once this information is successfully received from the AMQP broker
                 }
             } //initialization
             if (operational_mode.equals(OperationalMode.DETECTOR)) {
-                Logger.getAnonymousLogger().log(INFO,"Starting new Detector instance");
+                Logger.getAnonymousLogger().log(INFO,"Starting new Detector instance"); //This detector instance has been already started in the initialization block above as it will be commonly needed both for the plain Detector and the Director-Detector
             }else if (operational_mode.equals(OperationalMode.DIRECTOR)){
                 Logger.getAnonymousLogger().log(INFO,"Starting new Director and new Detector instance");
+                DirectorSubcomponent director = new DirectorSubcomponent();
                 SpringApplication.run(Main.class, args);
                 Logger.getAnonymousLogger().log(INFO,"Execution completed");
             }

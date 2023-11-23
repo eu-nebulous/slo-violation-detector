@@ -4,7 +4,22 @@
 
 The SLO Severity-based Violation Detector is a component which receives predicted and actual monitoring metric values, and produces AMQP messages which denote i) the calculated severity ii) the probability that a reconfiguration will be required and iii) the timestamp which we refer to.
 
-The component can run either using a compiled jar file, or be packaged to a Docker container and run in containerized form. 
+The component can run either using a compiled jar file, or be packaged to a Docker container and run in containerized form. At a high level, the component runs through the following operational phases:
+
+Operational phases
+-----------------------
+
+1. Initialization of generic execution parameters
+2. Choice of operational mode (Detector or Director-Detector)
+3. If the operational mode is Director-Detector then the following steps are carried out:
+   - Initialization of the subscription to the topics the Director-Detector is responsible for
+4. If the operational mode is Detector then the following steps are carried out:
+   - Initialization of the internal structures representing the SLO rules and the monitoring metrics
+   - Subscription to metric_list topic and initialization of new subscribers based on initial message
+   - Subscription to topic_for_lost_device_announcement
+   - Continuous calculation of Severity based on incoming realtime and predicted metrics, and creation of severity output messages when relevant input has been received
+   - Continuous monitoring of reconfiguration statistics and adaptation of the behaviour of the component as appropriate
+
 
 ## Configuration
 
@@ -142,7 +157,27 @@ To illustrate, in the case that an SLO message identical to the simple SLO examp
 
 ### Development
 
+#### General Remarks
+
 Starting new threads in the SLO Violation Detection component should only be done using the CharacterizedThread class, as opposed to using plain Threads - to reassure that Threads are being defined in a way which permits their appropriate management (registration/removal).
+
+#### Internal structure
+
+Execution in the SLO Violation Detector component begins at the Main class, part of the `runtime` package inside the src/main/java folder. Immediately, following some basic initializations the character of the program is determined - either Director-Detector or simple Detector - and then the relevant subcomponents are initialized. If the component is initialized as a Director-Detector, it will also have some active Spring Boot endpoints using which, it will be able to listen to incoming requests and provide information. The way this information is provided, is detailed in the Director and the Detector RequestMapping classes inside the `runtime` package.
+
+Generic constants which should be available throughout the program, are included in the `Constants` class inside the `configuration` package.
+
+The `metric_retrieval` package includes the AttributeSubscription class which manages the subscription to all metrics (or attributes) which are included in a particular SLO rule.
+
+The `slo_rule_modelling` package includes classes which are important to setup the methods in which Severity calculations are described for different kinds of rules. Inside it are the important SLORule and SLOSubRule classes.
+The heart of the SLO Violation Detector is inside the `slo_violation_detector_engine` package, which contains the specific subcomponent classes which describe the behaviour of the two subcomponents of the SLOViD: the Director and the Detector. Also, the `Runnables` class inside it, contains the all runnables and runnable-like classes which do not tightly belong to their surrounding code. Classes are organized in three sub-packages: the `director`, `detector`, and `generic` sub-packages, which include classes specific to the director subcomponent, the detector subcomponent and all subcomponents, respectively.
+
+The `utilities` subpackage contains miscellaneous utility classes which undertake miscellaneous tasks, including the SLOViolationCalculator class which performs the actual severity calculations. Similarly, the `utility_beans` package contains classes designed to model individual aspects of the behaviour of the component.
+
+
+The `src/main/resources` folder contains files which are either used at runtime to fetch resources necessary for the proper execution of the program, or files which help with the testing of the component. Most notable are the property files under the config folder which directly impact the behaviour of the program, and the application.properties file which include parameters which regulate the execution of the Spring Boot part of the component (if a director component is spawned).
+
+The `src/test` folder contains miscellaneous tests which are useful to verify the correct behaviour of the component.
 
 
 ### Docker container build

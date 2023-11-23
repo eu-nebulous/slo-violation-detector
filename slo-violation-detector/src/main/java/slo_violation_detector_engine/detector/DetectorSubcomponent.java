@@ -1,7 +1,8 @@
-package slo_violation_detector_engine;
+package slo_violation_detector_engine.detector;
 
 import org.json.simple.JSONObject;
-import processing_logic.Runnables;
+import slo_violation_detector_engine.generic.Runnables;
+import slo_violation_detector_engine.generic.SLOViolationDetectorSubcomponent;
 import utility_beans.*;
 
 
@@ -12,11 +13,11 @@ import java.util.function.BiFunction;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static slo_violation_detector_engine.SLOViolationDetectorStateUtils.*;
+import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
 import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.attached;
 
 
-public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent{
+public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public static final SynchronizedInteger detector_integer_id = new SynchronizedInteger();
     public static HashMap<String,DetectorSubcomponent> detector_subcomponents = new HashMap<>(); //A HashMap containing all detector subcomponents
     private DetectorSubcomponentState subcomponent_state;

@@ -8,7 +8,7 @@
 
 import org.junit.Test;
 import slo_rule_modelling.SLOSubRule;
-import slo_violation_detector_engine.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utilities.SLOViolationCalculator;
 import utility_beans.CharacterizedThread;
 import utility_beans.MonitoringAttributeStatistics;

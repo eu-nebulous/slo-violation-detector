@@ -8,7 +8,7 @@
 
 package utility_beans;
 
-import slo_violation_detector_engine.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -16,7 +16,6 @@ import java.util.logging.Logger;
 
 import static configuration.Constants.*;
 import static utilities.MonitoringAttributeUtilities.isZero;
-import static utility_beans.RealtimeMonitoringAttribute.*;
 
 public class PredictedMonitoringAttribute {
 

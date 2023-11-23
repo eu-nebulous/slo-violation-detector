@@ -1,7 +1,5 @@
-package slo_violation_detector_engine;
+package slo_violation_detector_engine.generic;
 
-import org.apache.commons.collections4.queue.CircularFifoQueue;
-import slo_rule_modelling.SLORule;
 import utility_beans.*;
 
 import java.io.File;
@@ -9,11 +7,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;

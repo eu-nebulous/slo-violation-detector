@@ -11,7 +11,7 @@ package metric_retrieval;
 //import eu.melodic.event.brokerclient.BrokerSubscriber;
 //import eu.melodic.event.brokerclient.templates.EventFields;
 //import eu.melodic.event.brokerclient.templates.TopicNames;
-import slo_violation_detector_engine.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utility_beans.BrokerSubscriber;
 import utility_beans.BrokerSubscriber.EventFields;
 import utility_beans.BrokerSubscriber.TopicNames;
@@ -31,8 +31,6 @@ import java.util.function.BiFunction;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static slo_violation_detector_engine.SLOViolationDetectorStateUtils.*;
-import static utility_beans.CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 import static utility_beans.RealtimeMonitoringAttribute.update_monitoring_attribute_value;
 

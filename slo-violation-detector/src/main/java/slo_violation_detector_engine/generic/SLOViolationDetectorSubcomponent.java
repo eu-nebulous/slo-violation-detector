@@ -1,4 +1,4 @@
-package slo_violation_detector_engine;
+package slo_violation_detector_engine.generic;
 
 import utility_beans.CharacterizedThread;
 

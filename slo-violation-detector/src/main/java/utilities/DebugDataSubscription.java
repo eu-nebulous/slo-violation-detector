@@ -2,9 +2,8 @@ package utilities;
 
 //import eu.melodic.event.brokerclient.BrokerPublisher;
 //import eu.melodic.event.brokerclient.BrokerSubscriber;
-import processing_logic.Runnables;
-import slo_violation_detector_engine.DetectorSubcomponent;
-import slo_violation_detector_engine.DetectorSubcomponentUtilities;
+import slo_violation_detector_engine.generic.Runnables;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utility_beans.BrokerSubscriber;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_rule_modelling.SLOSubRule;
@@ -19,10 +18,8 @@ import java.util.logging.Logger;
 
 import static configuration.Constants.amq_library_configuration_location;
 import static configuration.Constants.info_logging_level;
-import static slo_violation_detector_engine.DetectorSubcomponent.detector_subcomponents;
-import static slo_violation_detector_engine.DirectorSubcomponent.director_subcomponents;
-import static slo_violation_detector_engine.SLOViolationDetectorStateUtils.*;
-import static utility_beans.CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread;
+import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_subcomponents;
+import static slo_violation_detector_engine.director.DirectorSubcomponent.director_subcomponents;
 import static utility_beans.RealtimeMonitoringAttribute.get_metric_value;
 
 /**

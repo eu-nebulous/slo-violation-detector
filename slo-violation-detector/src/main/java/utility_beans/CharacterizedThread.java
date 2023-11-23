@@ -1,8 +1,8 @@
 package utility_beans;
 
-import slo_violation_detector_engine.DetectorSubcomponent;
-import slo_violation_detector_engine.DirectorSubcomponent;
-import slo_violation_detector_engine.SLOViolationDetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
+import slo_violation_detector_engine.director.DirectorSubcomponent;
+import slo_violation_detector_engine.generic.SLOViolationDetectorSubcomponent;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;

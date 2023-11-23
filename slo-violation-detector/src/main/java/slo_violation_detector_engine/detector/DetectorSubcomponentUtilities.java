@@ -1,7 +1,6 @@
-package slo_violation_detector_engine;
+package slo_violation_detector_engine.detector;
 
 import metric_retrieval.AttributeSubscription;
-import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -25,10 +24,10 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static configuration.Constants.*;
-import static processing_logic.Runnables.device_lost_topic_subscriber_runnable;
-import static processing_logic.Runnables.get_severity_calculation_runnable;
+import static slo_violation_detector_engine.generic.Runnables.device_lost_topic_subscriber_runnable;
+import static slo_violation_detector_engine.generic.Runnables.get_severity_calculation_runnable;
 import static runtime.Main.*;
-import static slo_violation_detector_engine.SLOViolationDetectorStateUtils.*;
+import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
 public class DetectorSubcomponentUtilities {
@@ -281,9 +280,6 @@ public class DetectorSubcomponentUtilities {
 
 
                 //Implementation of 'Lost edge device' thread
-
-
-
 
                 CharacterizedThread.create_new_thread(device_lost_topic_subscriber_runnable,"device_lost_topic_subscriber_thread",true,associated_detector_subcomponent);
 

@@ -1,4 +1,4 @@
-package slo_violation_detector_engine;
+package slo_violation_detector_engine.detector;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_rule_modelling.SLORule;
