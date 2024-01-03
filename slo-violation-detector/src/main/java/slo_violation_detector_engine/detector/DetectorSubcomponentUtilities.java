@@ -108,7 +108,7 @@ public class DetectorSubcomponentUtilities {
             Long possible_targeted_adaptation_time = possible_targeted_prediction_times.get(i);
             if (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(possible_targeted_adaptation_time)){
                 detector.getSubcomponent_state().adaptation_times.remove(possible_targeted_adaptation_time);
-                Logger.getAnonymousLogger().log(info_logging_level,"Removing targeted prediction time "+possible_targeted_adaptation_time+" as it is going to be used");
+                Logger.getGlobal().log(info_logging_level,"Removing targeted prediction time "+possible_targeted_adaptation_time+" as it is going to be used");
                 detector.getSubcomponent_state().adaptation_times_pending_processing.add(possible_targeted_adaptation_time);
                 return possible_targeted_adaptation_time;
             }
@@ -127,31 +127,32 @@ public class DetectorSubcomponentUtilities {
 
     public static boolean slo_rule_arrived_has_updated_version(String rule_representation) {
         JSONObject json_object = null;
-        long json_object_version = Integer.MAX_VALUE;
+        long json_object_version = 1;
         try {
             json_object = (JSONObject) new JSONParser().parse(rule_representation);
-            json_object_version = (Long) json_object.get("version");
+            //json_object_version = (Long) json_object.get("version");
+            json_object_version++;
         } catch (NullPointerException n){
             n.printStackTrace();
-            Logger.getAnonymousLogger().log(info_logging_level,"Unfortunately a null message was sent to the SLO Violation Detector, which is being ignored");
+            Logger.getGlobal().log(info_logging_level,"Unfortunately a null message was sent to the SLO Violation Detector, which is being ignored");
             return false;
         } catch (Exception e){
             e.printStackTrace();
-            Logger.getAnonymousLogger().log(info_logging_level,"Could not parse the JSON of the new SLO, assuming it is not an updated rule...");
+            Logger.getGlobal().log(info_logging_level,"Could not parse the JSON of the new SLO, assuming it is not an updated rule...");
             return false;
         }
         if (json_object_version > current_slo_rules_version){
-            Logger.getAnonymousLogger().log(info_logging_level,"An SLO with updated version ("+json_object_version+" vs older "+current_slo_rules_version+") has arrived");
+            Logger.getGlobal().log(info_logging_level,"An SLO with updated version ("+json_object_version+" vs older "+current_slo_rules_version+") has arrived");
             current_slo_rules_version=json_object_version;
             return true;
         }else {
-            Logger.getAnonymousLogger().log(info_logging_level,"Taking no action for the received SLO message as the version number is not updated");
+            Logger.getGlobal().log(info_logging_level,"Taking no action for the received SLO message as the version number is not updated");
             return false;
         }
     }
 
     public static void stop_all_running_threads(DetectorSubcomponent associated_detector_subcomponent) {
-        Logger.getAnonymousLogger().log(info_logging_level,"Asking previously existing threads to terminate");
+        Logger.getGlobal().log(info_logging_level,"Asking previously existing threads to terminate");
         int initial_number_of_running_threads = associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size();
         while (associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size()>0) {
             synchronized (associated_detector_subcomponent.stop_signal) {
@@ -163,14 +164,14 @@ public class DetectorSubcomponentUtilities {
                 associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.values().forEach(Thread::interrupt);
             }catch (Exception e){
             }
-            Logger.getAnonymousLogger().log(info_logging_level,"Stopped "+(initial_number_of_running_threads- associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size())+"/"+initial_number_of_running_threads+" already running threads");
+            Logger.getGlobal().log(info_logging_level,"Stopped "+(initial_number_of_running_threads- associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size())+"/"+initial_number_of_running_threads+" already running threads");
             if (associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size()>1){
-                Logger.getAnonymousLogger().log(info_logging_level,"The threads which are still running are the following: "+ associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads);
+                Logger.getGlobal().log(info_logging_level,"The threads which are still running are the following: "+ associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads);
             }else if (associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size()>0){
-                Logger.getAnonymousLogger().log(info_logging_level,"The thread which is still running is the following: "+ associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads);
+                Logger.getGlobal().log(info_logging_level,"The thread which is still running is the following: "+ associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads);
             }
         }
-        Logger.getAnonymousLogger().log(info_logging_level,"All threads have terminated");
+        Logger.getGlobal().log(info_logging_level,"All threads have terminated");
         synchronized (associated_detector_subcomponent.stop_signal) {
             associated_detector_subcomponent.stop_signal.set(false);
         }
@@ -212,7 +213,7 @@ public class DetectorSubcomponentUtilities {
                     metric_list.add((String) json_object.get("metric"));
                 }
             }else{
-                Logger.getAnonymousLogger().log(Level.INFO,"An SLO rule was sent in a format which could not be fully parsed, therefore ignoring this rule. The non-understandable part of the SLO rule is printed below"+"\n"+json_object_string);
+                Logger.getGlobal().log(Level.INFO,"An SLO rule was sent in a format which could not be fully parsed, therefore ignoring this rule. The non-understandable part of the SLO rule is printed below"+"\n"+json_object_string);
             }
         }catch (Exception p){
             p.printStackTrace();
@@ -240,7 +241,7 @@ public class DetectorSubcomponentUtilities {
              */
             return Math.min(rule_severity/100,100);
         }else if (slo_violation_determination_method.equals("prconf-delta")){
-            //Logger.getAnonymousLogger().log(warning_logging_level,"The calculation of probability for the prconf-delta method needs to be implemented");
+            //Logger.getGlobal().log(warning_logging_level,"The calculation of probability for the prconf-delta method needs to be implemented");
             //return 0;
             if (rule_severity >= 6.52){
                 return Math.min((50+50*(rule_severity-6.52)/93.48)/100,1);
@@ -249,7 +250,7 @@ public class DetectorSubcomponentUtilities {
             }
 
         }else{
-            Logger.getAnonymousLogger().log(warning_logging_level,"Unknown severity calculation method");
+            Logger.getGlobal().log(warning_logging_level,"Unknown severity calculation method");
             return 0;
         }
     }
@@ -259,20 +260,37 @@ public class DetectorSubcomponentUtilities {
         while (true) {
             if (first_run){
                 //Creation of threads that should always run and are independent of the monitored application.
-                //1. Creation of the slo rule input subscriber thread, which listens for new slo rules to be considered
-                //2. Creation of the lost device subscriber thread, which listens for a new event signalling a lost edge device
+                //1. Creation of the metric list input subscriber thread, which listens for the metrics to be considered
+                //2. Creation of the slo rule input subscriber thread, which listens for new slo rules to be considered
+                //3. Creation of the lost device subscriber thread, which listens for a new event signalling a lost edge device
 
-
-
-                BrokerSubscriber slo_rule_topic_subscriber = new BrokerSubscriber(slo_rules_topic, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
-                Runnable slo_rules_topic_subscriber_runnable = () -> {
+                //Metric list subscription thread
+                BrokerSubscriber metric_list_subscriber = new BrokerSubscriber(metric_list_topic, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
+                Runnable metric_list_topic_subscriber_runnable = () -> {
                     while (true) {
-                        slo_rule_topic_subscriber.subscribe(associated_detector_subcomponent.slo_rule_topic_subscriber_function, new AtomicBoolean(false)); //This subscriber should be immune to stop signals
-                        Logger.getAnonymousLogger().log(info_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
+                        metric_list_subscriber.subscribe(associated_detector_subcomponent.metric_list_subscriber_function, associated_detector_subcomponent.stop_signal); //This subscriber should not be immune to stop signals
+                        Logger.getGlobal().log(info_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
                         try {
                             Thread.sleep(10000);
                         }catch (InterruptedException i){
-                            Logger.getAnonymousLogger().log(info_logging_level,"Sleep was interrupted, will immediately try to connect to the broker");
+                            Logger.getGlobal().log(info_logging_level,"Sleep was interrupted, will immediately try to connect to the broker");
+                        }
+                    }
+                };
+                CharacterizedThread.create_new_thread(metric_list_topic_subscriber_runnable,"metric_list_topic_subscriber_thread",true,associated_detector_subcomponent);
+
+
+
+                //SLO rule subscription thread
+                BrokerSubscriber slo_rule_topic_subscriber = new BrokerSubscriber(slo_rules_topic, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
+                Runnable slo_rules_topic_subscriber_runnable = () -> {
+                    while (true) {
+                        slo_rule_topic_subscriber.subscribe(associated_detector_subcomponent.slo_rule_topic_subscriber_function, associated_detector_subcomponent.stop_signal); //This subscriber should not be immune to stop signals
+                        Logger.getGlobal().log(info_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
+                        try {
+                            Thread.sleep(10000);
+                        }catch (InterruptedException i){
+                            Logger.getGlobal().log(info_logging_level,"Sleep was interrupted, will immediately try to connect to the broker");
                         }
                     }
                 };
@@ -294,7 +312,7 @@ public class DetectorSubcomponentUtilities {
                     }
                     BrokerPublisher publisher = new BrokerPublisher(slo_rules_topic, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
                     publisher.publish(rules_json_string);
-                    Logger.getAnonymousLogger().log(info_logging_level, "Sent message\n" + rules_json_string);
+                    Logger.getGlobal().log(info_logging_level, "Sent message\n" + rules_json_string);
                 }
             }
             first_run = false;

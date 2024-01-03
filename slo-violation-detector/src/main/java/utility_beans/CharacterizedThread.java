@@ -26,14 +26,14 @@ public class CharacterizedThread{
                 ((DetectorSubcomponent)subcomponent).getSubcomponent_state().slo_bound_running_threads.put(thread_name, thread);
             }catch (NullPointerException n){
                 n.printStackTrace();
-                Logger.getAnonymousLogger().log(Level.SEVERE,"Although the thread type for thread "+thread_name+" was declared to be an slo_bound_running_thread, no detector subcomponent was related to it");
+                Logger.getGlobal().log(Level.SEVERE,"Although the thread type for thread "+thread_name+" was declared to be an slo_bound_running_thread, no detector subcomponent was related to it");
             }
         }else if (subcomponent.thread_type.equals(persistent_running_director_thread)){
             ((DirectorSubcomponent) subcomponent).persistent_running_director_threads.put(thread_name,thread);
         }else if (subcomponent.thread_type.equals(persistent_running_detector_thread)){
             ((DetectorSubcomponent)subcomponent).getSubcomponent_state().persistent_running_detector_threads.put(thread_name, thread);
         }else{
-            Logger.getAnonymousLogger().log(Level.WARNING,"Undefined type of thread for thread with name: "+thread_name);
+            Logger.getGlobal().log(Level.WARNING,"Undefined type of thread for thread with name: "+thread_name);
         }
         if (start_thread_now) {
             thread.start();

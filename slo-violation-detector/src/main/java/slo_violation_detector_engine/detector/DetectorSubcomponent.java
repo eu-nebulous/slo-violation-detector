@@ -1,6 +1,8 @@
 package slo_violation_detector_engine.detector;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import slo_violation_detector_engine.generic.Runnables;
 import slo_violation_detector_engine.generic.SLOViolationDetectorSubcomponent;
 import utility_beans.*;
@@ -23,6 +25,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     private DetectorSubcomponentState subcomponent_state;
     public final AtomicBoolean stop_signal = new AtomicBoolean(false);
     public final SynchronizedBoolean can_modify_slo_rules = new SynchronizedBoolean(false);
+    public final SynchronizedBoolean can_modify_monitoring_metrics = new SynchronizedBoolean(false);
     public SynchronizedBooleanMap HAS_MESSAGE_ARRIVED = new SynchronizedBooleanMap();
 
 
@@ -62,10 +65,40 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
             slo_rule_arrived.set(true);
             can_modify_slo_rules.notifyAll();
 
-            Logger.getAnonymousLogger().log(info_logging_level, "BrokerClientApp:  - Received text message: " + message + " at topic " + topic);
+            Logger.getGlobal().log(info_logging_level, "BrokerClientApp:  - Received text message: " + message + " at topic " + topic);
 
         }
         return topic + ":MSG:" + message;
+    };
+
+    public BiFunction<String, String, String> metric_list_subscriber_function = (topic, message) -> {
+        synchronized (can_modify_monitoring_metrics) {
+            can_modify_monitoring_metrics.setValue(true);
+            MESSAGE_CONTENTS.assign_value(topic, message);
+            //TODO add monitoring metrics bounds
+            String metric_name;
+            double lower_bound,upper_bound;
+            JSONParser parser = new JSONParser();
+            JSONObject metric_list_object;
+            try {
+                metric_list_object = (JSONObject) parser.parse(message);
+                for (Object element : (JSONArray) metric_list_object.get("metric_list")){
+                    metric_name = (String)((JSONObject)element).get("name");
+                    lower_bound = (Double)((JSONObject)element).get("lower_bound");
+                    upper_bound = (Double)((JSONObject)element).get("upper_bound");
+                    subcomponent_state.getMonitoring_attributes().put(metric_name,new RealtimeMonitoringAttribute(metric_name,lower_bound,upper_bound));
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+            //slo_rule_arrived.set(true);
+            can_modify_monitoring_metrics.notifyAll();
+
+            Logger.getGlobal().log(info_logging_level, "BrokerClientApp:  - Received text message: " + message + " at topic " + topic);
+
+        }
+        return "Monitoring metrics message processed";
     };
     public static BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
     public static BiFunction<String, String, String> device_lost_subscriber_function = (topic, message) -> {

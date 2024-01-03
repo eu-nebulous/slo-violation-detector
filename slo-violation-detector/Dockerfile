@@ -19,4 +19,6 @@ COPY src/main/resources/config/eu.melodic.event.brokerclient.properties /home/sr
 COPY --from=build /home/app/target/SLO-Violation-Detector-4.0-SNAPSHOT.jar /home/SLOSeverityCalculator-4.0-SNAPSHOT.jar
 WORKDIR /home
 ENV LOG_FILE /home/slo_violation_detector.log
-CMD ["/bin/sh","-c","java -jar SLOSeverityCalculator-4.0-SNAPSHOT.jar > $LOG_FILE 2>&1"]
+#CMD ["/bin/sh","-c","java -jar SLOSeverityCalculator-4.0-SNAPSHOT.jar > $LOG_FILE 2>&1"]
+#CMD ["/bin/sh","-c","java -jar SLOSeverityCalculator-4.0-SNAPSHOT.jar 2>&1 | tee $LOG_FILE"]
+CMD ["/bin/sh","-c","java -jar SLOSeverityCalculator-4.0-SNAPSHOT.jar 2>&1"]

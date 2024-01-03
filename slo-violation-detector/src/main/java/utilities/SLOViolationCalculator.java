@@ -25,18 +25,18 @@ public class SLOViolationCalculator {
             double severity_sum =  get_greater_than_severity_sum(predictionAttribute);
             all_metrics_method_attribute_severity = Math.sqrt(severity_sum)/Math.sqrt(3);
 
-            Logger.getAnonymousLogger().log(info_logging_level,"The all-metrics attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_greater_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_greater_than_rule() + ") is " + all_metrics_method_attribute_severity);
+            Logger.getGlobal().log(info_logging_level,"The all-metrics attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_greater_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_greater_than_rule() + ") is " + all_metrics_method_attribute_severity);
             if (severity_sum<0){
-                Logger.getAnonymousLogger().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
+                Logger.getGlobal().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
             }
         }
         else if (rule_type.equals(SLOSubRule.RuleType.less_than_rule)){
             double severity_sum =  get_less_than_severity_sum(predictionAttribute);
             all_metrics_method_attribute_severity = Math.sqrt(severity_sum)/Math.sqrt(3);
 
-            Logger.getAnonymousLogger().log(info_logging_level,"The all-metrics attribute severity for a less-than rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_less_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_less_than_rule() + ") is " + all_metrics_method_attribute_severity);
+            Logger.getGlobal().log(info_logging_level,"The all-metrics attribute severity for a less-than rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_less_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_less_than_rule() + ") is " + all_metrics_method_attribute_severity);
             if (severity_sum<0){
-                Logger.getAnonymousLogger().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
+                Logger.getGlobal().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
             }
         }
         else if (rule_type.equals(SLOSubRule.RuleType.equal_rule)){
@@ -46,25 +46,25 @@ public class SLOViolationCalculator {
 
             if (less_than_severity_sum>greater_than_severity_sum){
                 all_metrics_method_attribute_severity = Math.sqrt(less_than_severity_sum)/Math.sqrt(3);
-                Logger.getAnonymousLogger().log(info_logging_level,"The all-metrics attribute severity for an 'equals' rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_less_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_less_than_rule() + ") is " + all_metrics_method_attribute_severity);
+                Logger.getGlobal().log(info_logging_level,"The all-metrics attribute severity for an 'equals' rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_less_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_less_than_rule() + ") is " + all_metrics_method_attribute_severity);
                 if (less_than_severity_sum<0){
-                    Logger.getAnonymousLogger().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
+                    Logger.getGlobal().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
                 }
             }else{
                 all_metrics_method_attribute_severity = Math.sqrt(greater_than_severity_sum)/Math.sqrt(3);
-                Logger.getAnonymousLogger().log(info_logging_level,"The all-metrics attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_greater_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_greater_than_rule() + ") is " + all_metrics_method_attribute_severity);
+                Logger.getGlobal().log(info_logging_level,"The all-metrics attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_greater_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_greater_than_rule() + ") is " + all_metrics_method_attribute_severity);
                 if (greater_than_severity_sum<0){
-                    Logger.getAnonymousLogger().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
+                    Logger.getGlobal().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
                 }
             }
 
         }else {
-            Logger.getAnonymousLogger().log(info_logging_level,"An unknown type of rule was introduced, therefore setting the severity to -1 to prevent any adaptation");
+            Logger.getGlobal().log(info_logging_level,"An unknown type of rule was introduced, therefore setting the severity to -1 to prevent any adaptation");
             all_metrics_method_attribute_severity = -1;
         }
 
         if (Double.isNaN(all_metrics_method_attribute_severity) || ( all_metrics_method_attribute_severity<0)){
-            Logger.getAnonymousLogger().log(warning_logging_level,"Negative or NaN severity produced: "+all_metrics_method_attribute_severity+" using 0 instead");
+            Logger.getGlobal().log(warning_logging_level,"Negative or NaN severity produced: "+all_metrics_method_attribute_severity+" using 0 instead");
             return 0;
         }
         else {
@@ -124,24 +124,24 @@ public class SLOViolationCalculator {
         double severity_sum;
         if (rule_type.equals(SLOSubRule.RuleType.greater_than_rule)) {
             severity_sum = (predictionAttribute.getDelta_for_greater_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100 * 100); //dividing by 10000 to normalize;
-            Logger.getAnonymousLogger().log(info_logging_level, "The prconf-delta attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_greater_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + severity_sum);
+            Logger.getGlobal().log(info_logging_level, "The prconf-delta attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_greater_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + severity_sum);
         }else if (rule_type.equals(SLOSubRule.RuleType.less_than_rule)){
             severity_sum = (predictionAttribute.getDelta_for_less_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100 * 100); //dividing by 10000 to normalize;
-            Logger.getAnonymousLogger().log(info_logging_level, "The prconf-delta attribute severity for a less-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_less_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + severity_sum);
+            Logger.getGlobal().log(info_logging_level, "The prconf-delta attribute severity for a less-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_less_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + severity_sum);
         }else if (rule_type.equals(SLOSubRule.RuleType.equal_rule)){
             double greater_than_severity_sum = (predictionAttribute.getDelta_for_greater_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100 * 100); //dividing by 10000 to normalize;
-            Logger.getAnonymousLogger().log(info_logging_level, "The prconf-delta attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_greater_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + greater_than_severity_sum);
+            Logger.getGlobal().log(info_logging_level, "The prconf-delta attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_greater_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + greater_than_severity_sum);
 
 
             double less_than_severity_sum = (predictionAttribute.getDelta_for_less_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100 * 100); //dividing by 10000 to normalize;
-            Logger.getAnonymousLogger().log(info_logging_level, "The prconf-delta attribute severity for a less-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_less_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + less_than_severity_sum);
+            Logger.getGlobal().log(info_logging_level, "The prconf-delta attribute severity for a less-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_less_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + less_than_severity_sum);
 
             severity_sum = Math.max(less_than_severity_sum,greater_than_severity_sum);
         }else{
             severity_sum = -1;
         }
         if (severity_sum<0){
-            Logger.getAnonymousLogger().log(info_logging_level,"A NaN severity value may be produced due to the root of a negative severity sum - returning zero instead for severity sum");
+            Logger.getGlobal().log(info_logging_level,"A NaN severity value may be produced due to the root of a negative severity sum - returning zero instead for severity sum");
             severity_sum = 0;
         }
 

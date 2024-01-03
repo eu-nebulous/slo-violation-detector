@@ -57,7 +57,7 @@ public class ConnectivityTests {
                 Double ram_slo_limit = 60.0;
                 Boolean return_value = false;
                 try {
-                    Logger.getAnonymousLogger().log(info_logging_level,"Received " + message);
+                    Logger.getGlobal().log(info_logging_level,"Received " + message);
                     JSONObject rules_json = (JSONObject) new JSONParser().parse(message);
                     Double ram_value = Double.parseDouble(rules_json.get("ram").toString());
                     Double cpu_value = Double.parseDouble(rules_json.get("cpu").toString());

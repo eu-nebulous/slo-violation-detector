@@ -41,12 +41,12 @@ public class Runnables {
                     throw new InterruptedException();
                 }
             } catch (Exception i) {
-                Logger.getAnonymousLogger().log(info_logging_level, "Possible interruption of debug data subscriber thread for " + debug_data_trigger_topic_name + " - if not stacktrace follows");
+                Logger.getGlobal().log(info_logging_level, "Possible interruption of debug data subscriber thread for " + debug_data_trigger_topic_name + " - if not stacktrace follows");
                 if (!(i instanceof InterruptedException)) {
                     i.printStackTrace();
                 }
             } finally {
-                Logger.getAnonymousLogger().log(info_logging_level, "Removing debug data subscriber thread for " + debug_data_trigger_topic_name);
+                Logger.getGlobal().log(info_logging_level, "Removing debug data subscriber thread for " + debug_data_trigger_topic_name);
                 detector.getSubcomponent_state().slo_bound_running_threads.remove("debug_data_subscription_thread_" + debug_data_trigger_topic_name);
             }
         }
@@ -54,12 +54,12 @@ public class Runnables {
 
     public static Runnable device_lost_topic_subscriber_runnable = () -> {
         while (true) {
-            device_lost_subscriber.subscribe(device_lost_subscriber_function, new AtomicBoolean(false)); //This subscriber should be immune to stop signals
-            Logger.getAnonymousLogger().log(info_logging_level,"A device used by the platform was lost, will therefore trigger a reconfiguration");
+            device_lost_subscriber.subscribe(device_lost_subscriber_function, new AtomicBoolean(false)); //This subscriber should not be immune to stop signals
+            Logger.getGlobal().log(info_logging_level,"A device used by the platform was lost, will therefore trigger a reconfiguration");
             try {
                 Thread.sleep(10000);
             }catch (InterruptedException i){
-                Logger.getAnonymousLogger().log(info_logging_level,"Sleep was interrupted, will immediately try to connect to the broker");
+                Logger.getGlobal().log(info_logging_level,"Sleep was interrupted, will immediately try to connect to the broker");
             }
         }
     };
@@ -108,7 +108,7 @@ public class Runnables {
                             try {
                                 detector.ADAPTATION_TIMES_MODIFY.wait();
                             } catch (InterruptedException e) {
-                                Logger.getAnonymousLogger().log(warning_logging_level, "Interrupted while waiting to access the lock for adaptation times object");
+                                Logger.getGlobal().log(warning_logging_level, "Interrupted while waiting to access the lock for adaptation times object");
                                 e.printStackTrace();
                             }
                         }
@@ -122,7 +122,7 @@ public class Runnables {
                     if (targeted_prediction_time == null) {
                         continue;
                     }
-                    Logger.getAnonymousLogger().log(info_logging_level, "Targeted_prediction_time " + targeted_prediction_time);
+                    Logger.getGlobal().log(info_logging_level, "Targeted_prediction_time " + targeted_prediction_time);
                     Runnable internal_severity_calculation_runnable = () -> {
                         try {
                             synchronized (detector.PREDICTION_EXISTS) {
@@ -131,18 +131,18 @@ public class Runnables {
 
                             Long sleep_time = targeted_prediction_time * 1000 - time_horizon_seconds * 1000L - current_time;
                             if (sleep_time <= 0) {
-                                Logger.getAnonymousLogger().log(info_logging_level, "Prediction cancelled as targeted prediction time was " + targeted_prediction_time * 1000 + " current time is " + current_time + " and the time_horizon is " + time_horizon_seconds * 1000);
+                                Logger.getGlobal().log(info_logging_level, "Prediction cancelled as targeted prediction time was " + targeted_prediction_time * 1000 + " current time is " + current_time + " and the time_horizon is " + time_horizon_seconds * 1000);
                                 return; //The predictions are too near to the targeted reconfiguration time (or are even obsolete)
                             } else if (sleep_time > current_time + maximum_acceptable_forward_predictions * time_horizon_seconds * 1000L) {
-                                Logger.getAnonymousLogger().log(info_logging_level, "Prediction cancelled as targeted prediction time was " + targeted_prediction_time * 1000 + " and the current time is " + current_time + ". The prediction is more than " + maximum_acceptable_forward_predictions + " time_horizon intervals into the future (the time_horizon is " + time_horizon_seconds * 1000 + " milliseconds)");
+                                Logger.getGlobal().log(info_logging_level, "Prediction cancelled as targeted prediction time was " + targeted_prediction_time * 1000 + " and the current time is " + current_time + ". The prediction is more than " + maximum_acceptable_forward_predictions + " time_horizon intervals into the future (the time_horizon is " + time_horizon_seconds * 1000 + " milliseconds)");
                                 return; //The predictions are too near to the targeted reconfiguration tim
                             }
-                            Logger.getAnonymousLogger().log(info_logging_level, "Sleeping for " + sleep_time + " milliseconds");
+                            Logger.getGlobal().log(info_logging_level, "Sleeping for " + sleep_time + " milliseconds");
                             sleep(sleep_time);
                             double rule_severity = process_rule_value(rule, targeted_prediction_time);
                             double slo_violation_probability = determine_slo_violation_probability(rule_severity);
-                            Logger.getAnonymousLogger().log(info_logging_level, "The overall " + slo_violation_determination_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time * 1000)).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand");
-                            Logger.getAnonymousLogger().log(info_logging_level, "The probability of an SLO violation is " + ((int) (slo_violation_probability * 100)) + "%" + (slo_violation_probability < slo_violation_probability_threshold ? " so it will not be published" : " and it will be published"));
+                            Logger.getGlobal().log(info_logging_level, "The overall " + slo_violation_determination_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time * 1000)).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand");
+                            Logger.getGlobal().log(info_logging_level, "The probability of an SLO violation is " + ((int) (slo_violation_probability * 100)) + "%" + (slo_violation_probability < slo_violation_probability_threshold ? " so it will not be published" : " and it will be published"));
 
                             if (slo_violation_probability >= slo_violation_probability_threshold) {
                                 JSONObject severity_json = new JSONObject();
@@ -167,13 +167,13 @@ public class Runnables {
                                 detector.ADAPTATION_TIMES_MODIFY.notifyAll();
                             }
                         } catch (InterruptedException i) {
-                            Logger.getAnonymousLogger().log(severe_logging_level, "Severity calculation thread for epoch time " + targeted_prediction_time + " interrupted, stopping...");
+                            Logger.getGlobal().log(severe_logging_level, "Severity calculation thread for epoch time " + targeted_prediction_time + " interrupted, stopping...");
                             return;
                         }
                     };
                     CharacterizedThread.create_new_thread(internal_severity_calculation_runnable, "internal_severity_calculation_thread_" + targeted_prediction_time, true,detector);
                 } catch (NoSuchElementException n) {
-                    Logger.getAnonymousLogger().log(warning_logging_level, "Could not calculate severity as a value was missing...");
+                    Logger.getGlobal().log(warning_logging_level, "Could not calculate severity as a value was missing...");
                     continue;
                 }
             }

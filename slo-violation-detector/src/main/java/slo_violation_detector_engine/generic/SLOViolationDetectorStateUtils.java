@@ -26,7 +26,7 @@ public class SLOViolationDetectorStateUtils {
             base_project_path = new File(EMPTY).toURI();
             URI absolute_configuration_file_path = new File(configuration_file_location).toURI();
             URI relative_configuration_file_path = base_project_path.relativize(absolute_configuration_file_path);
-            Logger.getAnonymousLogger().log(info_logging_level, "This is the base project path:" + base_project_path);
+            Logger.getGlobal().log(info_logging_level, "This is the base project path:" + base_project_path);
             return new FileInputStream(base_project_path.getPath() + relative_configuration_file_path);
         }else{
             if (base_project_path == null || base_project_path.getPath().equals(EMPTY)) {

@@ -3,7 +3,7 @@ package runtime;
 import org.springframework.web.bind.annotation.*;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 
-import static configuration.Constants.default_handled_application_name;
+import static configuration.Constants.default_application_name;
 import static runtime.Main.detectors;
 import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_integer_id;
 import static utilities.DebugDataSubscription.debug_data_generation;
@@ -14,7 +14,7 @@ public class DetectorRequestMappings {
 
     @RequestMapping("/add-new-detector")
     public static String start_new_detector_subcomponent() {
-        detectors.add(new DetectorSubcomponent(default_handled_application_name,detached));
+        detectors.add(new DetectorSubcomponent(default_application_name,detached));
         return ("Spawned new SLO Detector subcomponent instance! Currently, there have been "+detector_integer_id+" detectors spawned");
     }
 

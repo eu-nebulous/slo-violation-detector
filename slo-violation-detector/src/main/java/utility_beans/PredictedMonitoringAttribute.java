@@ -51,7 +51,7 @@ public class PredictedMonitoringAttribute {
         this.threshold = threshold;
         double current_value = RealtimeMonitoringAttribute.get_metric_value(detector,name);
         if (Double.isNaN(current_value)){
-            Logger.getAnonymousLogger().log(info_logging_level,"Detected NaN value for metric "+name+". Thus we cannot compute severity although a predicted value of "+forecasted_value+" has arrived");
+            Logger.getGlobal().log(info_logging_level,"Detected NaN value for metric "+name+". Thus we cannot compute severity although a predicted value of "+forecasted_value+" has arrived");
             this.initialized = false;
             return;
         }
@@ -143,13 +143,13 @@ public class PredictedMonitoringAttribute {
             }
         }
         else{
-            Logger.getAnonymousLogger().log(severe_logging_level,"Effectively disabling rate of change (ROC) metric, setting it to 0, as an invalid roc_calculation_mode has been chosen");
+            Logger.getGlobal().log(severe_logging_level,"Effectively disabling rate of change (ROC) metric, setting it to 0, as an invalid roc_calculation_mode has been chosen");
             rate_of_change = 0;
             normalized_rate_of_change = 0;
         }
         String debug_rate_of_change_string = "The rate of change for metric "+name+", having a forecasted value of "+forecasted_value+", previous real value of "+actual_value + ", maximum rate of change equal to "+maximum_rate_of_change+", minimum rate of change equal to "+minimum_rate_of_change+", is "+(int)(rate_of_change*10000)/100.0+"% and the normalized rate of change is "+(int)(normalized_rate_of_change*100)/100.0 +"%";
         if(!debug_logging_level.equals(Level.OFF)) {
-            Logger.getAnonymousLogger().log(debug_logging_level, debug_rate_of_change_string);
+            Logger.getGlobal().log(debug_logging_level, debug_rate_of_change_string);
         }
 
         //Streaming percentile calculation, using non-normalized rate of change
@@ -168,11 +168,11 @@ public class PredictedMonitoringAttribute {
         attributes_minimum_rate_of_change.put(name,Math.max(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getLower_bound(),-roc_limit));
 
         if (Double.isNaN(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getUpper_bound())){
-            Logger.getAnonymousLogger().log(info_logging_level,"NaN value detected for maximum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
+            Logger.getGlobal().log(info_logging_level,"NaN value detected for maximum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
         }
 
         if (Double.isNaN(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getLower_bound())){
-            Logger.getAnonymousLogger().log(info_logging_level,"NaN value detected for minimum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
+            Logger.getGlobal().log(info_logging_level,"NaN value detected for minimum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
         }
 
         return Math.max(Math.min(normalized_rate_of_change,100.0),-100.0);
@@ -185,7 +185,7 @@ public class PredictedMonitoringAttribute {
         double minimum_metric_value = detector.getSubcomponent_state().getMonitoring_attributes_statistics().get(name).getLower_bound();
 
         if (Double.isInfinite(this.confidence_interval_width)){
-            Logger.getAnonymousLogger().log(info_logging_level,"Since the confidence interval is deemed to be infinite, it will be set to 100 and the relevant probability confidence factor should be reduced to the lowest value");
+            Logger.getGlobal().log(info_logging_level,"Since the confidence interval is deemed to be infinite, it will be set to 100 and the relevant probability confidence factor should be reduced to the lowest value");
             return 100;
         }
         if (isZero(maximum_metric_value-minimum_metric_value)){
@@ -195,7 +195,7 @@ public class PredictedMonitoringAttribute {
             double normalized_interval_sign = normalized_interval/Math.abs(normalized_interval);
             if (Math.abs(normalized_interval)>100){
                 normalized_interval = 100*normalized_interval_sign;
-                Logger.getAnonymousLogger().log(info_logging_level,"Due to the maximum and minimum metric values being estimated as "+maximum_metric_value+ " and "+minimum_metric_value+" respectively, and as the value of the confidence interval width is "+this.confidence_interval_width+" the absolute value of the normalized interval is limited to a value of "+normalized_interval);
+                Logger.getGlobal().log(info_logging_level,"Due to the maximum and minimum metric values being estimated as "+maximum_metric_value+ " and "+minimum_metric_value+" respectively, and as the value of the confidence interval width is "+this.confidence_interval_width+" the absolute value of the normalized interval is limited to a value of "+normalized_interval);
             }
         }
         return normalized_interval;

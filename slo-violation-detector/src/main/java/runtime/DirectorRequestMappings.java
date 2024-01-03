@@ -15,7 +15,7 @@ import utility_beans.RealtimeMonitoringAttribute;
 
 import java.util.HashMap;
 
-import static configuration.Constants.default_handled_application_name;
+import static configuration.Constants.default_application_name;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
@@ -33,7 +33,7 @@ public class DirectorRequestMappings {
             return "Error in parsing the input string, the exception message follows:\n"+e;
         }
         application_name = (String) rule_representation_json.get("name");
-        DetectorSubcomponent new_detector = DetectorSubcomponent.detector_subcomponents.getOrDefault(application_name,new DetectorSubcomponent(default_handled_application_name,CharacterizedThread.CharacterizedThreadRunMode.detached));
+        DetectorSubcomponent new_detector = DetectorSubcomponent.detector_subcomponents.getOrDefault(application_name,new DetectorSubcomponent(default_application_name,CharacterizedThread.CharacterizedThreadRunMode.detached));
         new_detector.slo_rule_topic_subscriber_function.apply(Constants.slo_rules_topic,string_rule_representation);
         return ("New application was spawned");
     }
@@ -58,17 +58,17 @@ public class DirectorRequestMappings {
         for (Object metric : metrics_json_array){
             JSONObject metric_json = (JSONObject) metric;
             String metric_name = (String) metric_json.get("name");
-            int upper_bound = 100,lower_bound = 0;
+            double upper_bound = 100.0,lower_bound = 0.0;
             if (((String) metric_json.get("upper_bound")).toLowerCase().contains("-inf")){
-                upper_bound = -Integer.MAX_VALUE;
+                upper_bound = Double.NEGATIVE_INFINITY;
             }else if (((String) metric_json.get("upper_bound")).toLowerCase().contains("inf")){
-                upper_bound = Integer.MAX_VALUE;
+                upper_bound = Double.NEGATIVE_INFINITY;
             }
             if (((String) metric_json.get("lower_bound")).toLowerCase().contains("-inf")){
-                lower_bound = -Integer.MAX_VALUE;
+                lower_bound = Double.POSITIVE_INFINITY;
             }
             else if (((String) metric_json.get("lower_bound")).toLowerCase().contains("inf")){
-                lower_bound = Integer.MAX_VALUE;
+                lower_bound = Double.POSITIVE_INFINITY;
             }
             application_metrics.put(metric_name,new RealtimeMonitoringAttribute(metric_name,lower_bound,upper_bound));
         }

@@ -14,7 +14,7 @@ import utility_beans.PredictedMonitoringAttribute;
 
 import java.util.List;
 
-import static configuration.Constants.default_handled_application_name;
+import static configuration.Constants.default_application_name;
 import static configuration.Constants.roc_limit;
 import static utility_beans.PredictedMonitoringAttribute.getAttributes_maximum_rate_of_change;
 import static utility_beans.PredictedMonitoringAttribute.getAttributes_minimum_rate_of_change;
@@ -23,7 +23,7 @@ import static utility_beans.RealtimeMonitoringAttribute.update_monitoring_attrib
 
 public class DerivedMonitoringAttributeTests {
 
-    DetectorSubcomponent detector = new DetectorSubcomponent(default_handled_application_name,CharacterizedThread.CharacterizedThreadRunMode.detached);
+    DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name,CharacterizedThread.CharacterizedThreadRunMode.detached);
     @Test
     public void roc_calculation_test(){
 

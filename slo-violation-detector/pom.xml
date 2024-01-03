@@ -57,8 +57,22 @@
 
     <dependencies>
         <dependency>
+            <groupId>eu.nebulouscloud</groupId>
+            <artifactId>exn-connector-java</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -129,21 +143,9 @@
             <url>https://repo1.maven.org/maven2/</url>
         </repository>
         <repository>
-            <id>gitlab-maven-morphemic-preprocessor</id>
-            <url>https://gitlab.ow2.org/api/v4/projects/1370/packages/maven</url>
+            <id>nexus-nebulous</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
         </repository>
     </repositories>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>eu.7bulls</id>
-            <name>Melodic 7bulls repository</name>
-            <url>https://nexus.7bulls.eu:8443/repository/maven-snapshots/</url>
-        </snapshotRepository>
-        <repository>
-            <id>eu.7bulls</id>
-            <name>Melodic 7bulls repository</name>
-            <url>https://nexus.7bulls.eu:8443/repository/maven-releases/</url>
-        </repository>
-    </distributionManagement>
 </project>

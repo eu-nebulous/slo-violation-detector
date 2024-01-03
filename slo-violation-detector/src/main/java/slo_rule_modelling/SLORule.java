@@ -91,7 +91,7 @@ public class SLORule {
             try{
                 Exception e = new Exception("An invalid rule was sent to the SLO Violation detector - ignoring the rule having the following representation\n"+rule_representation.toJSONString());
             }catch (Exception e){
-                Logger.getAnonymousLogger().log(Level.SEVERE,"An invalid rule was sent to the SLO Violation detector");
+                Logger.getGlobal().log(Level.SEVERE,"An invalid rule was sent to the SLO Violation detector");
                 return rule_format;
             }
         }

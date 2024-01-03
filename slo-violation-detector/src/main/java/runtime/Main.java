@@ -53,11 +53,11 @@ public class Main {
                     operational_mode = getSLOViolationDetectionOperationalMode("DIRECTOR");
                     inputStream = getPreferencesFileInputStream(EMPTY);
                 } else if (args.length == 1) {
-                    Logger.getAnonymousLogger().log(info_logging_level, "Operational mode has been manually specified");
+                    Logger.getGlobal().log(info_logging_level, "Operational mode has been manually specified");
                     operational_mode = getSLOViolationDetectionOperationalMode(args[0]);
                     inputStream = getPreferencesFileInputStream(EMPTY);
                 } else {
-                    Logger.getAnonymousLogger().log(info_logging_level, "Operational mode and preferences file has been manually specified");
+                    Logger.getGlobal().log(info_logging_level, "Operational mode and preferences file has been manually specified");
                     operational_mode = getSLOViolationDetectionOperationalMode(args[0]);
                     inputStream = getPreferencesFileInputStream(args[1]);
 
@@ -72,8 +72,8 @@ public class Main {
                 slo_violation_probability_threshold = Double.parseDouble(prop.getProperty("slo_violation_probability_threshold"));
                 slo_violation_determination_method = prop.getProperty("slo_violation_determination_method");
                 maximum_acceptable_forward_predictions = Integer.parseInt(prop.getProperty("maximum_acceptable_forward_predictions"));
-                director_subscription_topics = get_director_subscription_topics();
-                DetectorSubcomponent detector = new DetectorSubcomponent(default_handled_application_name,detached);
+                //director_subscription_topics = get_director_subscription_topics();
+                DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name,detached);
                 detectors.add(detector);
                 ArrayList<String> unbounded_metric_strings = new ArrayList<>(Arrays.asList(prop.getProperty("metrics_bounds").split(",")));
                 for (String metric_string : unbounded_metric_strings) {
@@ -81,18 +81,18 @@ public class Main {
                 }
             } //initialization
             if (operational_mode.equals(OperationalMode.DETECTOR)) {
-                Logger.getAnonymousLogger().log(INFO,"Starting new Detector instance"); //This detector instance has been already started in the initialization block above as it will be commonly needed both for the plain Detector and the Director-Detector
+                Logger.getGlobal().log(INFO,"Starting new Detector instance"); //This detector instance has been already started in the initialization block above as it will be commonly needed both for the plain Detector and the Director-Detector
             }else if (operational_mode.equals(OperationalMode.DIRECTOR)){
-                Logger.getAnonymousLogger().log(INFO,"Starting new Director and new Detector instance");
+                Logger.getGlobal().log(INFO,"Starting new Director and new Detector instance");
                 DirectorSubcomponent director = new DirectorSubcomponent();
                 SpringApplication.run(Main.class, args);
-                Logger.getAnonymousLogger().log(INFO,"Execution completed");
+                Logger.getGlobal().log(INFO,"Execution completed");
             }
         }catch (IOException e){
-            Logger.getAnonymousLogger().log(info_logging_level,"Problem reading input file");
+            Logger.getGlobal().log(info_logging_level,"Problem reading input file");
             e.printStackTrace();
         }catch (Exception e){
-            Logger.getAnonymousLogger().log(info_logging_level,"Miscellaneous issue during startup");
+            Logger.getGlobal().log(info_logging_level,"Miscellaneous issue during startup");
             e.printStackTrace();
         }
     }

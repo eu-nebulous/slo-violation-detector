@@ -22,11 +22,11 @@ import static utility_beans.PredictedMonitoringAttribute.*;
 public class RealtimeMonitoringAttribute {
 
     protected String name;
-    private Integer upper_bound;
-    private Integer lower_bound;
+    private Double upper_bound;
+    private Double lower_bound;
     private CircularFifoQueue<Double> actual_metric_values = new CircularFifoQueue<>(kept_values_per_metric); //the previous actual values of the metric
 
-    public RealtimeMonitoringAttribute(String name, Integer lower_bound, Integer upper_bound){
+    public RealtimeMonitoringAttribute(String name, Double lower_bound, Double upper_bound){
         this.name = name;
         this.lower_bound = lower_bound;
         this.upper_bound = upper_bound;
@@ -34,28 +34,28 @@ public class RealtimeMonitoringAttribute {
 
     public RealtimeMonitoringAttribute(String name, Collection<Double> values){
         this.name = name;
-        this.lower_bound = 0;
-        this.upper_bound = 100;
+        this.lower_bound = 0.0;
+        this.upper_bound = 100.0;
         //Equivalent to below: values.stream().forEach(x -> actual_metric_values.add(x));
         actual_metric_values.addAll(values);
     }
     public RealtimeMonitoringAttribute(String name, Double value){
         this.name = name;
-        this.lower_bound = 0;
-        this.upper_bound = 100;
+        this.lower_bound = 0.0;
+        this.upper_bound = 100.0;
         actual_metric_values.add(value);
     }
 
     public RealtimeMonitoringAttribute(String name){
         this.name = name;
-        this.lower_bound = 0;
-        this.upper_bound = 100;
+        this.lower_bound = 0.0;
+        this.upper_bound = 100.0;
     }
 
     public static Double get_metric_value(DetectorSubcomponent detector, String metric_name){
         CircularFifoQueue<Double> actual_metric_values = detector.getSubcomponent_state().getMonitoring_attributes().get(metric_name).getActual_metric_values();
         if (actual_metric_values.size()==0){
-            Logger.getAnonymousLogger().log(warning_logging_level,"Trying to retrieve realtime values from an empty queue for metric "+metric_name);
+            Logger.getGlobal().log(warning_logging_level,"Trying to retrieve realtime values from an empty queue for metric "+metric_name);
         }
         return aggregate_metric_values(actual_metric_values);
     }
@@ -130,19 +130,19 @@ public class RealtimeMonitoringAttribute {
         this.actual_metric_values = actual_metric_values;
     }
 
-    public Integer getUpper_bound() {
+    public Double getUpper_bound() {
         return upper_bound;
     }
 
-    public void setUpper_bound(Integer upper_bound) {
+    public void setUpper_bound(Double upper_bound) {
         this.upper_bound = upper_bound;
     }
 
-    public Integer getLower_bound() {
+    public Double getLower_bound() {
         return lower_bound;
     }
 
-    public void setLower_bound(Integer lower_bound) {
+    public void setLower_bound(Double lower_bound) {
         this.lower_bound = lower_bound;
     }
 }
