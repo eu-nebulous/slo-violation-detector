@@ -18,13 +18,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static configuration.Constants.*;
-import static slo_violation_detector_engine.generic.Runnables.device_lost_topic_subscriber_runnable;
+import static slo_violation_detector_engine.detector.DetectorSubcomponent.device_lost_subscriber;
+import static slo_violation_detector_engine.detector.DetectorSubcomponent.device_lost_subscriber_function;
 import static slo_violation_detector_engine.generic.Runnables.get_severity_calculation_runnable;
 import static runtime.Main.*;
 import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
@@ -68,7 +68,7 @@ public class DetectorSubcomponentUtilities {
         for (SLORule rule:rules_list) {
 
             String severity_calculation_thread_name = "severity_calculation_thread_"+rule.toString();
-            CharacterizedThread.create_new_thread(get_severity_calculation_runnable(rule,rule.getAssociated_detector()),severity_calculation_thread_name, true,rule.getAssociated_detector());
+            CharacterizedThread.create_new_thread(get_severity_calculation_runnable(rule,rule.getAssociated_detector()),severity_calculation_thread_name, true,rule.getAssociated_detector(), CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread);
 
         }
     }
@@ -162,6 +162,9 @@ public class DetectorSubcomponentUtilities {
             try {
                 Thread.sleep(3000);
                 associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.values().forEach(Thread::interrupt);
+                for (Thread thread : associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.values()) {
+                    thread.join();
+                }
             }catch (Exception e){
             }
             Logger.getGlobal().log(info_logging_level,"Stopped "+(initial_number_of_running_threads- associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size())+"/"+initial_number_of_running_threads+" already running threads");
@@ -267,39 +270,69 @@ public class DetectorSubcomponentUtilities {
                 //Metric list subscription thread
                 BrokerSubscriber metric_list_subscriber = new BrokerSubscriber(metric_list_topic, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
                 Runnable metric_list_topic_subscriber_runnable = () -> {
-                    while (true) {
-                        metric_list_subscriber.subscribe(associated_detector_subcomponent.metric_list_subscriber_function, associated_detector_subcomponent.stop_signal); //This subscriber should not be immune to stop signals
-                        Logger.getGlobal().log(info_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
-                        try {
-                            Thread.sleep(10000);
-                        }catch (InterruptedException i){
-                            Logger.getGlobal().log(info_logging_level,"Sleep was interrupted, will immediately try to connect to the broker");
+                    boolean did_not_finish_execution_gracefully = true;
+                    while (did_not_finish_execution_gracefully) {
+                        int exit_status = metric_list_subscriber.subscribe(associated_detector_subcomponent.metric_list_subscriber_function, associated_detector_subcomponent.stop_signal); //This subscriber should not be immune to stop signals
+                        if (exit_status!=0) {
+                            Logger.getGlobal().log(info_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
+                            try {
+                                Thread.sleep(10000);
+                            } catch (InterruptedException i) {
+                                Logger.getGlobal().log(info_logging_level, "Sleep was interrupted, will immediately try to connect to the broker");
+                            }
+                        }else{
+                            did_not_finish_execution_gracefully = false;
                         }
                     }
+                    associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.remove(Thread.currentThread().getName().split(NAME_SEPARATOR)[0]);
                 };
-                CharacterizedThread.create_new_thread(metric_list_topic_subscriber_runnable,"metric_list_topic_subscriber_thread",true,associated_detector_subcomponent);
+                CharacterizedThread.create_new_thread(metric_list_topic_subscriber_runnable,"metric_list_topic_subscriber_thread",true,associated_detector_subcomponent, CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread);
 
 
 
                 //SLO rule subscription thread
                 BrokerSubscriber slo_rule_topic_subscriber = new BrokerSubscriber(slo_rules_topic, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
                 Runnable slo_rules_topic_subscriber_runnable = () -> {
-                    while (true) {
-                        slo_rule_topic_subscriber.subscribe(associated_detector_subcomponent.slo_rule_topic_subscriber_function, associated_detector_subcomponent.stop_signal); //This subscriber should not be immune to stop signals
-                        Logger.getGlobal().log(info_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
-                        try {
-                            Thread.sleep(10000);
-                        }catch (InterruptedException i){
-                            Logger.getGlobal().log(info_logging_level,"Sleep was interrupted, will immediately try to connect to the broker");
+                    boolean did_not_finish_execution_gracefully = true;
+                    while (did_not_finish_execution_gracefully) {
+                        int exit_status = slo_rule_topic_subscriber.subscribe(associated_detector_subcomponent.slo_rule_topic_subscriber_function, associated_detector_subcomponent.stop_signal); //This subscriber should not be immune to stop signals
+                        if (exit_status!=0) {
+                            Logger.getGlobal().log(info_logging_level, "Broker unavailable, will try to reconnect after 10 seconds");
+                            try {
+                                Thread.sleep(10000);
+                            } catch (InterruptedException i) {
+                                Logger.getGlobal().log(info_logging_level, "Sleep was interrupted, will immediately try to connect to the broker");
+                            }
+                        }else{
+                            did_not_finish_execution_gracefully = false;
                         }
                     }
+                    associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.remove(Thread.currentThread().getName().split(NAME_SEPARATOR)[0]);
                 };
-                CharacterizedThread.create_new_thread(slo_rules_topic_subscriber_runnable,"slo_rules_topic_subscriber_thread",true,associated_detector_subcomponent);
+                CharacterizedThread.create_new_thread(slo_rules_topic_subscriber_runnable,"slo_rules_topic_subscriber_thread",true,associated_detector_subcomponent, CharacterizedThread.CharacterizedThreadType.persistent_running_detector_thread);
 
 
                 //Implementation of 'Lost edge device' thread
 
-                CharacterizedThread.create_new_thread(device_lost_topic_subscriber_runnable,"device_lost_topic_subscriber_thread",true,associated_detector_subcomponent);
+                Runnable device_lost_topic_subscriber_runnable = () -> {
+                    boolean did_not_finish_execution_gracefully = true;
+                    while (did_not_finish_execution_gracefully) {
+                       int exit_status = device_lost_subscriber.subscribe(device_lost_subscriber_function, associated_detector_subcomponent.stop_signal); //This subscriber should not be immune to stop signals, else there would be new AtomicBoolean(false)
+                       if (exit_status!=0) {
+                           Logger.getGlobal().log(info_logging_level, "A device used by the platform was lost, will therefore trigger a reconfiguration");
+                           try {
+                               Thread.sleep(10000);
+                           } catch (InterruptedException i) {
+                               Logger.getGlobal().log(info_logging_level, "Sleep was interrupted, will immediately try to connect to the broker");
+                           }
+                       }else{
+                           did_not_finish_execution_gracefully = false;
+                       }
+                    }
+                    associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.remove(Thread.currentThread().getName().split(NAME_SEPARATOR)[0]);
+                };
+
+                CharacterizedThread.create_new_thread(device_lost_topic_subscriber_runnable,"device_lost_topic_subscriber_thread",true,associated_detector_subcomponent, CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread);
 
 
                 if (self_publish_rule_file) {

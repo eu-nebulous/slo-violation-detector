@@ -123,17 +123,17 @@ public class SLOViolationCalculator {
 
         double severity_sum;
         if (rule_type.equals(SLOSubRule.RuleType.greater_than_rule)) {
-            severity_sum = (predictionAttribute.getDelta_for_greater_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100 * 100); //dividing by 10000 to normalize;
+            severity_sum = (predictionAttribute.getDelta_for_greater_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100); //dividing by 10000 to normalize;
             Logger.getGlobal().log(info_logging_level, "The prconf-delta attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_greater_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + severity_sum);
         }else if (rule_type.equals(SLOSubRule.RuleType.less_than_rule)){
-            severity_sum = (predictionAttribute.getDelta_for_less_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100 * 100); //dividing by 10000 to normalize;
+            severity_sum = (predictionAttribute.getDelta_for_less_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100); //dividing by 10000 to normalize;
             Logger.getGlobal().log(info_logging_level, "The prconf-delta attribute severity for a less-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_less_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + severity_sum);
         }else if (rule_type.equals(SLOSubRule.RuleType.equal_rule)){
-            double greater_than_severity_sum = (predictionAttribute.getDelta_for_greater_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100 * 100); //dividing by 10000 to normalize;
+            double greater_than_severity_sum = (predictionAttribute.getDelta_for_greater_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100); //dividing by 10000 to normalize;
             Logger.getGlobal().log(info_logging_level, "The prconf-delta attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_greater_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + greater_than_severity_sum);
 
 
-            double less_than_severity_sum = (predictionAttribute.getDelta_for_less_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100 * 100); //dividing by 10000 to normalize;
+            double less_than_severity_sum = (predictionAttribute.getDelta_for_less_than_rule() * predictionAttribute.getProbability_confidence() * (100 - predictionAttribute.getNormalizedConfidenceIntervalWidth() / 100)) / (100 * 100); //dividing by 10000 to normalize;
             Logger.getGlobal().log(info_logging_level, "The prconf-delta attribute severity for a less-than rule related to attribute " + predictionAttribute.getName() + " based on a (prconf,delta,confidence_interval) triplet of (" + predictionAttribute.getProbability_confidence() + "," + predictionAttribute.getDelta_for_less_than_rule() + "," + predictionAttribute.getConfidence_interval_width() + ") is " + less_than_severity_sum);
 
             severity_sum = Math.max(less_than_severity_sum,greater_than_severity_sum);

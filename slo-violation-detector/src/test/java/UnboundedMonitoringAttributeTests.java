@@ -144,13 +144,13 @@ public class UnboundedMonitoringAttributeTests {
                 String predicted_attribute_name = topic.replaceFirst("prediction\\.",EMPTY);
                 HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_attributes = getPredicted_monitoring_attributes();
                 try {
-                    double forecasted_value = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.metric_value)).doubleValue();
+                    double forecasted_value = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.metricValue.name())).doubleValue();
                     double probability_confidence = 100*((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.probability)).doubleValue();
                     //double confidence_interval = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.confidence_interval)).doubleValue();
                     JSONArray json_array_confidence_interval = ((JSONArray)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.confidence_interval));
                     double confidence_interval = ((Number)json_array_confidence_interval.get(1)).doubleValue() - ((Number)json_array_confidence_interval.get(0)).doubleValue();
                     long timestamp = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.timestamp)).longValue();
-                    long targeted_prediction_time = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.prediction_time)).longValue();
+                    long targeted_prediction_time = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.predictionTime.name())).longValue();
                     Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
 
                     synchronized (detector.can_modify_slo_rules) {
@@ -260,7 +260,7 @@ public class UnboundedMonitoringAttributeTests {
                 forecasted_metric_json_object.put("metricValue", forecasted_metric_value);
                 forecasted_metric_json_object.put("timestamp",System.currentTimeMillis());
                 forecasted_metric_json_object.put("probability",probability);
-                forecasted_metric_json_object.put(EventFields.PredictionMetricEventFields.prediction_time,targeted_prediction_time);
+                forecasted_metric_json_object.put(EventFields.PredictionMetricEventFields.predictionTime.name(),targeted_prediction_time);
                 //((System.currentTimeMillis()/1000)%60)*60000+1); //The prediction supposedly reflects the metric values at the next minute
                 JSONArray confidence_interval_list = new JSONArray();
                 confidence_interval_list.add((forecasted_metric_value-confidence_interval/2));

@@ -2,10 +2,13 @@ package runtime;
 
 import org.springframework.web.bind.annotation.*;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
+import utility_beans.BrokerSubscriptionDetails;
 
+import static configuration.Constants.EMPTY;
 import static configuration.Constants.default_application_name;
 import static runtime.Main.detectors;
 import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_integer_id;
+import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_subcomponents;
 import static utilities.DebugDataSubscription.debug_data_generation;
 import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.detached;
 @RestController
@@ -21,12 +24,13 @@ public class DetectorRequestMappings {
     //TODO refine calls to debug_data_generation below, once the interface to AMQP is available
     @GetMapping("/component-statistics")
     public static String get_component_statistics() {
-        debug_data_generation.apply("","");
+        debug_data_generation.apply(new BrokerSubscriptionDetails(false),EMPTY);
         return "Debug data generation was successful";
     }
     @GetMapping("/component-statistics/detectors/{id}")
     public static String get_detector_subcomponent_statistics(@PathVariable String id) {
-        debug_data_generation.apply(id,"");
+        String detector_name = "detector_"+id;
+        debug_data_generation.apply(detector_subcomponents.get(detector_name).getBrokerSubscriptionDetails(),EMPTY);
         return DetectorSubcomponent.get_detector_subcomponent_statistics();
     }
 }

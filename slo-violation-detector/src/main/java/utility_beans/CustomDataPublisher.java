@@ -39,7 +39,9 @@ public class CustomDataPublisher {
                                 broker_ip,
                                 5672,
                                 brokerUsername,
-                                brokerPassword
+                                brokerPassword,
+                                60,
+                                EMPTY
                         )
                 );
                 connector.start();

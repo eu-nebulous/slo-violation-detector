@@ -1,29 +1,27 @@
 package utility_beans;
 
-import eu.nebulouscloud.exn.Connector;
 import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;
 import eu.nebulouscloud.exn.core.Handler;
-import eu.nebulouscloud.exn.handlers.ConnectorHandler;
 import eu.nebulouscloud.exn.settings.StaticExnConfig;
 import org.apache.qpid.protonj2.client.Message;
 import org.json.simple.JSONValue;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static configuration.Constants.slovid_publisher_key;
+import static configuration.Constants.*;
+import static java.util.logging.Level.INFO;
 
 public class BrokerSubscriber {
 
     private static class MessageProcessingHandler extends Handler{
         private static final BiFunction temporary_function = (Object o, Object o2) -> {
             //System.out.println("");
-            Logger.getGlobal().log(Level.INFO,"REPLACE_TEMPORARY_HANDLING_FUNCTIONALITY");
+            Logger.getGlobal().log(INFO,"REPLACE_TEMPORARY_HANDLING_FUNCTIONALITY");
             return "IN_PROCESSING";
         };
         private BiFunction<String,String,String> processing_function;
@@ -51,7 +49,19 @@ public class BrokerSubscriber {
     private String broker_ip;
     private String brokerUsername;
     private String brokerPassword;
-    public BrokerSubscriber(String topic, String broker_ip, String brokerUsername, String brokerPassword, String amqLibraryConfigurationLocation) {
+    public BrokerSubscriber(String topic, String broker_ip, String brokerUsername, String brokerPassword, String amqLibraryConfigurationLocation){
+        boolean able_to_initialize_BrokerSubscriber = topic!=null && broker_ip!=null && brokerUsername!=null && brokerPassword!=null && !topic.equals(EMPTY) && !broker_ip.equals(EMPTY) && !brokerUsername.equals(EMPTY) && !brokerPassword.equals(EMPTY);
+
+        if (!able_to_initialize_BrokerSubscriber){
+            try {
+                throw new Exception("Unable to initialize Subscriber");
+            } catch (Exception e) {
+                String message = "Topic is "+topic+" broker ip is "+broker_ip+" broker username/pass are "+brokerUsername+","+brokerPassword;
+
+                Logger.getGlobal().log(INFO,message);
+                throw new RuntimeException(e);
+            }
+        }
         boolean subscriber_configuration_changed;
         if (!broker_and_topics_to_subscribe_to.containsKey(broker_ip)){
             HashSet<String> topics_to_subscribe_to = new HashSet<>();
@@ -74,7 +84,7 @@ public class BrokerSubscriber {
             }
         }
         if (subscriber_configuration_changed){
-                Consumer current_consumer = new Consumer(topic, topic, new MessageProcessingHandler());
+                Consumer current_consumer = new Consumer(topic, topic, new MessageProcessingHandler(),true,true);
                 active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic,current_consumer);
 
                 this.topic = topic;
@@ -105,7 +115,9 @@ public class BrokerSubscriber {
                             broker_ip,
                             5672,
                             brokerUsername,
-                            brokerPassword
+                            brokerPassword,
+                            60,
+                            EMPTY
                     )
             );
             extended_connector.start();
@@ -119,47 +131,55 @@ public class BrokerSubscriber {
         }
     }
 
-    public void subscribe(BiFunction<String, String, String> function, AtomicBoolean stop_signal) {
-        Logger.getGlobal().log(Level.INFO,"ESTABLISHING SUBSCRIPTION");
+    public int subscribe(BiFunction function, AtomicBoolean stop_signal) {
+        int exit_status = -1;
+        Logger.getGlobal().log(INFO,"ESTABLISHING SUBSCRIPTION for "+topic);
         //First remove any leftover consumer
-        active_consumers_per_topic_per_broker_ip.get(broker_ip).remove(topic);
-        remove_topic_from_broker_connector(topic);
+        if (active_consumers_per_topic_per_broker_ip.containsKey(broker_ip)) {
+            active_consumers_per_topic_per_broker_ip.get(broker_ip).remove(topic);
+            remove_topic_from_broker_connector(topic);
+        }else{
+            active_consumers_per_topic_per_broker_ip.put(broker_ip,new HashMap<>());
+        }
         //Then add the new consumer
-        Consumer new_consumer = new Consumer(topic,topic,new MessageProcessingHandler(function));
+        Consumer new_consumer = new Consumer(topic,topic,new MessageProcessingHandler(function),true,true);
         new_consumer.setProperty("topic",topic);
         active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic,new_consumer);
         add_topic_consumer_to_broker_connector(new_consumer);
 
-        Logger.getGlobal().log(Level.INFO,"ESTABLISHED SUBSCRIPTION to topic "+topic);
+        Logger.getGlobal().log(INFO,"ESTABLISHED SUBSCRIPTION to topic "+topic);
         synchronized (stop_signal){
             while (!stop_signal.get()){
                 try{
                     stop_signal.wait();
                 }catch (Exception e){
-                    e.printStackTrace();
+                    Logger.getGlobal().log(Level.WARNING,e.toString()+" in thread "+Thread.currentThread().getName());
+                    break;
                 }
             }
-            Logger.getGlobal().log(Level.INFO,"Stopping subscription for broker "+broker_ip+" and topic "+topic);
+            Logger.getGlobal().log(INFO,"Stopping subscription for broker "+broker_ip+" and topic "+topic + "at thread "+Thread.currentThread().getName());
             stop_signal.set(false);
         }
         active_consumers_per_topic_per_broker_ip.get(broker_ip).remove(topic);
         remove_topic_from_broker_connector(topic);
+        exit_status=0;
+        return exit_status;
     }
 
     public enum EventFields{
         ;
 
-        public enum PredictionMetricEventFields {timestamp, prediction_time, probability, metric_value, confidence_interval}
+        public enum PredictionMetricEventFields {timestamp, predictionTime, probability, metricValue, confidence_interval}
     }
 
 
     public static class TopicNames{
         public static String realtime_metric_values_topic(String metric) {
-            return null;
+            return realtime_metrics_topic+metric;
         }
 
         public static String final_metric_predictions_topic(String metric) {
-            return null;
+            return final_metric_prediction_topic+metric;
         }
     }
 }

@@ -12,9 +12,10 @@ import static utilities.OperationalModeUtils.get_director_subscription_topics;
 public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public HashMap<String,Thread> persistent_running_director_threads = new HashMap<>();
     public Connector subscribing_connector;
-    Integer id = 1;
+    private Integer id = 1;
     public static HashMap<String,DirectorSubcomponent> director_subcomponents = new HashMap<>();
     private static DirectorSubcomponent master_director;
+    private String director_name;
 
     public static DirectorSubcomponent getMaster_director() {
         return master_director;
@@ -27,9 +28,10 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public DirectorSubcomponent(){
         super.thread_type = CharacterizedThread.CharacterizedThreadType.persistent_running_director_thread;
         create_director_topic_subscribers();
-        director_subcomponents.put(String.valueOf(id),this);
-        id++;
+        director_name = "director_"+id;
+        director_subcomponents.put(director_name,this);
         master_director = this;
+        id++;
     }
 
     private void create_director_topic_subscribers(){
@@ -41,5 +43,10 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
             //TODO do the same for publishing topics
         }
         //subscribing_connector = new Connector("slovid_director",)
+    }
+
+    @Override
+    public String get_name() {
+        return director_name;
     }
 }

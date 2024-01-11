@@ -34,10 +34,14 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public final AtomicBoolean slo_rule_arrived = new AtomicBoolean(false);
 
     public Long last_processed_adaptation_time = -1L;//initialization
+    private String detector_name;
+    private static String broker_ip = prop.getProperty("broker_ip_url");
+    private static String broker_username = prop.getProperty("broker_username");
+    private static String broker_password = prop.getProperty("broker_password");
 
 
     public DetectorSubcomponent(String application_name, CharacterizedThread.CharacterizedThreadRunMode characterized_thread_run_mode) {
-        super.thread_type = CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread;
+        super.thread_type = CharacterizedThread.CharacterizedThreadType.persistent_running_detector_thread;
         subcomponent_state = new DetectorSubcomponentState();
         Integer current_detector_id;
         synchronized (detector_integer_id){
@@ -49,13 +53,14 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
             detector_integer_id.setValue(detector_integer_id.getValue()+1);
             current_detector_id = detector_integer_id.getValue();
             //detector_integer_id.notify();
+            detector_name = "detector_"+current_detector_id;
         }
         if (characterized_thread_run_mode.equals(attached)) {
             DetectorSubcomponentUtilities.run_slo_violation_detection_engine(this);
         }else/*detached mode*/{
-            CharacterizedThread.create_new_thread(new Runnables.SLODetectionEngineRunnable(this), "detector_"+current_detector_id+"_master_thread", true,this);
+            CharacterizedThread.create_new_thread(new Runnables.SLODetectionEngineRunnable(this), detector_name+"_master_thread", true,this, CharacterizedThread.CharacterizedThreadType.persistent_running_detector_thread);
         }
-        detector_subcomponents.put(application_name+"_"+current_detector_id,this);
+        detector_subcomponents.put(detector_name,this);
     }
 
     public BiFunction<String, String, String> slo_rule_topic_subscriber_function = (topic, message) -> {
@@ -84,8 +89,20 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
                 metric_list_object = (JSONObject) parser.parse(message);
                 for (Object element : (JSONArray) metric_list_object.get("metric_list")){
                     metric_name = (String)((JSONObject)element).get("name");
-                    lower_bound = (Double)((JSONObject)element).get("lower_bound");
-                    upper_bound = (Double)((JSONObject)element).get("upper_bound");
+                    String lower_bound_str = (String)((JSONObject)element).get("lower_bound");
+                    String upper_bound_str = (String)((JSONObject)element).get("upper_bound");
+                    if (!(lower_bound_str.toLowerCase().equals("-inf") || lower_bound_str.toLowerCase().equals("-infinity"))){
+                        lower_bound = Double.parseDouble(lower_bound_str);
+                    }else{
+                        lower_bound = Double.NEGATIVE_INFINITY;
+                    }
+
+                    if (!(upper_bound_str.toLowerCase().equals("inf") || upper_bound_str.toLowerCase().equals("infinity"))){
+                        upper_bound = Double.parseDouble(upper_bound_str);
+                    }else{
+                        upper_bound = Double.POSITIVE_INFINITY;
+                    }
+
                     subcomponent_state.getMonitoring_attributes().put(metric_name,new RealtimeMonitoringAttribute(metric_name,lower_bound,upper_bound));
                 }
             }catch (Exception e){
@@ -100,9 +117,9 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
         }
         return "Monitoring metrics message processed";
     };
-    public static BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
+    public static BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, broker_ip, broker_username, broker_password, amq_library_configuration_location);
     public static BiFunction<String, String, String> device_lost_subscriber_function = (topic, message) -> {
-        BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
+        BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_username, broker_password, amq_library_configuration_location);
 
         Clock clock = Clock.systemUTC();
         Long current_time_seconds = (long) Math.floor(clock.millis()/1000.0);
@@ -129,5 +146,14 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
     public void setSubcomponent_state(DetectorSubcomponentState subcomponent_state) {
         this.subcomponent_state = subcomponent_state;
+    }
+
+    @Override
+    public String get_name() {
+        return detector_name;
+    }
+
+    public BrokerSubscriptionDetails getBrokerSubscriptionDetails() {
+        return new BrokerSubscriptionDetails(broker_ip,broker_username,broker_password);
     }
 }

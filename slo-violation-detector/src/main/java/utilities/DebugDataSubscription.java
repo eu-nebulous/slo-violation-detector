@@ -4,20 +4,16 @@ package utilities;
 //import eu.melodic.event.brokerclient.BrokerSubscriber;
 import slo_violation_detector_engine.generic.Runnables;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
-import utility_beans.BrokerSubscriber;
+import utility_beans.*;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_rule_modelling.SLOSubRule;
-import utility_beans.BrokerPublisher;
-import utility_beans.CharacterizedThread;
-import utility_beans.RealtimeMonitoringAttribute;
 
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.logging.Logger;
 
-import static configuration.Constants.amq_library_configuration_location;
-import static configuration.Constants.info_logging_level;
+import static configuration.Constants.*;
 import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_subcomponents;
 import static slo_violation_detector_engine.director.DirectorSubcomponent.director_subcomponents;
 import static utility_beans.RealtimeMonitoringAttribute.get_metric_value;
@@ -30,7 +26,7 @@ public class DebugDataSubscription {
     public static String debug_data_trigger_topic_name = "sloviolationdetector.debug";
     public static String debug_data_output_topic_name = "sloviolationdetector.debug_output";
     private static String broker_username,broker_password,broker_ip_address;
-    public static BiFunction <String,String,String> debug_data_generation = (topic, message) ->{
+    public static BiFunction <BrokerSubscriptionDetails,String,String> debug_data_generation = (broker_subscription_details, message) ->{
 
         String output_debug_data = "";
         StringBuilder intermediate_debug_string = new StringBuilder();
@@ -132,14 +128,22 @@ public class DebugDataSubscription {
         output_debug_data = output_debug_data+intermediate_debug_string;
 
         Logger.getGlobal().log(info_logging_level,"Debug data generated:\n"+output_debug_data);
-        BrokerPublisher publisher = new BrokerPublisher(debug_data_output_topic_name, broker_ip_address, broker_username, broker_password, amq_library_configuration_location);
-        publisher.publish(output_debug_data);
+
+        //Only try to publish data if details of the broker subscription are known
+        if (!broker_subscription_details.getBroker_ip().equals(EMPTY)&&
+                !broker_subscription_details.getBroker_password().equals(EMPTY)&&
+                !broker_subscription_details.getBroker_username().equals(EMPTY)){
+
+            BrokerPublisher publisher = new BrokerPublisher(debug_data_output_topic_name, broker_subscription_details.getBroker_ip(),broker_subscription_details.getBroker_username(),broker_subscription_details.getBroker_password(), amq_library_configuration_location);
+            publisher.publish(output_debug_data);
+        }
+
         return output_debug_data;
     };
 
-    public static BrokerSubscriber debug_data_subscriber = new BrokerSubscriber(debug_data_trigger_topic_name, broker_ip_address, broker_username, broker_password, amq_library_configuration_location);
+    public static BrokerSubscriber debug_data_subscriber;
 
     public static void initiate(String broker_ip_address, String broker_username, String broker_password, DetectorSubcomponent detector) {
-        CharacterizedThread.create_new_thread(new Runnables.DebugDataRunnable(detector),"debug_data_subscription_thread_" + debug_data_trigger_topic_name,true,detector);
+        CharacterizedThread.create_new_thread(new Runnables.DebugDataRunnable(detector),"debug_data_subscription_thread_" + debug_data_trigger_topic_name,true,detector, CharacterizedThread.CharacterizedThreadType.persistent_running_detector_thread);
     }
 }

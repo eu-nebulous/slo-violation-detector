@@ -28,6 +28,7 @@ import utility_beans.RealtimeMonitoringAttribute;
 import java.time.Clock;
 import java.util.HashMap;
 import java.util.function.BiFunction;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
@@ -47,11 +48,12 @@ public class AttributeSubscription {
             BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location);
             BiFunction<String,String,String> function = (topic, message) ->{
                 RealtimeMonitoringAttribute realtimeMonitoringAttribute = new RealtimeMonitoringAttribute(topic);
-                synchronized (detector.getSubcomponent_state().getMonitoring_attributes().get(topic)) {
+                String metric_name_from_topic = topic.replace("eu.nebulouscloud.monitoring.realtime.",EMPTY);
+                synchronized (detector.getSubcomponent_state().getMonitoring_attributes().get(metric_name_from_topic)) {
                     try {
-                        update_monitoring_attribute_value(detector,topic,((Number)((JSONObject)new JSONParser().parse(message)).get("metricValue")).doubleValue());
+                        update_monitoring_attribute_value(detector,metric_name_from_topic,((Number)((JSONObject)new JSONParser().parse(message)).get("metricValue")).doubleValue());
 
-                        Logger.getGlobal().log(info_logging_level,"RECEIVED message with value for "+topic+" equal to "+(((JSONObject)new JSONParser().parse(message)).get("metricValue")));
+                        Logger.getGlobal().log(info_logging_level,"RECEIVED message with value for "+metric_name_from_topic+" equal to "+(((JSONObject)new JSONParser().parse(message)).get("metricValue")));
                     } catch (ParseException e) {
                         e.printStackTrace();
                         Logger.getGlobal().log(info_logging_level,"A parsing exception was caught while parsing message: "+message);
@@ -78,7 +80,7 @@ public class AttributeSubscription {
                     detector.getSubcomponent_state().slo_bound_running_threads.remove("realtime_subscriber_thread_" + realtime_metric_topic_name);
                 }
             };
-            CharacterizedThread.create_new_thread(realtime_subscription_runnable,"realtime_subscriber_thread_"+realtime_metric_topic_name,true,detector);
+            CharacterizedThread.create_new_thread(realtime_subscription_runnable,"realtime_subscriber_thread_"+realtime_metric_topic_name,true,detector, CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread);
 
 
 
@@ -87,12 +89,14 @@ public class AttributeSubscription {
             BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location);
 
             BiFunction<String,String,String> forecasted_function = (topic,message) ->{
-                String predicted_attribute_name = topic.replaceFirst("prediction\\.",EMPTY);
+                String predicted_attribute_name = topic.replaceFirst("eu\\.nebulouscloud\\.monitoring\\.predicted\\.",EMPTY);
                 HashMap<Integer, HashMap<Long,PredictedMonitoringAttribute>> predicted_attributes = getPredicted_monitoring_attributes();
                 try {
-                    double forecasted_value = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.metric_value)).doubleValue();
-                    double probability_confidence = 100*((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.probability)).doubleValue();
-                    JSONArray json_array_confidence_interval = ((JSONArray)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.confidence_interval));
+                    JSONObject json_message = (JSONObject)(new JSONParser().parse(message));
+                    Logger.getGlobal().log(Level.INFO,"Getting information for "+EventFields.PredictionMetricEventFields.metricValue);
+                    double forecasted_value = ((Number)json_message.get(EventFields.PredictionMetricEventFields.metricValue.name())).doubleValue();
+                    double probability_confidence = 100*((Number)json_message.get(EventFields.PredictionMetricEventFields.probability.name())).doubleValue();
+                    JSONArray json_array_confidence_interval = (JSONArray)(json_message.get(EventFields.PredictionMetricEventFields.confidence_interval.name()));
 
                     double confidence_interval;
                     try{
@@ -102,8 +106,8 @@ public class AttributeSubscription {
                         c.printStackTrace();
                         confidence_interval = Double.NEGATIVE_INFINITY;
                     }
-                    long timestamp = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.timestamp)).longValue();
-                    long targeted_prediction_time = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.prediction_time)).longValue();
+                    long timestamp = ((Number)json_message.get(EventFields.PredictionMetricEventFields.timestamp.name())).longValue();
+                    long targeted_prediction_time = ((Number)json_message.get(EventFields.PredictionMetricEventFields.predictionTime.name())).longValue();
                     Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
 
 
@@ -171,6 +175,7 @@ public class AttributeSubscription {
                     Logger.getGlobal().log(info_logging_level,"Error while trying to parse message\n"+message);
                 } catch (Exception e){
                     Logger.getGlobal().log(info_logging_level,"An unknown exception was caught\n"+message);
+                    e.printStackTrace();
                 }
                 return message;
             };
@@ -194,7 +199,7 @@ public class AttributeSubscription {
                     detector.getSubcomponent_state().persistent_running_detector_threads.remove("forecasting_subscriber_thread_"+forecasted_metric_topic_name);
                 }
             };
-            CharacterizedThread.create_new_thread(forecasted_subscription_runnable, "forecasting_subscriber_thread_" + forecasted_metric_topic_name, true,detector);
+            CharacterizedThread.create_new_thread(forecasted_subscription_runnable, "forecasting_subscriber_thread_" + forecasted_metric_topic_name, true,detector, CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread);
         }
     }
 }

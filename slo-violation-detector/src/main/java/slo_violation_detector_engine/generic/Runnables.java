@@ -6,19 +6,18 @@ import slo_violation_detector_engine.detector.DetectorSubcomponentUtilities;
 import utility_beans.BrokerPublisher;
 import org.json.simple.JSONObject;
 import slo_rule_modelling.SLORule;
+import utility_beans.BrokerSubscriber;
 import utility_beans.CharacterizedThread;
 
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.util.Date;
 import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
 import static java.lang.Thread.sleep;
 import static slo_rule_modelling.SLORule.process_rule_value;
-import static slo_violation_detector_engine.detector.DetectorSubcomponent.*;
 import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.*;
 import static utilities.DebugDataSubscription.*;
@@ -35,6 +34,7 @@ public class Runnables {
             try {
                 synchronized (detector.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_trigger_topic_name)) {
                     //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_topic_name).getValue())
+                    debug_data_subscriber = new BrokerSubscriber(debug_data_trigger_topic_name, detector.getBrokerSubscriptionDetails().getBroker_ip(),detector.getBrokerSubscriptionDetails().getBroker_username(),detector.getBrokerSubscriptionDetails().getBroker_password(), amq_library_configuration_location);
                     debug_data_subscriber.subscribe(debug_data_generation, detector.stop_signal);
                 }
                 if (Thread.interrupted()) {
@@ -51,18 +51,6 @@ public class Runnables {
             }
         }
     }
-
-    public static Runnable device_lost_topic_subscriber_runnable = () -> {
-        while (true) {
-            device_lost_subscriber.subscribe(device_lost_subscriber_function, new AtomicBoolean(false)); //This subscriber should not be immune to stop signals
-            Logger.getGlobal().log(info_logging_level,"A device used by the platform was lost, will therefore trigger a reconfiguration");
-            try {
-                Thread.sleep(10000);
-            }catch (InterruptedException i){
-                Logger.getGlobal().log(info_logging_level,"Sleep was interrupted, will immediately try to connect to the broker");
-            }
-        }
-    };
 
 
     public static class SLODetectionEngineRunnable implements Runnable {
@@ -170,8 +158,9 @@ public class Runnables {
                             Logger.getGlobal().log(severe_logging_level, "Severity calculation thread for epoch time " + targeted_prediction_time + " interrupted, stopping...");
                             return;
                         }
+                        detector.getSubcomponent_state().slo_bound_running_threads.remove(Thread.currentThread().getName().split(NAME_SEPARATOR)[0]);
                     };
-                    CharacterizedThread.create_new_thread(internal_severity_calculation_runnable, "internal_severity_calculation_thread_" + targeted_prediction_time, true,detector);
+                    CharacterizedThread.create_new_thread(internal_severity_calculation_runnable, "internal_severity_calculation_thread_" + targeted_prediction_time, true,detector, CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread);
                 } catch (NoSuchElementException n) {
                     Logger.getGlobal().log(warning_logging_level, "Could not calculate severity as a value was missing...");
                     continue;
