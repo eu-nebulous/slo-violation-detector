@@ -17,17 +17,28 @@ import static configuration.Constants.EMPTY;
 
 
 public class SynchronizedStringMap {
-    private Map<String, String> synchronized_map  = Collections.synchronizedMap(new HashMap<>()); // using Collections.synchronized map as we intend to add/remove topics to the map dynamically
-    public String get_synchronized_contents(String name){
-        if (synchronized_map.containsKey(name)) {
-            return synchronized_map.get(name);
+    private Map<String, Map<String,String>> synchronized_map  = Collections.synchronizedMap(new HashMap<>()); // using Collections.synchronized map as we intend to add/remove topics to the map dynamically
+    public String get_synchronized_contents(String application_name, String topic_name){
+        if (synchronized_map.containsKey(application_name)) {
+            if(synchronized_map.get(application_name).containsKey(topic_name)){
+                return synchronized_map.get(application_name).get(topic_name);
+            }else{
+                synchronized_map.get(application_name).put(topic_name,EMPTY);
+                return EMPTY;
+            }
         }else{
-            synchronized_map.put(name,new String(EMPTY));
-            return synchronized_map.get(name);
+            HashMap new_map = new HashMap<>();
+            synchronized_map.put(application_name,Collections.synchronizedMap(new HashMap<>()));
+            synchronized_map.get(application_name).put(topic_name,EMPTY);
+            return EMPTY;
         }
     }
-    public String assign_value(String topic, String value){
-            synchronized_map.put(topic,value);
-            return synchronized_map.get(topic);
+    public void assign_value(String application_name, String topic, String value){
+        if (synchronized_map.containsKey(application_name)){
+            synchronized_map.get(application_name).put(topic,value);
+        }else{
+            synchronized_map.put(application_name,Collections.synchronizedMap(new HashMap<>()));
+            synchronized_map.get(application_name).put(topic,value);
+        }
     }
 }

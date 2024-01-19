@@ -45,13 +45,13 @@ public class MonitoringAttributeStatistics {
         this.lower_bound = lower_bound;
     }
 
-    public void update_attribute_statistics(double new_attribute_value){
+    public void update_attribute_statistics(Number new_attribute_value){
         count++;
 
-        double mean_differential = (new_attribute_value - current_mean) / count;
+        double mean_differential = (new_attribute_value.doubleValue() - current_mean) / count;
         double new_mean = current_mean + mean_differential;
 
-        double dsquared_increment = (new_attribute_value - new_mean) * (new_attribute_value - current_mean);
+        double dsquared_increment = (new_attribute_value.doubleValue() - new_mean) * (new_attribute_value.doubleValue() - current_mean);
         double new_dsquared = current_dsquared + dsquared_increment;
 
         current_mean = new_mean;
@@ -59,7 +59,7 @@ public class MonitoringAttributeStatistics {
 
         if (!hard_upper_bound_is_set){
             if (count==1) {
-                upper_bound = new_attribute_value;
+                upper_bound = new_attribute_value.doubleValue();
             }else {
 
                 double candidate_upper_value = new_mean + Math.sqrt(10.0) * Math.sqrt(new_dsquared / (count - 1)); //Chebyshev-based 90th percentile value
@@ -70,7 +70,7 @@ public class MonitoringAttributeStatistics {
         }
         if (!hard_lower_bound_is_set) {
             if (count==1){
-                lower_bound = new_attribute_value;
+                lower_bound = new_attribute_value.doubleValue();
             }else {
                 double candidate_lower_value = new_mean - Math.sqrt(10.0) * Math.sqrt(new_dsquared / (count - 1)); //Chebyshev-based 90th percentile value
                 //if (candidate_lower_value < lower_bound) {

@@ -7,10 +7,12 @@ import utility_beans.BrokerPublisher;
 import org.json.simple.JSONObject;
 import slo_rule_modelling.SLORule;
 import utility_beans.BrokerSubscriber;
+import utility_beans.BrokerSubscriptionDetails;
 import utility_beans.CharacterizedThread;
 
 import java.sql.Timestamp;
 import java.time.Clock;
+import java.util.Collections;
 import java.util.Date;
 import java.util.NoSuchElementException;
 import java.util.logging.Logger;
@@ -18,24 +20,27 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 import static java.lang.Thread.sleep;
 import static slo_rule_modelling.SLORule.process_rule_value;
-import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
+import static slo_violation_detector_engine.generic.ComponentState.*;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.*;
 import static utilities.DebugDataSubscription.*;
 
 public class Runnables {
 
     public static class DebugDataRunnable implements Runnable{
-        DetectorSubcomponent detector;
+        private DetectorSubcomponent detector; //TODO Verify whether or not we need this message per detector or on a detector-independent, all-application way
         public DebugDataRunnable(DetectorSubcomponent detector){
             this.detector = detector;
         }
         @Override
         public void run() {
             try {
+                Logger.getGlobal().log(info_logging_level,"Starting to subscribe to debug output trigger");
                 synchronized (detector.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_trigger_topic_name)) {
                     //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_topic_name).getValue())
-                    debug_data_subscriber = new BrokerSubscriber(debug_data_trigger_topic_name, detector.getBrokerSubscriptionDetails().getBroker_ip(),detector.getBrokerSubscriptionDetails().getBroker_username(),detector.getBrokerSubscriptionDetails().getBroker_password(), amq_library_configuration_location);
+                    BrokerSubscriptionDetails broker_details = detector.getBrokerSubscriptionDetails(debug_data_trigger_topic_name);
+                    debug_data_subscriber = new BrokerSubscriber(debug_data_trigger_topic_name, broker_details.getBroker_ip(),broker_details.getBroker_username(),broker_details.getBroker_password(), amq_library_configuration_location,detector.get_application_name());
                     debug_data_subscriber.subscribe(debug_data_generation, detector.stop_signal);
+                    Logger.getGlobal().log(info_logging_level,"Debug data subscriber initiated");
                 }
                 if (Thread.interrupted()) {
                     throw new InterruptedException();
@@ -67,7 +72,7 @@ public class Runnables {
     public static Runnable get_severity_calculation_runnable(SLORule rule, DetectorSubcomponent detector) {
 
         Runnable severity_calculation_runnable = () -> {
-            BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
+            BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip,broker_username,broker_password, amq_library_configuration_location);
 
             while (!detector.stop_signal.get()) {
                 synchronized (detector.PREDICTION_EXISTS) {
@@ -137,7 +142,7 @@ public class Runnables {
                                 severity_json.put("severity", rule_severity);
                                 severity_json.put("probability", slo_violation_probability);
                                 severity_json.put("predictionTime", targeted_prediction_time);
-                                persistent_publisher.publish(severity_json.toJSONString());
+                                persistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()));
                             }
 
                             detector.getSubcomponent_state().slo_violation_event_recording_queue.add(System.currentTimeMillis());

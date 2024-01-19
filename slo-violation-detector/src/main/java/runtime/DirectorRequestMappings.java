@@ -10,13 +10,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
+import slo_violation_detector_engine.director.DirectorSubcomponent;
+import utility_beans.BrokerSubscriptionDetails;
 import utility_beans.CharacterizedThread;
 import utility_beans.RealtimeMonitoringAttribute;
 
 import java.util.HashMap;
 
-import static configuration.Constants.default_application_name;
+import static configuration.Constants.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static slo_violation_detector_engine.generic.ComponentState.*;
 
 @RestController
 @RequestMapping("/api")
@@ -32,9 +35,8 @@ public class DirectorRequestMappings {
         } catch (ParseException e) {
             return "Error in parsing the input string, the exception message follows:\n"+e;
         }
-        application_name = (String) rule_representation_json.get("name");
-        DetectorSubcomponent new_detector = DetectorSubcomponent.detector_subcomponents.getOrDefault(application_name,new DetectorSubcomponent(default_application_name,CharacterizedThread.CharacterizedThreadRunMode.detached));
-        new_detector.slo_rule_topic_subscriber_function.apply(Constants.slo_rules_topic,string_rule_representation);
+        BrokerSubscriptionDetails broker_details = new BrokerSubscriptionDetails(broker_ip,broker_username,broker_password,nebulous_components_application,slo_rules_topic);
+        DirectorSubcomponent.slo_rule_topic_subscriber_function.apply(broker_details,string_rule_representation);
         return ("New application was spawned");
     }
 
@@ -58,19 +60,39 @@ public class DirectorRequestMappings {
         for (Object metric : metrics_json_array){
             JSONObject metric_json = (JSONObject) metric;
             String metric_name = (String) metric_json.get("name");
+
+            RealtimeMonitoringAttribute.AttributeValuesType lower_bound_type,upper_bound_type;
+
             double upper_bound = 100.0,lower_bound = 0.0;
-            if (((String) metric_json.get("upper_bound")).toLowerCase().contains("-inf")){
+            if (((String) metric_json.get("upper_bound")).toLowerCase().contains("-inf") || ((String) metric_json.get("upper_bound")).toLowerCase().contains("-infinity")){
                 upper_bound = Double.NEGATIVE_INFINITY;
-            }else if (((String) metric_json.get("upper_bound")).toLowerCase().contains("inf")){
+            }else if (((String) metric_json.get("upper_bound")).toLowerCase().contains("inf") || ((String) metric_json.get("upper_bound")).toLowerCase().contains("infinity")){
                 upper_bound = Double.NEGATIVE_INFINITY;
+            }else{
+                String upper_bound_str = (String) metric_json.get("upper_bound");
+                try {
+                    upper_bound = Integer.parseInt(upper_bound_str);
+                    upper_bound_type = RealtimeMonitoringAttribute.AttributeValuesType.Integer;
+                }catch (Exception e){
+                    try{
+                        upper_bound = Double.parseDouble(upper_bound_str);
+                        upper_bound_type = RealtimeMonitoringAttribute.AttributeValuesType.Double;
+                    }catch (Exception z){
+                        e.printStackTrace();
+                        z.printStackTrace();
+                    }
+                }
             }
-            if (((String) metric_json.get("lower_bound")).toLowerCase().contains("-inf")){
+
+
+            if (((String) metric_json.get("lower_bound")).toLowerCase().contains("-inf") || ((String) metric_json.get("lower_bound")).toLowerCase().contains("-infinity")){
                 lower_bound = Double.POSITIVE_INFINITY;
             }
-            else if (((String) metric_json.get("lower_bound")).toLowerCase().contains("inf")){
+            else if (((String) metric_json.get("lower_bound")).toLowerCase().contains("inf") || ((String) metric_json.get("lower_bound")).toLowerCase().contains("infinity")){
                 lower_bound = Double.POSITIVE_INFINITY;
+            }else {
+                application_metrics.put(metric_name, new RealtimeMonitoringAttribute(metric_name, lower_bound, upper_bound, RealtimeMonitoringAttribute.AttributeValuesType.Double));
             }
-            application_metrics.put(metric_name,new RealtimeMonitoringAttribute(metric_name,lower_bound,upper_bound));
         }
 
         RealtimeMonitoringAttribute.initialize_monitoring_attributes(new_detector,application_metrics);

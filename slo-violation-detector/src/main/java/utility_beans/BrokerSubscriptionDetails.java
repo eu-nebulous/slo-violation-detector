@@ -1,16 +1,21 @@
 package utility_beans;
 
 import static configuration.Constants.EMPTY;
+import static configuration.Constants.default_application_name;
 
 public class BrokerSubscriptionDetails {
     String broker_username = "admin";
     String broker_password = "admin";
     String broker_ip = "localhost";
+    String application_name = default_application_name;
+    String topic = EMPTY;
 
-    public BrokerSubscriptionDetails(String broker_ip, String broker_username, String broker_password) {
+    public BrokerSubscriptionDetails(String broker_ip, String broker_username, String broker_password,String application_name, String topic) {
         this.broker_ip = broker_ip;
         this.broker_username = broker_username;
         this.broker_password = broker_password;
+        this.topic = topic;
+        this.application_name = application_name;
     }
 
     public BrokerSubscriptionDetails(boolean fake_broker_subscription) {
@@ -18,6 +23,8 @@ public class BrokerSubscriptionDetails {
             this.broker_username = EMPTY;
             this.broker_password = EMPTY;
             this.broker_ip = EMPTY;
+            this.topic = EMPTY;
+            this.application_name = EMPTY;
         }
     }
 
@@ -43,5 +50,21 @@ public class BrokerSubscriptionDetails {
 
     public void setBroker_ip(String broker_ip) {
         this.broker_ip = broker_ip;
+    }
+
+    public String getApplication_name() {
+        return application_name;
+    }
+
+    public void setApplication_name(String application_name) {
+        this.application_name = application_name;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 }

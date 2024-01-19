@@ -12,7 +12,7 @@ package metric_retrieval;
 //import eu.melodic.event.brokerclient.templates.EventFields;
 //import eu.melodic.event.brokerclient.templates.TopicNames;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
-import utility_beans.BrokerSubscriber;
+import utility_beans.*;
 import utility_beans.BrokerSubscriber.EventFields;
 import utility_beans.BrokerSubscriber.TopicNames;
 import org.json.simple.JSONArray;
@@ -21,9 +21,6 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import slo_rule_modelling.SLORule;
 import slo_rule_modelling.SLOSubRule;
-import utility_beans.CharacterizedThread;
-import utility_beans.PredictedMonitoringAttribute;
-import utility_beans.RealtimeMonitoringAttribute;
 
 import java.time.Clock;
 import java.util.HashMap;
@@ -33,7 +30,6 @@ import java.util.logging.Logger;
 
 import static configuration.Constants.*;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
-import static utility_beans.RealtimeMonitoringAttribute.update_monitoring_attribute_value;
 
 public class AttributeSubscription {
     SLORule slo_rule;
@@ -45,15 +41,13 @@ public class AttributeSubscription {
 
             String realtime_metric_topic_name = TopicNames.realtime_metric_values_topic(metric);
             Logger.getGlobal().log(info_logging_level,"Starting realtime subscription at "+realtime_metric_topic_name);
-            BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location);
-            BiFunction<String,String,String> function = (topic, message) ->{
-                RealtimeMonitoringAttribute realtimeMonitoringAttribute = new RealtimeMonitoringAttribute(topic);
-                String metric_name_from_topic = topic.replace("eu.nebulouscloud.monitoring.realtime.",EMPTY);
-                synchronized (detector.getSubcomponent_state().getMonitoring_attributes().get(metric_name_from_topic)) {
+            BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location,detector.get_application_name());
+            BiFunction<BrokerSubscriptionDetails,String,String> function = (broker_details, message) ->{
+                synchronized (detector.getSubcomponent_state().getMonitoring_attributes().get(metric)) {
                     try {
-                        update_monitoring_attribute_value(detector,metric_name_from_topic,((Number)((JSONObject)new JSONParser().parse(message)).get("metricValue")).doubleValue());
+                        detector.update_monitoring_attribute_value(metric,((Number)((JSONObject)new JSONParser().parse(message)).get("metricValue")).doubleValue());
 
-                        Logger.getGlobal().log(info_logging_level,"RECEIVED message with value for "+metric_name_from_topic+" equal to "+(((JSONObject)new JSONParser().parse(message)).get("metricValue")));
+                        Logger.getGlobal().log(info_logging_level,"RECEIVED message with value for "+metric+" equal to "+(((JSONObject)new JSONParser().parse(message)).get("metricValue")));
                     } catch (ParseException e) {
                         e.printStackTrace();
                         Logger.getGlobal().log(info_logging_level,"A parsing exception was caught while parsing message: "+message);
@@ -86,10 +80,10 @@ public class AttributeSubscription {
 
             String forecasted_metric_topic_name = TopicNames.final_metric_predictions_topic(metric);
             Logger.getGlobal().log(info_logging_level,"Starting forecasted metric subscription at "+forecasted_metric_topic_name);
-            BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location);
+            BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location,detector.get_application_name());
 
-            BiFunction<String,String,String> forecasted_function = (topic,message) ->{
-                String predicted_attribute_name = topic.replaceFirst("eu\\.nebulouscloud\\.monitoring\\.predicted\\.",EMPTY);
+            BiFunction<BrokerSubscriptionDetails,String,String> forecasted_function = (broker_details,message) ->{
+                String predicted_attribute_name = forecasted_metric_topic_name.replaceFirst("eu\\.nebulouscloud\\.monitoring\\.predicted\\.",EMPTY);
                 HashMap<Integer, HashMap<Long,PredictedMonitoringAttribute>> predicted_attributes = getPredicted_monitoring_attributes();
                 try {
                     JSONObject json_message = (JSONObject)(new JSONParser().parse(message));
@@ -122,7 +116,7 @@ public class AttributeSubscription {
                             }
                             detector.ADAPTATION_TIMES_MODIFY.setValue(false);
                             if (!detector.getSubcomponent_state().adaptation_times.contains(targeted_prediction_time) && (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(targeted_prediction_time)) && ((targeted_prediction_time * 1000 - time_horizon_seconds * 1000L) > (Clock.systemUTC()).millis())) {
-                                Logger.getGlobal().log(info_logging_level, "Adding a new targeted prediction time " + targeted_prediction_time + " expiring in "+(targeted_prediction_time*1000-System.currentTimeMillis())+" from topic "+topic);
+                                Logger.getGlobal().log(info_logging_level, "Adding a new targeted prediction time " + targeted_prediction_time + " expiring in "+(targeted_prediction_time*1000-System.currentTimeMillis())+" from topic "+forecasted_metric_topic_name);
                                 detector.getSubcomponent_state().adaptation_times.add(targeted_prediction_time);
                                 synchronized (detector.PREDICTION_EXISTS) {
                                     detector.PREDICTION_EXISTS.setValue(true);
@@ -130,10 +124,10 @@ public class AttributeSubscription {
                                 }
                             }else {
                                 if (detector.getSubcomponent_state().adaptation_times.contains(targeted_prediction_time)) {
-                                    Logger.getGlobal().log(info_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + topic + " as it is already present");
+                                    Logger.getGlobal().log(info_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + forecasted_metric_topic_name + " as it is already present");
                                 } else if (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(targeted_prediction_time)) {
                                     if (targeted_prediction_time * 1000 - time_horizon_seconds * 1000L - (Clock.systemUTC()).millis() <= 0) {
-                                    Logger.getGlobal().log(info_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + topic + " as it would expire in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()) + " milliseconds and the prediction horizon is " + time_horizon_seconds * 1000L + " milliseconds");
+                                    Logger.getGlobal().log(info_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + forecasted_metric_topic_name + " as it would expire in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()) + " milliseconds and the prediction horizon is " + time_horizon_seconds * 1000L + " milliseconds");
                                     }else{
                                         Logger.getGlobal().log(info_logging_level,"Adding new prediction time "+targeted_prediction_time+" which expires in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()));
                                         detector.getSubcomponent_state().adaptation_times_pending_processing.add(targeted_prediction_time);

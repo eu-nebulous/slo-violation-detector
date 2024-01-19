@@ -36,7 +36,7 @@ public class SeverityTests {
         for(String monitoring_metric_name : metric_names) {
             detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().put(monitoring_metric_name, new MonitoringAttributeStatistics()); //The rate of change of a metric, is a metric which itself should be monitored for its upper bound
         }
-        RealtimeMonitoringAttribute.update_monitoring_attribute_value(detector,"cpu",0.0);
+        detector.update_monitoring_attribute_value("cpu",0.0);
 
         PredictedMonitoringAttribute prediction_attribute = new PredictedMonitoringAttribute(detector,"cpu",70,1,100.0,100,10,System.currentTimeMillis(),System.currentTimeMillis()+20000);
 
@@ -61,7 +61,7 @@ public class SeverityTests {
         for(String monitoring_metric_name : metric_names) {
             detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().put(monitoring_metric_name, new MonitoringAttributeStatistics()); //The rate of change of a metric, is a metric which itself should be monitored for its upper bound
         }
-        RealtimeMonitoringAttribute.update_monitoring_attribute_value(detector,"cpu",30.0);
+        detector.update_monitoring_attribute_value("cpu",30.0);
 
         PredictedMonitoringAttribute prediction_attribute = new PredictedMonitoringAttribute(detector,"cpu",70,1,80.0,90,5,System.currentTimeMillis(),System.currentTimeMillis()+20000);
 
@@ -86,7 +86,7 @@ public class SeverityTests {
         for(String monitoring_metric_name : metric_names) {
             detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().put(monitoring_metric_name, new MonitoringAttributeStatistics()); //The rate of change of a metric, is a metric which itself should be monitored for its upper bound
         }
-        RealtimeMonitoringAttribute.update_monitoring_attribute_value(detector,"cpu",86.0);
+        detector.update_monitoring_attribute_value("cpu",86.0);
 
         PredictedMonitoringAttribute prediction_attribute = new PredictedMonitoringAttribute(detector,"cpu",75,1,92.0,88,7.8,System.currentTimeMillis(),System.currentTimeMillis()+20000);
 

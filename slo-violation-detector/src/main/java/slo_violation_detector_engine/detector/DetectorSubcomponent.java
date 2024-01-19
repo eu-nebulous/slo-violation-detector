@@ -1,27 +1,26 @@
 package slo_violation_detector_engine.detector;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_violation_detector_engine.generic.Runnables;
 import slo_violation_detector_engine.generic.SLOViolationDetectorSubcomponent;
 import utility_beans.*;
 
 
-import java.time.Clock;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
+import static slo_violation_detector_engine.generic.ComponentState.prop;
 import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.attached;
+import static utility_beans.RealtimeMonitoringAttribute.aggregate_metric_values;
 
 
 public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public static final SynchronizedInteger detector_integer_id = new SynchronizedInteger();
-    public static HashMap<String,DetectorSubcomponent> detector_subcomponents = new HashMap<>(); //A HashMap containing all detector subcomponents
+    public static Map<String,DetectorSubcomponent> detector_subcomponents = Collections.synchronizedMap(new HashMap<>()); //A HashMap containing all detector subcomponents
     private DetectorSubcomponentState subcomponent_state;
     public final AtomicBoolean stop_signal = new AtomicBoolean(false);
     public final SynchronizedBoolean can_modify_slo_rules = new SynchronizedBoolean(false);
@@ -35,6 +34,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
     public Long last_processed_adaptation_time = -1L;//initialization
     private String detector_name;
+    private String handled_application_name;
     private static String broker_ip = prop.getProperty("broker_ip_url");
     private static String broker_username = prop.getProperty("broker_username");
     private static String broker_password = prop.getProperty("broker_password");
@@ -53,7 +53,8 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
             detector_integer_id.setValue(detector_integer_id.getValue()+1);
             current_detector_id = detector_integer_id.getValue();
             //detector_integer_id.notify();
-            detector_name = "detector_"+current_detector_id;
+            handled_application_name = application_name;
+            detector_name = "detector_"+application_name+"_"+current_detector_id;
         }
         if (characterized_thread_run_mode.equals(attached)) {
             DetectorSubcomponentUtilities.run_slo_violation_detection_engine(this);
@@ -63,75 +64,43 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
         detector_subcomponents.put(detector_name,this);
     }
 
-    public BiFunction<String, String, String> slo_rule_topic_subscriber_function = (topic, message) -> {
-        synchronized (can_modify_slo_rules) {
-            can_modify_slo_rules.setValue(true);
-            MESSAGE_CONTENTS.assign_value(topic, message);
-            slo_rule_arrived.set(true);
-            can_modify_slo_rules.notifyAll();
+    public void update_monitoring_attribute_value(String name,Number value){
+        if(getSubcomponent_state().getMonitoring_attributes().get(name)==null){
 
-            Logger.getGlobal().log(info_logging_level, "BrokerClientApp:  - Received text message: " + message + " at topic " + topic);
-
-        }
-        return topic + ":MSG:" + message;
-    };
-
-    public BiFunction<String, String, String> metric_list_subscriber_function = (topic, message) -> {
-        synchronized (can_modify_monitoring_metrics) {
-            can_modify_monitoring_metrics.setValue(true);
-            MESSAGE_CONTENTS.assign_value(topic, message);
-            //TODO add monitoring metrics bounds
-            String metric_name;
-            double lower_bound,upper_bound;
-            JSONParser parser = new JSONParser();
-            JSONObject metric_list_object;
-            try {
-                metric_list_object = (JSONObject) parser.parse(message);
-                for (Object element : (JSONArray) metric_list_object.get("metric_list")){
-                    metric_name = (String)((JSONObject)element).get("name");
-                    String lower_bound_str = (String)((JSONObject)element).get("lower_bound");
-                    String upper_bound_str = (String)((JSONObject)element).get("upper_bound");
-                    if (!(lower_bound_str.toLowerCase().equals("-inf") || lower_bound_str.toLowerCase().equals("-infinity"))){
-                        lower_bound = Double.parseDouble(lower_bound_str);
-                    }else{
-                        lower_bound = Double.NEGATIVE_INFINITY;
-                    }
-
-                    if (!(upper_bound_str.toLowerCase().equals("inf") || upper_bound_str.toLowerCase().equals("infinity"))){
-                        upper_bound = Double.parseDouble(upper_bound_str);
-                    }else{
-                        upper_bound = Double.POSITIVE_INFINITY;
-                    }
-
-                    subcomponent_state.getMonitoring_attributes().put(metric_name,new RealtimeMonitoringAttribute(metric_name,lower_bound,upper_bound));
-                }
-            }catch (Exception e){
-                e.printStackTrace();
+            RealtimeMonitoringAttribute.AttributeValuesType attribute_type;
+            if (value instanceof Integer){
+                attribute_type = RealtimeMonitoringAttribute.AttributeValuesType.Integer;
+            }else if (value instanceof Double){
+                attribute_type = RealtimeMonitoringAttribute.AttributeValuesType.Double;
+            }else{
+                attribute_type = RealtimeMonitoringAttribute.AttributeValuesType.Unknown;
             }
+            getSubcomponent_state().getMonitoring_attributes().put(name,new RealtimeMonitoringAttribute(name,false,attribute_type));
+            //monitoring_attributes_max_values.put(name,value);
+            //monitoring_attributes_min_values.put(name,value);
 
-            //slo_rule_arrived.set(true);
-            can_modify_monitoring_metrics.notifyAll();
-
-            Logger.getGlobal().log(info_logging_level, "BrokerClientApp:  - Received text message: " + message + " at topic " + topic);
-
+        }else if (getSubcomponent_state().getMonitoring_attributes().get(name).getType()==RealtimeMonitoringAttribute.AttributeValuesType.Unknown){
+            RealtimeMonitoringAttribute.AttributeValuesType attribute_type;
+            if (value instanceof Integer){
+                attribute_type = RealtimeMonitoringAttribute.AttributeValuesType.Integer;
+            }else if (value instanceof Double){
+                attribute_type = RealtimeMonitoringAttribute.AttributeValuesType.Double;
+            }else{
+                attribute_type = RealtimeMonitoringAttribute.AttributeValuesType.Unknown;
+            }
+            getSubcomponent_state().getMonitoring_attributes().get(name).setType(attribute_type);
         }
-        return "Monitoring metrics message processed";
-    };
-    public static BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, broker_ip, broker_username, broker_password, amq_library_configuration_location);
-    public static BiFunction<String, String, String> device_lost_subscriber_function = (topic, message) -> {
-        BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_username, broker_password, amq_library_configuration_location);
 
-        Clock clock = Clock.systemUTC();
-        Long current_time_seconds = (long) Math.floor(clock.millis()/1000.0);
-        JSONObject severity_json = new JSONObject();
-        severity_json.put("severity", 100);
-        severity_json.put("probability", 100);
-        severity_json.put("predictionTime", current_time_seconds);
-        persistent_publisher.publish(severity_json.toJSONString());
-
-        //TODO possibly necessary to remove the next adaptation time as it will probably not be possible to start an adaptation during it
-        return topic + ":MSG:" + message;
-    };
+        getSubcomponent_state().getMonitoring_attributes().get(name).getActual_metric_values().add(value);
+        getSubcomponent_state().getMonitoring_attributes_statistics().get(name).update_attribute_statistics(value);
+        /*
+        if(get_90th_percentile_high_value(name,value)>monitoring_attributes_max_values.get(name)){
+            monitoring_attributes_max_values.put(name,value);
+        }else if (get_90th_percentile_low_value(name,value)<monitoring_attributes_min_values.get(name)){
+            monitoring_attributes_min_values.put(name,value);
+        }
+         */
+    }
     public static String get_detector_subcomponent_statistics() {
         return "Currently, the number of active detectors are "+detector_integer_id;
     }
@@ -153,7 +122,38 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
         return detector_name;
     }
 
-    public BrokerSubscriptionDetails getBrokerSubscriptionDetails() {
-        return new BrokerSubscriptionDetails(broker_ip,broker_username,broker_password);
+    public void set_name(String name){
+        detector_name = name;
+    }
+
+    public String get_application_name(){
+        return handled_application_name;
+    }
+
+    public BrokerSubscriptionDetails getBrokerSubscriptionDetails(String topic) {
+        return new BrokerSubscriptionDetails(broker_ip,broker_username,broker_password,handled_application_name,topic);
+    }
+
+    public double get_metric_value(String metric_name){
+        CircularFifoQueue<Number> actual_metric_values = getSubcomponent_state().getMonitoring_attributes().get(metric_name).getActual_metric_values();
+        if (actual_metric_values.size()==0){
+            Logger.getGlobal().log(warning_logging_level,"Trying to retrieve realtime values from an empty queue for metric "+metric_name);
+        }
+        return aggregate_metric_values(actual_metric_values);
+    }
+
+    public static DetectorSubcomponent get_associated_detector(String application_name){
+        DetectorSubcomponent associated_detector = detector_subcomponents.get(application_name);
+        if (associated_detector==null){
+            if (detector_subcomponents.size()==1 && detector_subcomponents.get(default_application_name)!=null){//This means only the initial 'default' application exists
+                associated_detector = detector_subcomponents.get(default_application_name);
+                associated_detector.set_name(application_name);
+            }
+            else {
+                associated_detector = new DetectorSubcomponent(application_name, CharacterizedThread.CharacterizedThreadRunMode.detached);
+            }
+        }
+        return associated_detector;
+
     }
 }

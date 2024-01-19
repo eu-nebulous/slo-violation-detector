@@ -9,7 +9,7 @@ import static configuration.Constants.default_application_name;
 import static runtime.Main.detectors;
 import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_integer_id;
 import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_subcomponents;
-import static utilities.DebugDataSubscription.debug_data_generation;
+import static utilities.DebugDataSubscription.*;
 import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.detached;
 @RestController
 @RequestMapping("/api")
@@ -17,7 +17,7 @@ public class DetectorRequestMappings {
 
     @RequestMapping("/add-new-detector")
     public static String start_new_detector_subcomponent() {
-        detectors.add(new DetectorSubcomponent(default_application_name,detached));
+        detectors.put(default_application_name,new DetectorSubcomponent(default_application_name,detached));
         return ("Spawned new SLO Detector subcomponent instance! Currently, there have been "+detector_integer_id+" detectors spawned");
     }
 
@@ -30,7 +30,7 @@ public class DetectorRequestMappings {
     @GetMapping("/component-statistics/detectors/{id}")
     public static String get_detector_subcomponent_statistics(@PathVariable String id) {
         String detector_name = "detector_"+id;
-        debug_data_generation.apply(detector_subcomponents.get(detector_name).getBrokerSubscriptionDetails(),EMPTY);
+        debug_data_generation.apply(detector_subcomponents.get(detector_name).getBrokerSubscriptionDetails(debug_data_trigger_topic_name),EMPTY);
         return DetectorSubcomponent.get_detector_subcomponent_statistics();
     }
 }

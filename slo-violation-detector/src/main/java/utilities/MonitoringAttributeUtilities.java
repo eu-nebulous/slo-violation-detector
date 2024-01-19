@@ -48,7 +48,7 @@ public class MonitoringAttributeUtilities {
             detector_state.getMonitoring_attributes().remove(monitoring_metric_name);
         }
 
-        detector_state.getMonitoring_attributes().put(monitoring_metric_name, new RealtimeMonitoringAttribute(monitoring_metric_name));
+        detector_state.getMonitoring_attributes().put(monitoring_metric_name, new RealtimeMonitoringAttribute(monitoring_metric_name,false, RealtimeMonitoringAttribute.AttributeValuesType.Unknown));
 
         detector_state.getMonitoring_attributes_roc_statistics().put(monitoring_metric_name,new MonitoringAttributeStatistics()); //The rate of change of a metric, is a metric which itself should be monitored for its upper bound
 

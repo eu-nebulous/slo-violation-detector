@@ -11,7 +11,7 @@ import java.util.HashSet;
 
 import static configuration.Constants.kept_values_per_metric;
 
-public class DetectorSubcomponentState {
+public class DetectorSubcomponentState{
     private HashMap<String, MonitoringAttributeStatistics> monitoring_attributes_statistics = new HashMap<>();
     private HashMap<String, MonitoringAttributeStatistics> monitoring_attributes_roc_statistics = new HashMap<>();
     private HashMap<String, RealtimeMonitoringAttribute> monitoring_attributes = new HashMap<>();

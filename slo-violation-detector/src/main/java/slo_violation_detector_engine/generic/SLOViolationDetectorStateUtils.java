@@ -16,9 +16,7 @@ public class SLOViolationDetectorStateUtils {
     private static String self_starting_command_string = "java -jar SLOSeverityCalculator-4.0-SNAPSHOT.jar > $LOG_FILE 2>&1";
     public static OperationalMode operational_mode;
     public final SynchronizedInteger create_new_slo_detector = new SynchronizedInteger(0);
-    public static SynchronizedStringMap MESSAGE_CONTENTS = new SynchronizedStringMap();
 
-    public static Properties prop = new Properties();
 
 
     public static InputStream getPreferencesFileInputStream(String custom_properties_file_path) throws IOException {

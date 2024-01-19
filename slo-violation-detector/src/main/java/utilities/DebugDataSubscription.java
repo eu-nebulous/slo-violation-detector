@@ -16,7 +16,6 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_subcomponents;
 import static slo_violation_detector_engine.director.DirectorSubcomponent.director_subcomponents;
-import static utility_beans.RealtimeMonitoringAttribute.get_metric_value;
 
 /**
  * The objective of this class is to allow a structured synopsis of the current state of the SLO Violation Detector to be created, as a response to a request sent to it through an appropriate topic.
@@ -25,7 +24,6 @@ public class DebugDataSubscription {
 
     public static String debug_data_trigger_topic_name = "sloviolationdetector.debug";
     public static String debug_data_output_topic_name = "sloviolationdetector.debug_output";
-    private static String broker_username,broker_password,broker_ip_address;
     public static BiFunction <BrokerSubscriptionDetails,String,String> debug_data_generation = (broker_subscription_details, message) ->{
 
         String output_debug_data = "";
@@ -93,8 +91,8 @@ public class DebugDataSubscription {
                     intermediate_debug_string.append("\t- Metric name: ").append(entry.getKey());
                 }
 
-                Double metric_value = get_metric_value(detector,entry.getKey());
-                CircularFifoQueue<Double> metric_values = entry.getValue().getActual_metric_values();
+                Double metric_value = detector.get_metric_value(entry.getKey());
+                CircularFifoQueue<Number> metric_values = entry.getValue().getActual_metric_values();
                 if (metric_value.isNaN()) {
                     intermediate_debug_string.append(" - value was determined as NaN, individual collected values are ").append(metric_values).append("\n");
                 } else if (metric_value.isInfinite()) {

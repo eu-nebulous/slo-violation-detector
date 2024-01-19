@@ -8,6 +8,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,6 +16,7 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 import static java.lang.Thread.sleep;
 import static java.util.logging.Level.INFO;
+import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_subcomponents;
 import static utilities.DebugDataSubscription.debug_data_output_topic_name;
 
 public class BrokerPublisher {
@@ -89,19 +91,26 @@ public class BrokerPublisher {
             }
     }
 
-    //TODO This assumes that the only content to be sent is json-like
+    //TODO The methods below assume that the only content to be sent is json-like
+    public void publish (String json_string_content, Iterable<String> application_names){
+
+        for (String application_name : application_names) {
+            JSONParser parser = new JSONParser();
+            JSONObject json_object = new JSONObject();
+            try {
+                json_object = (JSONObject) parser.parse(json_string_content);
+            } catch (ParseException p) {
+                Logger.getGlobal().log(Level.WARNING, "Could not parse the string content to be published to the broker as json");
+            }
+            if (private_publisher_instance != null) {
+                private_publisher_instance.send(json_object);
+            } else {
+                Logger.getGlobal().log(Level.SEVERE, "Could not send message to AMQP broker, as the broker ip to be used has not been specified");
+            }
+        }
+    }
+
     public void publish(String json_string_content) {
-        JSONParser parser = new JSONParser();
-        JSONObject json_object = new JSONObject();
-        try{
-            json_object = (JSONObject) parser.parse(json_string_content);
-        }catch (ParseException p){
-            Logger.getGlobal().log(Level.WARNING,"Could not parse the string content to be published to the broker as json");
-        }
-        if (private_publisher_instance!=null) {
-            private_publisher_instance.send(json_object);
-        }else{
-            Logger.getGlobal().log(Level.SEVERE,"Could not send message to AMQP broker, as the broker ip to be used has not been specified");
-        }
+        publish(json_string_content,detector_subcomponents.keySet());
     }
 }

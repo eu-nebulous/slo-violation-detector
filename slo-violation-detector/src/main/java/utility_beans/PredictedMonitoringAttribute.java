@@ -49,7 +49,7 @@ public class PredictedMonitoringAttribute {
         this.initialized = true;
         this.name = name;
         this.threshold = threshold;
-        double current_value = RealtimeMonitoringAttribute.get_metric_value(detector,name);
+        double current_value = detector.get_metric_value(name);
         if (Double.isNaN(current_value)){
             Logger.getGlobal().log(info_logging_level,"Detected NaN value for metric "+name+". Thus we cannot compute severity although a predicted value of "+forecasted_value+" has arrived");
             this.initialized = false;

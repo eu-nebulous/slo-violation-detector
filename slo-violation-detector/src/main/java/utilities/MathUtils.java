@@ -12,11 +12,16 @@ package utilities;
 import java.util.List;
 
 public class MathUtils {
-    public static double get_average(Iterable<Double> values){
+
+    public static double get_average(Iterable<Number> values){
         double sum = 0;
         int counter = 0;
-        for (Double value : values){
-            sum = sum+value;
+        for (Number value :values){
+            if (value instanceof Double){
+                sum = sum+(Double)value;
+            } else if (value instanceof Integer) {
+                sum = sum+(Integer)value;
+            }
             counter++;
         }
         return (sum/counter);

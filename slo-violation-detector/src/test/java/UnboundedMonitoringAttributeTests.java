@@ -44,7 +44,6 @@ import static slo_rule_modelling.SLORule.process_rule_value;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.initialize_subrule_and_attribute_associations;
 import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.detached;
 import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
-import static utility_beans.RealtimeMonitoringAttribute.update_monitoring_attribute_value;
 
 class MetricConfiguration{
     public String name;
@@ -117,11 +116,11 @@ public class UnboundedMonitoringAttributeTests {
 
             String realtime_metric_topic_name = TopicNames.realtime_metric_values_topic(metric_name);
             Logger.getGlobal().log(Level.INFO, "Starting realtime subscription at " + realtime_metric_topic_name);
-            BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address, broker_username, broker_password, amq_library_configuration_location);
+            BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address, broker_username, broker_password, amq_library_configuration_location,default_application_name);
             BiFunction<String, String, String> function = (topic, message) -> {
                 synchronized (detector.getSubcomponent_state().getMonitoring_attributes().get(topic)) {
                     try {
-                        update_monitoring_attribute_value(detector,topic, ((Number) ((JSONObject) new JSONParser().parse(message)).get("metricValue")).doubleValue());
+                        detector.update_monitoring_attribute_value(topic, ((Number) ((JSONObject) new JSONParser().parse(message)).get("metricValue")).doubleValue());
 
                         Logger.getGlobal().log(info_logging_level, "RECEIVED message with value for " + topic + " equal to " + (((JSONObject) new JSONParser().parse(message)).get("metricValue")));
                     } catch (ParseException e) {
@@ -139,9 +138,8 @@ public class UnboundedMonitoringAttributeTests {
 
 
             String forecasted_metric_topic_name = TopicNames.final_metric_predictions_topic(metric_name);
-            BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location);
-            BiFunction<String,String,String> forecasted_function = (topic,message) ->{
-                String predicted_attribute_name = topic.replaceFirst("prediction\\.",EMPTY);
+            BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location,default_application_name);
+            BiFunction<BrokerSubscriptionDetails,String,String> forecasted_function = (broker_details,message) ->{
                 HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_attributes = getPredicted_monitoring_attributes();
                 try {
                     double forecasted_value = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.metricValue.name())).doubleValue();
@@ -151,7 +149,7 @@ public class UnboundedMonitoringAttributeTests {
                     double confidence_interval = ((Number)json_array_confidence_interval.get(1)).doubleValue() - ((Number)json_array_confidence_interval.get(0)).doubleValue();
                     long timestamp = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.timestamp)).longValue();
                     long targeted_prediction_time = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.predictionTime.name())).longValue();
-                    Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
+                    Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+ metric_name +" equal to "+ forecasted_value);
 
                     synchronized (detector.can_modify_slo_rules) {
                         if(!detector.can_modify_slo_rules.getValue()) {
@@ -168,12 +166,12 @@ public class UnboundedMonitoringAttributeTests {
                             }
                         }
                         //predicted_attributes.get(predicted_attribute_name).clear();
-                        for (SLOSubRule subrule : SLOSubRule.getSlo_subrules_per_monitoring_attribute().get(predicted_attribute_name)) {
+                        for (SLOSubRule subrule : SLOSubRule.getSlo_subrules_per_monitoring_attribute().get(metric_name)) {
                             getPredicted_monitoring_attributes().computeIfAbsent(subrule.getId(), k -> new HashMap<>());
                             if ( (getPredicted_monitoring_attributes().get(subrule.getId()).get(targeted_prediction_time)!=null) &&(getPredicted_monitoring_attributes().get(subrule.getId()).get(targeted_prediction_time).getTimestamp()>timestamp)){
                                 //do nothing, as in this case an older prediction has arrived for a metric delayed, and so it should be disregarded
                             }else {
-                                PredictedMonitoringAttribute prediction_attribute = new PredictedMonitoringAttribute(detector, predicted_attribute_name, subrule.getThreshold(), subrule.getId(), forecasted_value, probability_confidence, confidence_interval, timestamp,targeted_prediction_time);
+                                PredictedMonitoringAttribute prediction_attribute = new PredictedMonitoringAttribute(detector, metric_name, subrule.getThreshold(), subrule.getId(), forecasted_value, probability_confidence, confidence_interval, timestamp,targeted_prediction_time);
 
                                 //predicted_attributes.get(predicted_attribute_name).add(prediction_attribute);
                                 subrule.setAssociated_predicted_monitoring_attribute(prediction_attribute);
@@ -182,6 +180,7 @@ public class UnboundedMonitoringAttributeTests {
                             }
                         }
                         detector.can_modify_slo_rules.setValue(true);
+                        detector.can_modify_slo_rules.notifyAll();
                     }
                     //SLOViolationCalculator.get_Severity_all_metrics_method(prediction_attribute)
 

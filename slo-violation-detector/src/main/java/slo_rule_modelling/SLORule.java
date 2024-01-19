@@ -20,6 +20,7 @@ import utility_beans.PredictedMonitoringAttribute;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -63,7 +64,7 @@ public class SLORule {
         for (String metric: metric_list) {
             RealtimeMonitoringAttribute monitoring_attribute;
             if (!associated_detector.getSubcomponent_state().getMonitoring_attributes().containsKey(metric)){
-                monitoring_attribute = new RealtimeMonitoringAttribute(metric);
+                monitoring_attribute = new RealtimeMonitoringAttribute(metric,false, RealtimeMonitoringAttribute.AttributeValuesType.Unknown);
                 associated_detector.getSubcomponent_state().getMonitoring_attributes().put(metric,monitoring_attribute);
             }
             monitoring_attributes.add(metric);
@@ -199,7 +200,7 @@ public class SLORule {
             //subrules_json_array.add
         }
         if (composite_rule){
-            ArrayList<Double>  individual_severity_contributions = new ArrayList<>();
+            ArrayList<Number>  individual_severity_contributions = new ArrayList<>();
             boolean and_subrules_invalidated = false;
             for (Object subrule: subrules_json_array) {
                 JSONObject json_subrule = (JSONObject) subrule;
@@ -239,7 +240,7 @@ public class SLORule {
                 rule_result_value = MathUtils.get_average(individual_severity_contributions);
                 calculation_logging_string.append("Calculating average of individual severity contributions: ").append(individual_severity_contributions).append(" equals ").append(rule_result_value).append("\n");
             }else if (slo_violation_determination_method.equals("prconf-delta") && individual_severity_contributions.size()>0){
-                rule_result_value = Math.sqrt(MathUtils.sum(individual_severity_contributions.stream().map(x->x*x).collect(Collectors.toList())))/Math.sqrt(individual_severity_contributions.size());
+                rule_result_value = Math.sqrt(MathUtils.sum(individual_severity_contributions.stream().map(x->x.doubleValue()*x.doubleValue()).collect(Collectors.toList())))/Math.sqrt(individual_severity_contributions.size());
                 calculation_logging_string.append("Calculating square root of sum of individual severity contributions: ").append(individual_severity_contributions).append(" - the result is ").append(rule_result_value).append("\n");
 
             }

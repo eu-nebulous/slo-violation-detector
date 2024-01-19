@@ -19,7 +19,6 @@ import static configuration.Constants.roc_limit;
 import static utility_beans.PredictedMonitoringAttribute.getAttributes_maximum_rate_of_change;
 import static utility_beans.PredictedMonitoringAttribute.getAttributes_minimum_rate_of_change;
 import static utility_beans.RealtimeMonitoringAttribute.simple_initialize_0_100_bounded_attributes;
-import static utility_beans.RealtimeMonitoringAttribute.update_monitoring_attribute_value;
 
 public class DerivedMonitoringAttributeTests {
 
@@ -28,7 +27,7 @@ public class DerivedMonitoringAttributeTests {
     public void roc_calculation_test(){
 
         simple_initialize_0_100_bounded_attributes(detector, List.of("cpu"));
-        update_monitoring_attribute_value(detector,"cpu",0.0);
+        detector.update_monitoring_attribute_value("cpu",0.0);
         detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().put("cpu", new MonitoringAttributeStatistics()); //The rate of change of a metric, is a metric which itself should be monitored for its upper bound
 
         getAttributes_maximum_rate_of_change().put("cpu",roc_limit);

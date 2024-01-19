@@ -18,21 +18,25 @@ import static java.util.logging.Level.INFO;
 
 public class BrokerSubscriber {
 
-    private static class MessageProcessingHandler extends Handler{
+    private class MessageProcessingHandler extends Handler{
+        private BrokerSubscriptionDetails broker_details;
         private static final BiFunction temporary_function = (Object o, Object o2) -> {
             //System.out.println("");
             Logger.getGlobal().log(INFO,"REPLACE_TEMPORARY_HANDLING_FUNCTIONALITY");
             return "IN_PROCESSING";
         };
-        private BiFunction<String,String,String> processing_function;
+        private BiFunction<BrokerSubscriptionDetails,String,String> processing_function;
         @Override
         public void onMessage(String key, String address, Map body, Message message, Context context) {
-            processing_function.apply(address, JSONValue.toJSONString(body));
+            Logger.getGlobal().log(info_logging_level,"Handling message for address "+address);
+            processing_function.apply(broker_details, JSONValue.toJSONString(body));
         }
-        public MessageProcessingHandler(){
+        public MessageProcessingHandler(BrokerSubscriptionDetails broker_details){
+            this.broker_details = broker_details;
             this.processing_function = temporary_function;
         }
-        public MessageProcessingHandler(BiFunction biFunction){
+        public MessageProcessingHandler(BiFunction<BrokerSubscriptionDetails,String,String> biFunction, BrokerSubscriptionDetails broker_details){
+            this.broker_details = broker_details;
             this.processing_function = biFunction;
         }
         public BiFunction getProcessing_function() {
@@ -49,7 +53,8 @@ public class BrokerSubscriber {
     private String broker_ip;
     private String brokerUsername;
     private String brokerPassword;
-    public BrokerSubscriber(String topic, String broker_ip, String brokerUsername, String brokerPassword, String amqLibraryConfigurationLocation){
+    BrokerSubscriptionDetails broker_details;
+    public BrokerSubscriber(String topic, String broker_ip, String brokerUsername, String brokerPassword, String amqLibraryConfigurationLocation,String application_name){
         boolean able_to_initialize_BrokerSubscriber = topic!=null && broker_ip!=null && brokerUsername!=null && brokerPassword!=null && !topic.equals(EMPTY) && !broker_ip.equals(EMPTY) && !brokerUsername.equals(EMPTY) && !brokerPassword.equals(EMPTY);
 
         if (!able_to_initialize_BrokerSubscriber){
@@ -62,6 +67,7 @@ public class BrokerSubscriber {
                 throw new RuntimeException(e);
             }
         }
+        broker_details = new BrokerSubscriptionDetails(broker_ip,brokerUsername,brokerPassword,application_name,topic);
         boolean subscriber_configuration_changed;
         if (!broker_and_topics_to_subscribe_to.containsKey(broker_ip)){
             HashSet<String> topics_to_subscribe_to = new HashSet<>();
@@ -84,7 +90,7 @@ public class BrokerSubscriber {
             }
         }
         if (subscriber_configuration_changed){
-                Consumer current_consumer = new Consumer(topic, topic, new MessageProcessingHandler(),true,true);
+                Consumer current_consumer = new Consumer(topic, topic, new MessageProcessingHandler(broker_details),true,true);
                 active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic,current_consumer);
 
                 this.topic = topic;
@@ -142,7 +148,7 @@ public class BrokerSubscriber {
             active_consumers_per_topic_per_broker_ip.put(broker_ip,new HashMap<>());
         }
         //Then add the new consumer
-        Consumer new_consumer = new Consumer(topic,topic,new MessageProcessingHandler(function),true,true);
+        Consumer new_consumer = new Consumer(topic,topic,new MessageProcessingHandler(function,broker_details),true,true);
         new_consumer.setProperty("topic",topic);
         active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic,new_consumer);
         add_topic_consumer_to_broker_connector(new_consumer);
@@ -175,11 +181,11 @@ public class BrokerSubscriber {
 
     public static class TopicNames{
         public static String realtime_metric_values_topic(String metric) {
-            return realtime_metrics_topic+metric;
+            return topic_prefix_realtime_metrics +metric;
         }
 
         public static String final_metric_predictions_topic(String metric) {
-            return final_metric_prediction_topic+metric;
+            return topic_prefix_final_predicted_metrics +metric;
         }
     }
 }
