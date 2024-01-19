@@ -1,6 +1,5 @@
 package runtime;
 
-import configuration.Constants;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -11,9 +10,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import slo_violation_detector_engine.director.DirectorSubcomponent;
-import utility_beans.BrokerSubscriptionDetails;
-import utility_beans.CharacterizedThread;
-import utility_beans.RealtimeMonitoringAttribute;
+import utility_beans.broker_communication.BrokerSubscriptionDetails;
+import utility_beans.generic_component_functionality.CharacterizedThread;
+import utility_beans.monitoring.RealtimeMonitoringAttribute;
 
 import java.util.HashMap;
 
@@ -21,21 +20,23 @@ import static configuration.Constants.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static slo_violation_detector_engine.generic.ComponentState.*;
 
+
 @RestController
 @RequestMapping("/api")
 public class DirectorRequestMappings {
     @PostMapping(value = "/new-application-slo",
     consumes = APPLICATION_JSON_VALUE)
     public static String start_new_detector_subcomponent(@RequestBody String string_rule_representation){
-        JSONObject rule_representation_json;
+/*        JSONObject rule_representation_json;
         JSONParser json_parser = new JSONParser();
         String application_name;
         try {
             rule_representation_json = (JSONObject) json_parser.parse(string_rule_representation);
+            application_name = (String) rule_representation_json.get("name");
         } catch (ParseException e) {
             return "Error in parsing the input string, the exception message follows:\n"+e;
-        }
-        BrokerSubscriptionDetails broker_details = new BrokerSubscriptionDetails(broker_ip,broker_username,broker_password,nebulous_components_application,slo_rules_topic);
+        }*/
+        BrokerSubscriptionDetails broker_details = new BrokerSubscriptionDetails(broker_ip,broker_username,broker_password,EMPTY,slo_rules_topic);
         DirectorSubcomponent.slo_rule_topic_subscriber_function.apply(broker_details,string_rule_representation);
         return ("New application was spawned");
     }

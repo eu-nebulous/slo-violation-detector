@@ -1,12 +1,12 @@
-package utility_beans;
+package utility_beans.broker_communication;
 
-import static configuration.Constants.EMPTY;
-import static configuration.Constants.default_application_name;
+import static configuration.Constants.*;
 
 public class BrokerSubscriptionDetails {
     String broker_username = "admin";
     String broker_password = "admin";
     String broker_ip = "localhost";
+    int broker_port = 5672;
     String application_name = default_application_name;
     String topic = EMPTY;
 
@@ -66,5 +66,13 @@ public class BrokerSubscriptionDetails {
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public int getBroker_port() {
+        return broker_port;
+    }
+
+    public void setBroker_port(int broker_port) {
+        this.broker_port = broker_port;
     }
 }

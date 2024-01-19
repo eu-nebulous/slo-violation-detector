@@ -10,14 +10,14 @@ package utilities;
 
 import slo_rule_modelling.SLOSubRule;
 import slo_violation_detector_engine.detector.DetectorSubcomponentState;
-import utility_beans.MonitoringAttributeStatistics;
-import utility_beans.RealtimeMonitoringAttribute;
+import utility_beans.monitoring.MonitoringAttributeStatistics;
+import utility_beans.monitoring.RealtimeMonitoringAttribute;
 
 import java.util.ArrayList;
 
 import static configuration.Constants.epsilon;
 import static configuration.Constants.roc_limit;
-import static utility_beans.PredictedMonitoringAttribute.*;
+import static utility_beans.monitoring.PredictedMonitoringAttribute.*;
 
 public class MonitoringAttributeUtilities {
 

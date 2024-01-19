@@ -12,8 +12,9 @@
 //import eu.melodic.event.brokerclient.templates.TopicNames;
 
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
-import utility_beans.*;
-import utility_beans.BrokerSubscriber.*;
+import utility_beans.broker_communication.BrokerPublisher;
+import utility_beans.broker_communication.BrokerSubscriber;
+import utility_beans.broker_communication.BrokerSubscriber.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -23,16 +24,16 @@ import org.junit.Test;
 import slo_rule_modelling.SLORule;
 import slo_rule_modelling.SLOSubRule;
 import utilities.MonitoringAttributeUtilities;
+import utility_beans.broker_communication.BrokerSubscriptionDetails;
+import utility_beans.monitoring.PredictedMonitoringAttribute;
+import utility_beans.synchronization.SynchronizedBoolean;
 
 import java.io.*;
 
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -42,8 +43,8 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 import static slo_rule_modelling.SLORule.process_rule_value;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.initialize_subrule_and_attribute_associations;
-import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.detached;
-import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
+import static utility_beans.generic_component_functionality.CharacterizedThread.CharacterizedThreadRunMode.detached;
+import static utility_beans.monitoring.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
 class MetricConfiguration{
     public String name;
@@ -92,6 +93,7 @@ public class UnboundedMonitoringAttributeTests {
         prop.load(inputStream);
 
         String broker_ip_address = prop.getProperty("broker_ip_address");
+        int broker_port = Integer.parseInt(prop.getProperty("broker_port"));
         String broker_username = prop.getProperty("broker_username");
         String broker_password = prop.getProperty("broker_password");
 
@@ -114,9 +116,9 @@ public class UnboundedMonitoringAttributeTests {
         for (String metric_name : metric_names) {
             MonitoringAttributeUtilities.initialize_values(metric_name, detector.getSubcomponent_state());
 
-            String realtime_metric_topic_name = TopicNames.realtime_metric_values_topic(metric_name);
+            String realtime_metric_topic_name = topic_prefix_realtime_metrics+metric_name;
             Logger.getGlobal().log(Level.INFO, "Starting realtime subscription at " + realtime_metric_topic_name);
-            BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address, broker_username, broker_password, amq_library_configuration_location,default_application_name);
+            BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address, broker_port,broker_username, broker_password, amq_library_configuration_location,default_application_name);
             BiFunction<String, String, String> function = (topic, message) -> {
                 synchronized (detector.getSubcomponent_state().getMonitoring_attributes().get(topic)) {
                     try {
@@ -130,25 +132,25 @@ public class UnboundedMonitoringAttributeTests {
                 return message;
             };
             Thread realtime_subscription_thread = new Thread(() -> {
-                subscriber.subscribe(function,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
+                subscriber.subscribe(function,default_application_name,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
                 // Insert some method call here.
             });
             realtime_subscription_thread.start();
             running.add(realtime_subscription_thread);
 
 
-            String forecasted_metric_topic_name = TopicNames.final_metric_predictions_topic(metric_name);
-            BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location,default_application_name);
-            BiFunction<BrokerSubscriptionDetails,String,String> forecasted_function = (broker_details,message) ->{
+            String forecasted_metric_topic_name = topic_prefix_final_predicted_metrics+metric_name;
+            BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_port,broker_username,broker_password, amq_library_configuration_location,default_application_name);
+            BiFunction<BrokerSubscriptionDetails,String,String> forecasted_function = (broker_details, message) ->{
                 HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_attributes = getPredicted_monitoring_attributes();
                 try {
-                    double forecasted_value = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.metricValue.name())).doubleValue();
-                    double probability_confidence = 100*((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.probability)).doubleValue();
+                    double forecasted_value = ((Number)((JSONObject)new JSONParser().parse(message)).get("metricValue")).doubleValue();
+                    double probability_confidence = 100*((Number)((JSONObject)new JSONParser().parse(message)).get("probability")).doubleValue();
                     //double confidence_interval = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.confidence_interval)).doubleValue();
-                    JSONArray json_array_confidence_interval = ((JSONArray)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.confidence_interval));
+                    JSONArray json_array_confidence_interval = ((JSONArray)((JSONObject)new JSONParser().parse(message)).get("confidence_interval"));
                     double confidence_interval = ((Number)json_array_confidence_interval.get(1)).doubleValue() - ((Number)json_array_confidence_interval.get(0)).doubleValue();
-                    long timestamp = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.timestamp)).longValue();
-                    long targeted_prediction_time = ((Number)((JSONObject)new JSONParser().parse(message)).get(EventFields.PredictionMetricEventFields.predictionTime.name())).longValue();
+                    long timestamp = ((Number)((JSONObject)new JSONParser().parse(message)).get("timestamp")).longValue();
+                    long targeted_prediction_time = ((Number)((JSONObject)new JSONParser().parse(message)).get("predictionTime")).longValue();
                     Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+ metric_name +" equal to "+ forecasted_value);
 
                     synchronized (detector.can_modify_slo_rules) {
@@ -192,7 +194,7 @@ public class UnboundedMonitoringAttributeTests {
             Thread forecasted_subscription_thread = new Thread(() -> {
                 synchronized (detector.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
                     //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name).getValue())
-                    forecasted_subscriber.subscribe(forecasted_function,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
+                    forecasted_subscriber.subscribe(forecasted_function,default_application_name,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
                 }
             });
             running.add(forecasted_subscription_thread);
@@ -243,8 +245,8 @@ public class UnboundedMonitoringAttributeTests {
     }
 
     private static void perpetual_metric_publisher(String metric_name, double base_metric_value, double forecasted_metric_value, double confidence_interval, double probability, double metric_max_value, int publish_interval_in_milliseconds) {
-        BrokerPublisher realtime_data_publisher = new BrokerPublisher(metric_name, "tcp://localhost:61616", "admin", "admin","src/main/resources/config/eu.melodic.event.brokerclient.properties");
-        BrokerPublisher forecasted_data_publisher = new BrokerPublisher("prediction."+metric_name, "tcp://localhost:61616", "admin", "admin","src/main/resources/config/eu.melodic.event.brokerclient.properties");
+        BrokerPublisher realtime_data_publisher = new BrokerPublisher(metric_name, "tcp://localhost:61616", 5672,"admin", "admin","src/main/resources/config/eu.melodic.event.brokerclient.properties");
+        BrokerPublisher forecasted_data_publisher = new BrokerPublisher("prediction."+metric_name, "tcp://localhost:61616", 5672,"admin", "admin","src/main/resources/config/eu.melodic.event.brokerclient.properties");
 
         while (true) {
             try {
@@ -253,19 +255,19 @@ public class UnboundedMonitoringAttributeTests {
                 double random_value = ThreadLocalRandom.current().nextDouble();
                 realtime_metric_json_object.put("metricValue", base_metric_value+random_value*(metric_max_value-base_metric_value));
                 realtime_metric_json_object.put("timestamp",System.currentTimeMillis());
-                realtime_data_publisher.publish(realtime_metric_json_object.toJSONString());
+                realtime_data_publisher.publish(realtime_metric_json_object.toJSONString(), Collections.singleton(default_application_name));
 
                 JSONObject forecasted_metric_json_object = new JSONObject();
                 forecasted_metric_json_object.put("metricValue", forecasted_metric_value);
                 forecasted_metric_json_object.put("timestamp",System.currentTimeMillis());
                 forecasted_metric_json_object.put("probability",probability);
-                forecasted_metric_json_object.put(EventFields.PredictionMetricEventFields.predictionTime.name(),targeted_prediction_time);
+                forecasted_metric_json_object.put("predictionTime",targeted_prediction_time);
                 //((System.currentTimeMillis()/1000)%60)*60000+1); //The prediction supposedly reflects the metric values at the next minute
                 JSONArray confidence_interval_list = new JSONArray();
                 confidence_interval_list.add((forecasted_metric_value-confidence_interval/2));
                 confidence_interval_list.add((forecasted_metric_value+confidence_interval/2));
                 forecasted_metric_json_object.put("confidence_interval",confidence_interval_list);
-                forecasted_data_publisher.publish(forecasted_metric_json_object.toJSONString());
+                forecasted_data_publisher.publish(forecasted_metric_json_object.toJSONString(), Collections.singleton(default_application_name));
                 Thread.sleep(publish_interval_in_milliseconds);
 
             }catch (InterruptedException i){

@@ -8,8 +8,8 @@
 
 //import eu.melodic.event.brokerclient.BrokerPublisher;
 //import eu.melodic.event.brokerclient.BrokerSubscriber;
-import utility_beans.BrokerPublisher;
-import utility_beans.BrokerSubscriber;
+import utility_beans.broker_communication.BrokerPublisher;
+import utility_beans.broker_communication.BrokerSubscriber;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -44,9 +45,9 @@ public class ConnectivityTests {
 
             prop.load(inputStream);
 
-            BrokerPublisher publisher = new BrokerPublisher("test_topic",prop.getProperty("broker_ip_url"),prop.getProperty("broker_username"),prop.getProperty("broker_password"), amq_library_configuration_location);
+            BrokerPublisher publisher = new BrokerPublisher("test_topic",prop.getProperty("broker_ip_url"), Integer.parseInt(prop.getProperty("broker_port")),prop.getProperty("broker_username"),prop.getProperty("broker_password"), amq_library_configuration_location);
 
-            BrokerSubscriber subscriber = new BrokerSubscriber("test_topic",prop.getProperty("broker_ip_url"),prop.getProperty("broker_username"),prop.getProperty("broker_password"),amq_library_configuration_location,default_application_name);
+            BrokerSubscriber subscriber = new BrokerSubscriber("test_topic",prop.getProperty("broker_ip_url"), Integer.parseInt(prop.getProperty("broker_port")),prop.getProperty("broker_username"),prop.getProperty("broker_password"),amq_library_configuration_location,default_application_name);
 
             JSONObject object_to_publish = new JSONObject();
             object_to_publish.put("ram","95");
@@ -70,12 +71,12 @@ public class ConnectivityTests {
             };
 
             Thread subscription_thread = new Thread(() -> {
-                subscriber.subscribe(slo_function,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
+                subscriber.subscribe(slo_function,default_application_name,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
             });
             subscription_thread.start();
             //slo_bound_running_threads.put("Test topic subscription thread",subscription_thread);
 
-            publisher.publish(object_to_publish.toJSONString());
+            publisher.publish(object_to_publish.toJSONString(), Collections.singleton(default_application_name));
             try {
                 Thread.sleep(2000);
             }catch (InterruptedException i){

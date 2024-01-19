@@ -9,15 +9,9 @@ import slo_rule_modelling.SLORule;
 import slo_rule_modelling.SLOSubRule;
 import utilities.DebugDataSubscription;
 import utilities.MonitoringAttributeUtilities;
-import utility_beans.BrokerPublisher;
-import utility_beans.BrokerSubscriber;
-import utility_beans.CharacterizedThread;
-import utility_beans.SynchronizedBoolean;
+import utility_beans.generic_component_functionality.CharacterizedThread;
+import utility_beans.synchronization.SynchronizedBoolean;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,8 +22,7 @@ import static slo_violation_detector_engine.director.DirectorSubcomponent.MESSAG
 import static slo_violation_detector_engine.generic.ComponentState.prop;
 import static slo_violation_detector_engine.generic.Runnables.get_severity_calculation_runnable;
 import static runtime.Main.*;
-import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
-import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
+import static utility_beans.monitoring.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
 public class DetectorSubcomponentUtilities {
 
@@ -117,10 +110,10 @@ public class DetectorSubcomponentUtilities {
         return null;
     }
 
-    public static ArrayList<AttributeSubscription> initialize_attribute_subscribers(ArrayList<SLORule> rules_list, String broker_ip_address, String broker_username, String broker_password){
+    public static ArrayList<AttributeSubscription> initialize_attribute_subscribers(ArrayList<SLORule> rules_list, String broker_ip_address,int broker_port, String broker_username, String broker_password){
         ArrayList<AttributeSubscription> attribute_subscribers = new ArrayList<>();
         for (SLORule rule:rules_list){
-            attribute_subscribers.add(new AttributeSubscription(rule,broker_ip_address,broker_username,broker_password));
+            attribute_subscribers.add(new AttributeSubscription(rule,broker_ip_address,broker_port,broker_username,broker_password));
         }
         return attribute_subscribers;
     }
@@ -298,7 +291,7 @@ public class DetectorSubcomponentUtilities {
             initialize_monitoring_datastructures_with_empty_data(associated_detector_subcomponent.getSubcomponent_state().slo_rules);
             //
             /*associated_detector_subcomponent.getUtilities().*/initialize_subrule_and_attribute_associations(associated_detector_subcomponent.getSubcomponent_state().slo_rules,associated_detector_subcomponent.can_modify_slo_rules);
-            initialize_attribute_subscribers(associated_detector_subcomponent.getSubcomponent_state().slo_rules, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"));
+            initialize_attribute_subscribers(associated_detector_subcomponent.getSubcomponent_state().slo_rules, prop.getProperty("broker_ip_url"), Integer.parseInt(prop.getProperty("broker_port")), prop.getProperty("broker_username"), prop.getProperty("broker_password"));
             initialize_slo_processing(associated_detector_subcomponent.getSubcomponent_state().slo_rules);
 
         }

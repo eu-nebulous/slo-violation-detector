@@ -1,4 +1,4 @@
-package utility_beans;
+package utility_beans.synchronization;
 
 public class SynchronizedInteger {
     private Integer value;

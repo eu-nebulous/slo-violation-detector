@@ -6,7 +6,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */        
 
-package utility_beans;
+package utility_beans.monitoring;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
@@ -14,12 +14,10 @@ import utilities.MathUtils;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.logging.Logger;
 
 import static configuration.Constants.*;
 import static java.lang.Integer.valueOf;
-import static utility_beans.PredictedMonitoringAttribute.*;
+import static utility_beans.monitoring.PredictedMonitoringAttribute.*;
 
 public class RealtimeMonitoringAttribute {
 

@@ -1,6 +1,6 @@
 package utilities;
 
-import utility_beans.OperationalMode;
+import utility_beans.generic_component_functionality.OperationalMode;
 
 import java.util.ArrayList;
 import java.util.List;

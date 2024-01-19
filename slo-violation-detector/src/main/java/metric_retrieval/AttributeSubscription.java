@@ -12,15 +12,16 @@ package metric_retrieval;
 //import eu.melodic.event.brokerclient.templates.EventFields;
 //import eu.melodic.event.brokerclient.templates.TopicNames;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
-import utility_beans.*;
-import utility_beans.BrokerSubscriber.EventFields;
-import utility_beans.BrokerSubscriber.TopicNames;
+import utility_beans.broker_communication.BrokerSubscriber;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import slo_rule_modelling.SLORule;
 import slo_rule_modelling.SLOSubRule;
+import utility_beans.broker_communication.BrokerSubscriptionDetails;
+import utility_beans.generic_component_functionality.CharacterizedThread;
+import utility_beans.monitoring.PredictedMonitoringAttribute;
 
 import java.time.Clock;
 import java.util.HashMap;
@@ -29,19 +30,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
+import static utility_beans.monitoring.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
 public class AttributeSubscription {
     SLORule slo_rule;
 
-    public AttributeSubscription(SLORule slo_rule, String broker_ip_address, String broker_username, String broker_password){
+    public AttributeSubscription(SLORule slo_rule, String broker_ip_address,int broker_port, String broker_username, String broker_password){
         this.slo_rule = slo_rule;
         DetectorSubcomponent detector = slo_rule.getAssociated_detector();
         for (String metric:slo_rule.get_monitoring_attributes()){
 
-            String realtime_metric_topic_name = TopicNames.realtime_metric_values_topic(metric);
-            Logger.getGlobal().log(info_logging_level,"Starting realtime subscription at "+realtime_metric_topic_name);
-            BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location,detector.get_application_name());
+            String realtime_metric_topic_name = topic_prefix_realtime_metrics+metric;
+            Logger.getGlobal().log(info_logging_level,"Starting realtime subscription at "+realtime_metric_topic_name + " for application "+detector.get_application_name());
+            BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address,broker_port,broker_username,broker_password, amq_library_configuration_location,detector.get_application_name());
             BiFunction<BrokerSubscriptionDetails,String,String> function = (broker_details, message) ->{
                 synchronized (detector.getSubcomponent_state().getMonitoring_attributes().get(metric)) {
                     try {
@@ -60,7 +61,7 @@ public class AttributeSubscription {
             };
             Runnable realtime_subscription_runnable = () -> {
                 try {
-                    subscriber.subscribe(function, detector.stop_signal);
+                    subscriber.subscribe(function, detector.get_application_name(),detector.stop_signal);
                     if(Thread.interrupted()){
                         throw new InterruptedException();
                     }
@@ -78,19 +79,19 @@ public class AttributeSubscription {
 
 
 
-            String forecasted_metric_topic_name = TopicNames.final_metric_predictions_topic(metric);
+            String forecasted_metric_topic_name = topic_prefix_final_predicted_metrics+metric;
             Logger.getGlobal().log(info_logging_level,"Starting forecasted metric subscription at "+forecasted_metric_topic_name);
-            BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_username,broker_password, amq_library_configuration_location,detector.get_application_name());
+            BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_port,broker_username,broker_password, amq_library_configuration_location,detector.get_application_name());
 
-            BiFunction<BrokerSubscriptionDetails,String,String> forecasted_function = (broker_details,message) ->{
-                String predicted_attribute_name = forecasted_metric_topic_name.replaceFirst("eu\\.nebulouscloud\\.monitoring\\.predicted\\.",EMPTY);
-                HashMap<Integer, HashMap<Long,PredictedMonitoringAttribute>> predicted_attributes = getPredicted_monitoring_attributes();
+            BiFunction<BrokerSubscriptionDetails,String,String> forecasted_function = (broker_details, message) ->{
+                String predicted_attribute_name = forecasted_metric_topic_name.replaceFirst(topic_prefix_final_predicted_metrics,EMPTY);
+                HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_attributes = getPredicted_monitoring_attributes();
                 try {
                     JSONObject json_message = (JSONObject)(new JSONParser().parse(message));
-                    Logger.getGlobal().log(Level.INFO,"Getting information for "+EventFields.PredictionMetricEventFields.metricValue);
-                    double forecasted_value = ((Number)json_message.get(EventFields.PredictionMetricEventFields.metricValue.name())).doubleValue();
-                    double probability_confidence = 100*((Number)json_message.get(EventFields.PredictionMetricEventFields.probability.name())).doubleValue();
-                    JSONArray json_array_confidence_interval = (JSONArray)(json_message.get(EventFields.PredictionMetricEventFields.confidence_interval.name()));
+                    Logger.getGlobal().log(Level.INFO,"Getting information for metricValue");
+                    double forecasted_value = ((Number)json_message.get("metricValue")).doubleValue();
+                    double probability_confidence = 100*((Number)json_message.get("probability")).doubleValue();
+                    JSONArray json_array_confidence_interval = (JSONArray)(json_message.get("confidence_interval"));
 
                     double confidence_interval;
                     try{
@@ -100,8 +101,8 @@ public class AttributeSubscription {
                         c.printStackTrace();
                         confidence_interval = Double.NEGATIVE_INFINITY;
                     }
-                    long timestamp = ((Number)json_message.get(EventFields.PredictionMetricEventFields.timestamp.name())).longValue();
-                    long targeted_prediction_time = ((Number)json_message.get(EventFields.PredictionMetricEventFields.predictionTime.name())).longValue();
+                    long timestamp = ((Number)json_message.get("timestamp")).longValue();
+                    long targeted_prediction_time = ((Number)json_message.get("predictionTime")).longValue();
                     Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
 
 
@@ -178,7 +179,7 @@ public class AttributeSubscription {
                 try {
                     synchronized (detector.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
                         //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name).getValue())
-                        forecasted_subscriber.subscribe(forecasted_function,detector.stop_signal);
+                        forecasted_subscriber.subscribe(forecasted_function,detector.get_application_name(),detector.stop_signal);
                     }
                     if (Thread.interrupted()) {
                         throw new InterruptedException();

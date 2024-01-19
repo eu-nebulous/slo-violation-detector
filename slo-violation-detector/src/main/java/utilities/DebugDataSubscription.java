@@ -4,11 +4,16 @@ package utilities;
 //import eu.melodic.event.brokerclient.BrokerSubscriber;
 import slo_violation_detector_engine.generic.Runnables;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
-import utility_beans.*;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_rule_modelling.SLOSubRule;
+import utility_beans.broker_communication.BrokerPublisher;
+import utility_beans.broker_communication.BrokerSubscriber;
+import utility_beans.broker_communication.BrokerSubscriptionDetails;
+import utility_beans.generic_component_functionality.CharacterizedThread;
+import utility_beans.monitoring.RealtimeMonitoringAttribute;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.logging.Logger;
@@ -35,6 +40,7 @@ public class DebugDataSubscription {
         intermediate_debug_string.append("--------------------------:\n\t- ");
         for (String director_id : director_subcomponents.keySet()) {
             intermediate_debug_string.append("Details for threads belonging to director "+director_id+":\n");
+            intermediate_debug_string.append("--------------------------:\n\t- ");
             for (String persistent_director_thread_name : director_subcomponents.get(director_id).persistent_running_director_threads.keySet()){
                 if (flag_first_element_is_to_be_iterated) {
                     intermediate_debug_string.append(persistent_director_thread_name);
@@ -59,6 +65,7 @@ public class DebugDataSubscription {
                     intermediate_debug_string.append(",\n\t- ").append(s);
                 }
             }
+            intermediate_debug_string.append("\n");
         }
         intermediate_debug_string.append("\n\n");
         flag_first_element_is_to_be_iterated = true;
@@ -68,12 +75,13 @@ public class DebugDataSubscription {
             intermediate_debug_string.append("Details for slo-bound threads belonging to detector ").append(detector_id).append(":\n");
             for (String s : detector_subcomponents.get(detector_id).getSubcomponent_state().slo_bound_running_threads.keySet()) {
                 if (flag_first_element_is_to_be_iterated) {
-                    intermediate_debug_string.append(s);
+                    intermediate_debug_string.append("\n\t").append(s);
                     flag_first_element_is_to_be_iterated = false;
                 } else {
                     intermediate_debug_string.append(",\n\t- ").append(s);
                 }
             }
+            intermediate_debug_string.append("\n");
         }
         intermediate_debug_string.append("\n\n");
         output_debug_data = output_debug_data+intermediate_debug_string;
@@ -120,8 +128,9 @@ public class DebugDataSubscription {
 
         for (String detector_id : detector_subcomponents.keySet()) {
             intermediate_debug_string.append("Details for threads belonging to detector ").append(detector_id).append(":\n");
+            intermediate_debug_string.append("--------------------------:");
             intermediate_debug_string.append("\nShowing the adaptation times that pend processing:\n").append(detector_subcomponents.get(detector_id).getSubcomponent_state().adaptation_times_pending_processing);
-            intermediate_debug_string.append("\nThese are the timestamps of the latest adaptation events\n").append(detector_subcomponents.get(detector_id).getSubcomponent_state().slo_violation_event_recording_queue);
+            intermediate_debug_string.append("\nThese are the timestamps of the latest adaptation events\n").append(detector_subcomponents.get(detector_id).getSubcomponent_state().slo_violation_event_recording_queue).append("\n");
         }
         output_debug_data = output_debug_data+intermediate_debug_string;
 
@@ -132,8 +141,8 @@ public class DebugDataSubscription {
                 !broker_subscription_details.getBroker_password().equals(EMPTY)&&
                 !broker_subscription_details.getBroker_username().equals(EMPTY)){
 
-            BrokerPublisher publisher = new BrokerPublisher(debug_data_output_topic_name, broker_subscription_details.getBroker_ip(),broker_subscription_details.getBroker_username(),broker_subscription_details.getBroker_password(), amq_library_configuration_location);
-            publisher.publish(output_debug_data);
+            BrokerPublisher publisher = new BrokerPublisher(debug_data_output_topic_name, broker_subscription_details.getBroker_ip(),broker_subscription_details.getBroker_port(),broker_subscription_details.getBroker_username(),broker_subscription_details.getBroker_password(), amq_library_configuration_location);
+            publisher.publish(output_debug_data, Collections.singleton(EMPTY));
         }
 
         return output_debug_data;

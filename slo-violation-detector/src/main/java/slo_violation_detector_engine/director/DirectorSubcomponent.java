@@ -4,16 +4,20 @@ import eu.nebulouscloud.exn.Connector;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import slo_violation_detector_engine.generic.SLOViolationDetectorSubcomponent;
-import utility_beans.*;
+import utility_beans.broker_communication.BrokerPublisher;
+import utility_beans.broker_communication.BrokerSubscriber;
+import utility_beans.broker_communication.BrokerSubscriptionDetails;
+import utility_beans.generic_component_functionality.CharacterizedThread;
+import utility_beans.monitoring.RealtimeMonitoringAttribute;
+import utility_beans.synchronization.SynchronizedBoolean;
+import utility_beans.synchronization.SynchronizedStringMap;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.time.Clock;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -64,11 +68,11 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
             //3. Creation of the lost device subscriber thread, which listens for a new event signalling a lost edge device
 
             //Metric list subscription thread
-            BrokerSubscriber metric_list_subscriber = new BrokerSubscriber(metric_list_topic, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location,nebulous_components_application);
+            BrokerSubscriber metric_list_subscriber = new BrokerSubscriber(metric_list_topic, prop.getProperty("broker_ip_url"),  Integer.parseInt(prop.getProperty("broker_port")),prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location,EMPTY);
             Runnable metric_list_topic_subscriber_runnable = () -> {
                 boolean did_not_finish_execution_gracefully = true;
                 while (did_not_finish_execution_gracefully) {
-                    int exit_status = metric_list_subscriber.subscribe(metric_list_subscriber_function, this.stop_signal); //This subscriber should not be immune to stop signals
+                    int exit_status = metric_list_subscriber.subscribe(metric_list_subscriber_function, EMPTY,this.stop_signal); //This subscriber should not be immune to stop signals
                     if (exit_status!=0) {
                         Logger.getGlobal().log(info_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
                         try {
@@ -87,11 +91,11 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
 
             //SLO rule subscription thread
-            BrokerSubscriber slo_rule_topic_subscriber = new BrokerSubscriber(slo_rules_topic, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location,nebulous_components_application);
+            BrokerSubscriber slo_rule_topic_subscriber = new BrokerSubscriber(slo_rules_topic, prop.getProperty("broker_ip_url"),  Integer.parseInt(prop.getProperty("broker_port")),prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location,EMPTY);
             Runnable slo_rules_topic_subscriber_runnable = () -> {
                 boolean did_not_finish_execution_gracefully = true;
                 while (did_not_finish_execution_gracefully) {
-                    int exit_status = slo_rule_topic_subscriber.subscribe(slo_rule_topic_subscriber_function, stop_signal); //This subscriber should not be immune to stop signals
+                    int exit_status = slo_rule_topic_subscriber.subscribe(slo_rule_topic_subscriber_function, EMPTY,stop_signal); //This subscriber should not be immune to stop signals
                     if (exit_status!=0) {
                         Logger.getGlobal().log(info_logging_level, "Broker unavailable, will try to reconnect after 10 seconds");
                         try {
@@ -111,9 +115,9 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
 
 
-            BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, broker_ip, broker_username, broker_password, amq_library_configuration_location,nebulous_components_application);
+            BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location,EMPTY);
              BiFunction<BrokerSubscriptionDetails, String, String> device_lost_subscriber_function = (broker_details, message) -> {
-                BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_username, broker_password, amq_library_configuration_location);
+                BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
 
                 Clock clock = Clock.systemUTC();
                 Long current_time_seconds = (long) Math.floor(clock.millis()/1000.0);
@@ -121,7 +125,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
                 severity_json.put("severity", 100);
                 severity_json.put("probability", 100);
                 severity_json.put("predictionTime", current_time_seconds);
-                persistent_publisher.publish(severity_json.toJSONString());
+                persistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(EMPTY));
 
                 return topic_for_lost_device_announcement + ":MSG:" + message;
             };
@@ -132,7 +136,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
             Runnable device_lost_topic_subscriber_runnable = () -> {
                 boolean did_not_finish_execution_gracefully = true;
                 while (did_not_finish_execution_gracefully) {
-                    int exit_status = device_lost_subscriber.subscribe(device_lost_subscriber_function, stop_signal); //This subscriber should not be immune to stop signals, else there would be new AtomicBoolean(false)
+                    int exit_status = device_lost_subscriber.subscribe(device_lost_subscriber_function, EMPTY,stop_signal); //This subscriber should not be immune to stop signals, else there would be new AtomicBoolean(false)
                     if (exit_status!=0) {
                         Logger.getGlobal().log(info_logging_level, "A device used by the platform was lost, will therefore trigger a reconfiguration");
                         try {
@@ -150,18 +154,6 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
             CharacterizedThread.create_new_thread(device_lost_topic_subscriber_runnable,"device_lost_topic_subscriber_thread",true,this, CharacterizedThread.CharacterizedThreadType.persistent_running_director_thread);
 
 
-            if (self_publish_rule_file) {
-                String json_file_name = prop.getProperty("input_file");
-                String rules_json_string = null;
-                try {
-                    rules_json_string = String.join(EMPTY, Files.readAllLines(Paths.get(new File(json_file_name).getAbsolutePath())));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                BrokerPublisher publisher = new BrokerPublisher(slo_rules_topic, prop.getProperty("broker_ip_url"), prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location);
-                publisher.publish(rules_json_string);
-                Logger.getGlobal().log(info_logging_level, "Sent message\n" + rules_json_string);
-            }
         }
         first_run = false;
 
@@ -248,7 +240,17 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
     public static BiFunction<BrokerSubscriptionDetails, String, String> slo_rule_topic_subscriber_function = (broker_details, message) -> {
         //DetectorSubcomponent new_detector = new DetectorSubcomponent(application, CharacterizedThread.CharacterizedThreadRunMode.detached);
-        String application = broker_details.getApplication_name();
+        JSONParser parser = new JSONParser();
+        String application;
+        try{
+            JSONObject object = (JSONObject) parser.parse(message);
+            application = (String) object.get("name");
+            Logger.getGlobal().log(info_logging_level,"Parsed a new slo rule for application "+application);
+        }catch (ParseException e) {
+            Logger.getGlobal().log(severe_logging_level,"Could not understand the slo rule which was received, skipping...");
+            return EMPTY;
+        }
+
         DetectorSubcomponent new_detector = get_associated_detector(application);
         detector_subcomponents.put(application,new_detector);
         synchronized (new_detector.can_modify_slo_rules) {

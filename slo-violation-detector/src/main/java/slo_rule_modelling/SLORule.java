@@ -15,8 +15,8 @@ import org.json.simple.parser.ParseException;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utilities.MathUtils;
 import utilities.SLOViolationCalculator;
-import utility_beans.RealtimeMonitoringAttribute;
-import utility_beans.PredictedMonitoringAttribute;
+import utility_beans.monitoring.RealtimeMonitoringAttribute;
+import utility_beans.monitoring.PredictedMonitoringAttribute;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 import static configuration.Constants.*;
 import static slo_rule_modelling.SLOSubRule.find_rule_type;
-import static utility_beans.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
+import static utility_beans.monitoring.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
 public class SLORule {
     private DetectorSubcomponent associated_detector;
@@ -37,6 +37,7 @@ public class SLORule {
     private ArrayList<String> monitoring_attributes  = new ArrayList<>();
     private JSONObject rule_representation;
     private SLOFormatVersion rule_format;
+    private String associated_application_name;
 
     public DetectorSubcomponent getAssociated_detector() {
         return associated_detector;
@@ -59,6 +60,7 @@ public class SLORule {
         this.rule_format = find_rule_format(this.rule_representation);
         this.slo_subrules = parse_subrules(detector,this.rule_representation,this.rule_format);
         this.associated_detector = detector;
+        this.associated_application_name = detector.get_application_name();
     }
     public SLORule(String rule_representation, ArrayList<String> metric_list, DetectorSubcomponent associated_detector){
         for (String metric: metric_list) {
@@ -77,6 +79,7 @@ public class SLORule {
         this.rule_format = find_rule_format(this.rule_representation);
         this.slo_subrules = parse_subrules(associated_detector,this.rule_representation,this.rule_format);
         this.associated_detector = associated_detector;
+        this.associated_application_name = associated_detector.get_application_name();
     }
 
     private static SLOFormatVersion find_rule_format(JSONObject rule_representation) {
@@ -335,5 +338,13 @@ public class SLORule {
 
     public void setRule_format(SLOFormatVersion rule_format) {
         this.rule_format = rule_format;
+    }
+
+    public String getAssociated_application_name() {
+        return associated_application_name;
+    }
+
+    public void setAssociated_application_name(String associated_application_name) {
+        this.associated_application_name = associated_application_name;
     }
 }

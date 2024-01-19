@@ -10,10 +10,10 @@ import org.junit.Test;
 import slo_rule_modelling.SLOSubRule;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utilities.SLOViolationCalculator;
-import utility_beans.CharacterizedThread;
-import utility_beans.MonitoringAttributeStatistics;
-import utility_beans.RealtimeMonitoringAttribute;
-import utility_beans.PredictedMonitoringAttribute;
+import utility_beans.generic_component_functionality.CharacterizedThread;
+import utility_beans.monitoring.MonitoringAttributeStatistics;
+import utility_beans.monitoring.RealtimeMonitoringAttribute;
+import utility_beans.monitoring.PredictedMonitoringAttribute;
 
 import java.util.ArrayList;
 

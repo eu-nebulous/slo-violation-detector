@@ -8,14 +8,11 @@
 
 package runtime;
 
-//import eu.melodic.event.brokerclient.BrokerPublisher;
-//import eu.melodic.event.brokerclient.BrokerSubscriber;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import slo_violation_detector_engine.director.DirectorSubcomponent;
-import slo_violation_detector_engine.generic.ComponentState.*;
-import utility_beans.*;
+import utility_beans.generic_component_functionality.OperationalMode;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,8 +25,7 @@ import static java.util.logging.Level.INFO;
 import static slo_violation_detector_engine.generic.ComponentState.*;
 import static utilities.OperationalModeUtils.getSLOViolationDetectionOperationalMode;
 import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
-import static utilities.OperationalModeUtils.get_director_subscription_topics;
-import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.detached;
+import static utility_beans.generic_component_functionality.CharacterizedThread.CharacterizedThreadRunMode.detached;
 
 
 @SpringBootApplication
@@ -47,7 +43,6 @@ public class Main {
         // - The prediction confidence
 
         //The above functionality is carried out by a subcomponent of the SLO Violation Detector which is the Detector. There is at least one Detector in each SLO Violation Detector, but there is also one Director responsible for guiding the Detector(s).
-
         try {
             {
                 InputStream inputStream;
@@ -55,19 +50,19 @@ public class Main {
                     operational_mode = getSLOViolationDetectionOperationalMode("DIRECTOR");
                     inputStream = getPreferencesFileInputStream(EMPTY);
                 } else if (args.length == 1) {
-                    Logger.getGlobal().log(info_logging_level, "Operational mode has been manually specified");
-                    operational_mode = getSLOViolationDetectionOperationalMode(args[0]);
-                    inputStream = getPreferencesFileInputStream(EMPTY);
+                    Logger.getGlobal().log(info_logging_level, "Preferences file has been manually specified");
+                    operational_mode = getSLOViolationDetectionOperationalMode("DIRECTOR");
+                    inputStream = getPreferencesFileInputStream(args[0]);
                 } else {
                     Logger.getGlobal().log(info_logging_level, "Operational mode and preferences file has been manually specified");
-                    operational_mode = getSLOViolationDetectionOperationalMode(args[0]);
-                    inputStream = getPreferencesFileInputStream(args[1]);
+                    inputStream = getPreferencesFileInputStream(args[0]);
+                    operational_mode = getSLOViolationDetectionOperationalMode(args[1]);
 
                 }
                 prop.load(inputStream);
                 slo_rules_topic = prop.getProperty("slo_rules_topic");
                 kept_values_per_metric = Integer.parseInt(prop.getProperty("stored_values_per_metric", "5"));
-                self_publish_rule_file = Boolean.parseBoolean(prop.getProperty("self_publish_rule_file"));
+                //TODO remove from docs as well: self_publish_rule_file = Boolean.parseBoolean(prop.getProperty("self_publish_rule_file"));
                 single_slo_rule_active = Boolean.parseBoolean(prop.getProperty("single_slo_rule_active"));
                 time_horizon_seconds = Integer.parseInt(prop.getProperty("time_horizon_seconds"));
 
@@ -76,21 +71,27 @@ public class Main {
                 maximum_acceptable_forward_predictions = Integer.parseInt(prop.getProperty("maximum_acceptable_forward_predictions"));
 
                 broker_ip = prop.getProperty("broker_ip_url");
+                broker_port = Integer.parseInt(prop.getProperty("broker_port"));
                 broker_username = prop.getProperty("broker_username");
                 broker_password = prop.getProperty("broker_password");
+                unbounded_metric_strings = new ArrayList<>(Arrays.asList(prop.getProperty("metrics_bounds").split(",")));
 
-                //director_subscription_topics = get_director_subscription_topics();
-                DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name,detached);
-                detectors.put(default_application_name,detector);
-                ArrayList<String> unbounded_metric_strings = new ArrayList<>(Arrays.asList(prop.getProperty("metrics_bounds").split(",")));
-                for (String metric_string : unbounded_metric_strings) {
-                    detector.getSubcomponent_state().getMonitoring_attributes_bounds_representation().put(metric_string.split(";")[0], metric_string.split(";", 2)[1]); //TODO delete once this information is successfully received from the AMQP broker
-                }
+                //TODO Delete below two lines
+                //DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name,detached);
+                //detectors.put(default_application_name,detector);
+
+
             } //initialization
             if (operational_mode.equals(OperationalMode.DETECTOR)) {
-                Logger.getGlobal().log(INFO,"Started new Detector instance"); //This detector instance has been already started in the initialization block above as it will be commonly needed both for the plain Detector and the Director-Detector
+                if (args.length>2){
+                    DetectorSubcomponent detector = new DetectorSubcomponent(args[args.length - 1],detached);
+                    detectors.put(args[args.length-1],detector);
+                }else{
+                    Logger.getGlobal().log(severe_logging_level,"Error, wanted to start the component as a detector but the application name was not provided");
+                }
+                Logger.getGlobal().log(INFO,"Started new Detector instance");
             }else if (operational_mode.equals(OperationalMode.DIRECTOR)){
-                Logger.getGlobal().log(INFO,"Starting new Director along the new Detector instance");
+                Logger.getGlobal().log(INFO,"Starting new Director instance");
                 DirectorSubcomponent director = new DirectorSubcomponent();
                 SpringApplication.run(Main.class, args);
                 Logger.getGlobal().log(INFO,"Execution completed");

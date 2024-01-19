@@ -6,10 +6,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */        
 
-package utility_beans;
+package utility_beans.synchronization;
 
-
-import utility_beans.SynchronizedBoolean;
 
 import java.util.Collections;
 import java.util.HashMap;

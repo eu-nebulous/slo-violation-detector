@@ -6,7 +6,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */        
 
-package utility_beans;
+package utility_beans.monitoring;
 
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 

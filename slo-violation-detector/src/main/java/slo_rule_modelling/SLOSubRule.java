@@ -9,7 +9,7 @@
 package slo_rule_modelling;
 
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
-import utility_beans.PredictedMonitoringAttribute;
+import utility_beans.monitoring.PredictedMonitoringAttribute;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -9,7 +9,7 @@
 package utilities;
 
 import slo_rule_modelling.SLOSubRule;
-import utility_beans.PredictedMonitoringAttribute;
+import utility_beans.monitoring.PredictedMonitoringAttribute;
 
 import java.util.logging.Logger;
 

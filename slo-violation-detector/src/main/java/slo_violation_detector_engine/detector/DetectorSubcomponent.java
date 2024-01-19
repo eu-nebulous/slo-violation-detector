@@ -3,7 +3,12 @@ package slo_violation_detector_engine.detector;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_violation_detector_engine.generic.Runnables;
 import slo_violation_detector_engine.generic.SLOViolationDetectorSubcomponent;
-import utility_beans.*;
+import utility_beans.broker_communication.BrokerSubscriptionDetails;
+import utility_beans.generic_component_functionality.CharacterizedThread;
+import utility_beans.monitoring.RealtimeMonitoringAttribute;
+import utility_beans.synchronization.SynchronizedBoolean;
+import utility_beans.synchronization.SynchronizedBooleanMap;
+import utility_beans.synchronization.SynchronizedInteger;
 
 
 import java.util.Collections;
@@ -14,8 +19,9 @@ import java.util.logging.Logger;
 
 import static configuration.Constants.*;
 import static slo_violation_detector_engine.generic.ComponentState.prop;
-import static utility_beans.CharacterizedThread.CharacterizedThreadRunMode.attached;
-import static utility_beans.RealtimeMonitoringAttribute.aggregate_metric_values;
+import static slo_violation_detector_engine.generic.ComponentState.unbounded_metric_strings;
+import static utility_beans.generic_component_functionality.CharacterizedThread.CharacterizedThreadRunMode.attached;
+import static utility_beans.monitoring.RealtimeMonitoringAttribute.aggregate_metric_values;
 
 
 public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
@@ -55,6 +61,9 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
             //detector_integer_id.notify();
             handled_application_name = application_name;
             detector_name = "detector_"+application_name+"_"+current_detector_id;
+        }
+        for (String metric_string : unbounded_metric_strings) {
+            subcomponent_state.getMonitoring_attributes_bounds_representation().put(metric_string.split(";")[0], metric_string.split(";", 2)[1]); //TODO delete once this information is successfully received from the AMQP broker
         }
         if (characterized_thread_run_mode.equals(attached)) {
             DetectorSubcomponentUtilities.run_slo_violation_detection_engine(this);
@@ -145,7 +154,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public static DetectorSubcomponent get_associated_detector(String application_name){
         DetectorSubcomponent associated_detector = detector_subcomponents.get(application_name);
         if (associated_detector==null){
-            if (detector_subcomponents.size()==1 && detector_subcomponents.get(default_application_name)!=null){//This means only the initial 'default' application exists
+            if (detector_subcomponents.size()==1 && detector_subcomponents.get(default_application_name)!=null){//This means only the initial 'default_application' application exists
                 associated_detector = detector_subcomponents.get(default_application_name);
                 associated_detector.set_name(application_name);
             }

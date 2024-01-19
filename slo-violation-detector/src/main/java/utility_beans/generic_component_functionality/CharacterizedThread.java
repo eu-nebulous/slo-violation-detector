@@ -1,4 +1,4 @@
-package utility_beans;
+package utility_beans.generic_component_functionality;
 
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import slo_violation_detector_engine.director.DirectorSubcomponent;
@@ -8,7 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.NAME_SEPARATOR;
-import static utility_beans.CharacterizedThread.CharacterizedThreadType.*;
+import static utility_beans.generic_component_functionality.CharacterizedThread.CharacterizedThreadType.*;
 
 public class CharacterizedThread{
     public enum CharacterizedThreadType{

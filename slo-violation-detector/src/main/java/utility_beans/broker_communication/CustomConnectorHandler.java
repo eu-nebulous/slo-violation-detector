@@ -1,4 +1,4 @@
-package utility_beans;
+package utility_beans.broker_communication;
 
 import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;

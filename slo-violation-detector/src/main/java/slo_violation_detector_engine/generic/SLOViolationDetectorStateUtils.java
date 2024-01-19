@@ -1,13 +1,13 @@
 package slo_violation_detector_engine.generic;
 
-import utility_beans.*;
+import utility_beans.generic_component_functionality.OperationalMode;
+import utility_beans.synchronization.SynchronizedInteger;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.Properties;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;

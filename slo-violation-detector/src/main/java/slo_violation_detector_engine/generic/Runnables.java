@@ -3,12 +3,12 @@ package slo_violation_detector_engine.generic;
 //import eu.melodic.event.brokerclient.BrokerPublisher;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import slo_violation_detector_engine.detector.DetectorSubcomponentUtilities;
-import utility_beans.BrokerPublisher;
+import utility_beans.broker_communication.BrokerPublisher;
 import org.json.simple.JSONObject;
 import slo_rule_modelling.SLORule;
-import utility_beans.BrokerSubscriber;
-import utility_beans.BrokerSubscriptionDetails;
-import utility_beans.CharacterizedThread;
+import utility_beans.broker_communication.BrokerSubscriber;
+import utility_beans.broker_communication.BrokerSubscriptionDetails;
+import utility_beans.generic_component_functionality.CharacterizedThread;
 
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -38,8 +38,8 @@ public class Runnables {
                 synchronized (detector.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_trigger_topic_name)) {
                     //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_topic_name).getValue())
                     BrokerSubscriptionDetails broker_details = detector.getBrokerSubscriptionDetails(debug_data_trigger_topic_name);
-                    debug_data_subscriber = new BrokerSubscriber(debug_data_trigger_topic_name, broker_details.getBroker_ip(),broker_details.getBroker_username(),broker_details.getBroker_password(), amq_library_configuration_location,detector.get_application_name());
-                    debug_data_subscriber.subscribe(debug_data_generation, detector.stop_signal);
+                    debug_data_subscriber = new BrokerSubscriber(debug_data_trigger_topic_name, broker_details.getBroker_ip(),broker_details.getBroker_port(),broker_details.getBroker_username(),broker_details.getBroker_password(), amq_library_configuration_location,detector.get_application_name());
+                    debug_data_subscriber.subscribe(debug_data_generation, EMPTY,detector.stop_signal);
                     Logger.getGlobal().log(info_logging_level,"Debug data subscriber initiated");
                 }
                 if (Thread.interrupted()) {
@@ -72,7 +72,7 @@ public class Runnables {
     public static Runnable get_severity_calculation_runnable(SLORule rule, DetectorSubcomponent detector) {
 
         Runnable severity_calculation_runnable = () -> {
-            BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip,broker_username,broker_password, amq_library_configuration_location);
+            BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip,broker_port,broker_username,broker_password, amq_library_configuration_location);
 
             while (!detector.stop_signal.get()) {
                 synchronized (detector.PREDICTION_EXISTS) {

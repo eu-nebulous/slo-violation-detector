@@ -8,17 +8,17 @@
 
 import org.junit.Test;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
-import utility_beans.CharacterizedThread;
-import utility_beans.MonitoringAttributeStatistics;
-import utility_beans.PredictedMonitoringAttribute;
+import utility_beans.generic_component_functionality.CharacterizedThread;
+import utility_beans.monitoring.MonitoringAttributeStatistics;
+import utility_beans.monitoring.PredictedMonitoringAttribute;
 
 import java.util.List;
 
 import static configuration.Constants.default_application_name;
 import static configuration.Constants.roc_limit;
-import static utility_beans.PredictedMonitoringAttribute.getAttributes_maximum_rate_of_change;
-import static utility_beans.PredictedMonitoringAttribute.getAttributes_minimum_rate_of_change;
-import static utility_beans.RealtimeMonitoringAttribute.simple_initialize_0_100_bounded_attributes;
+import static utility_beans.monitoring.PredictedMonitoringAttribute.getAttributes_maximum_rate_of_change;
+import static utility_beans.monitoring.PredictedMonitoringAttribute.getAttributes_minimum_rate_of_change;
+import static utility_beans.monitoring.RealtimeMonitoringAttribute.simple_initialize_0_100_bounded_attributes;
 
 public class DerivedMonitoringAttributeTests {
 

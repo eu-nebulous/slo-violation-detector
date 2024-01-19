@@ -2,14 +2,12 @@ package slo_violation_detector_engine.detector;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_rule_modelling.SLORule;
-import utility_beans.MonitoringAttributeStatistics;
-import utility_beans.RealtimeMonitoringAttribute;
+import utility_beans.monitoring.MonitoringAttributeStatistics;
+import utility_beans.monitoring.RealtimeMonitoringAttribute;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-
-import static configuration.Constants.kept_values_per_metric;
 
 public class DetectorSubcomponentState{
     private HashMap<String, MonitoringAttributeStatistics> monitoring_attributes_statistics = new HashMap<>();
