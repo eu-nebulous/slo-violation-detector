@@ -25,11 +25,14 @@ public class SLOViolationDetectorStateUtils {
             URI absolute_configuration_file_path = new File(configuration_file_location).toURI();
             URI relative_configuration_file_path = base_project_path.relativize(absolute_configuration_file_path);
             Logger.getGlobal().log(info_logging_level, "This is the base project path:" + base_project_path);
-            return new FileInputStream(base_project_path.getPath() + relative_configuration_file_path);
+            String configuration_path = base_project_path.getPath() + relative_configuration_file_path;
+            Logger.getGlobal().log(info_logging_level, "Loading configuration from path: "+configuration_path);
+            return new FileInputStream(configuration_path);
         }else{
             if (base_project_path == null || base_project_path.getPath().equals(EMPTY)) {
                 base_project_path = new File(custom_properties_file_path).toURI();
             }
+            Logger.getGlobal().log(info_logging_level, "Loading configuration from path: "+base_project_path);
             return new FileInputStream(base_project_path.getPath());
         }
     }

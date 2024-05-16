@@ -15,6 +15,7 @@ import java.time.Clock;
 import java.util.Collections;
 import java.util.Date;
 import java.util.NoSuchElementException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
@@ -74,6 +75,22 @@ public class Runnables {
         Runnable severity_calculation_runnable = () -> {
             BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip,broker_port,broker_username,broker_password, amq_library_configuration_location);
 
+            int attempts = 1;
+            while (persistent_publisher.is_publisher_null()){
+                if (attempts<=2) {
+                    persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
+                }else{
+                    Logger.getGlobal().log(Level.WARNING,"Will now attempt to reset the BrokerPublisher connector");
+                    persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location,true);
+                }
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                attempts++;
+            }
+
             while (!detector.stop_signal.get()) {
                 synchronized (detector.PREDICTION_EXISTS) {
                     while (!detector.PREDICTION_EXISTS.getValue()) {
@@ -116,6 +133,7 @@ public class Runnables {
                         continue;
                     }
                     Logger.getGlobal().log(info_logging_level, "Targeted_prediction_time " + targeted_prediction_time);
+                    BrokerPublisher finalPersistent_publisher = persistent_publisher;
                     Runnable internal_severity_calculation_runnable = () -> {
                         try {
                             synchronized (detector.PREDICTION_EXISTS) {
@@ -142,7 +160,7 @@ public class Runnables {
                                 severity_json.put("severity", rule_severity);
                                 severity_json.put("probability", slo_violation_probability);
                                 severity_json.put("predictionTime", targeted_prediction_time);
-                                persistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()));
+                                finalPersistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()));
                             }
 
                             detector.getSubcomponent_state().slo_violation_event_recording_queue.add(System.currentTimeMillis());

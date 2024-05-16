@@ -30,9 +30,13 @@ public class BrokerPublisher {
     private int broker_port;
 
     public BrokerPublisher(String topic, String broker_ip, int broker_port, String brokerUsername, String brokerPassword, String amqLibraryConfigurationLocation) {
+        this(topic,broker_ip,broker_port,brokerUsername,brokerPassword,amqLibraryConfigurationLocation,false);
+    }
+    public BrokerPublisher(String topic, String broker_ip, int broker_port, String brokerUsername, String brokerPassword, String amqLibraryConfigurationLocation, boolean hard_initialize_connector) {
         boolean able_to_initialize_BrokerPublisher = topic!=null && broker_ip!=null && brokerUsername!=null && brokerPassword!=null && !topic.equals(EMPTY) && !broker_ip.equals(EMPTY) && !brokerUsername.equals(EMPTY) && !brokerPassword.equals(EMPTY);
 
         if (!able_to_initialize_BrokerPublisher){
+            Logger.getGlobal().log(Level.SEVERE,"Could not initialize BrokerPublisher");
             return;
         }
         boolean publisher_configuration_changed;
@@ -52,7 +56,7 @@ public class BrokerPublisher {
         }
 
 
-        if (publisher_configuration_changed){
+        if (publisher_configuration_changed || hard_initialize_connector){
 //            for (String current_broker_ip : broker_and_topics_to_publish_to.keySet()){
             Logger.getGlobal().log(Level.INFO,"Publisher configuration changed, creating new connector at  "+broker_ip+" for topic "+topic);
             if (active_connector!=null) {
@@ -105,12 +109,16 @@ public class BrokerPublisher {
             } catch (ParseException p) {
                 Logger.getGlobal().log(Level.WARNING, "Could not parse the string content to be published to the broker as json, which is the following: "+json_string_content);
             }
-            if (private_publisher_instance != null) {
+            if (!is_publisher_null()) {
                 private_publisher_instance.send(json_object);
             } else {
-                Logger.getGlobal().log(Level.SEVERE, "Could not send message to AMQP broker, as the broker ip to be used has not been specified");
+                Logger.getGlobal().log(Level.SEVERE, "Could not send message to AMQP broker, as the private publisher instance is null");
             }
         }
+    }
+
+    public boolean is_publisher_null(){
+        return (private_publisher_instance == null);
     }
 }
 
