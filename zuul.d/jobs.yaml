@@ -8,6 +8,7 @@
       - nebulous-slo-violation-detector-container-images
     description: Build the container images.
     files: &image_files
+      - ^zuul\.d/jobs\.yaml$
       - ^slo-violation-detector/
     vars: &image_vars
       promote_container_image_job: nebulous-slo-violation-detector-upload-container-images
