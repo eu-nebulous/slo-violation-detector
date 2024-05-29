@@ -63,7 +63,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
             detector_name = "detector_"+application_name+"_"+current_detector_id;
         }
         for (String metric_string : unbounded_metric_strings) {
-            subcomponent_state.getMonitoring_attributes_bounds_representation().put(metric_string.split(";")[0], metric_string.split(";", 2)[1]); //TODO delete once this information is successfully received from the AMQP broker
+            subcomponent_state.getMonitoring_attributes_bounds_representation().put(metric_string.split(";")[0], metric_string.split(";", 2)[1]); //TODO delete once this information is successfully received from the AMQP broker - this is alternative functionality to receiving the metrics list containing the metric boundaries
         }
         if (characterized_thread_run_mode.equals(attached)) {
             DetectorSubcomponentUtilities.run_slo_violation_detection_engine(this);
