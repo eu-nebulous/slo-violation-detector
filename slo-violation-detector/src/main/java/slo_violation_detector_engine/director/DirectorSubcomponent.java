@@ -122,8 +122,12 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
                 Clock clock = Clock.systemUTC();
                 Long current_time_seconds = (long) Math.floor(clock.millis()/1000.0);
                 JSONObject severity_json = new JSONObject();
-                severity_json.put("severity", 100);
-                severity_json.put("probability", 100);
+                if (publish_normalized_severity){
+                    severity_json.put("severity", 1.0);
+                }else{
+                    severity_json.put("severity", 100.0);
+                }
+                severity_json.put("probability", 100.0);
                 severity_json.put("predictionTime", current_time_seconds);
                 persistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(EMPTY));
 
