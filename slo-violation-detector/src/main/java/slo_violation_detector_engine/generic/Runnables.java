@@ -157,7 +157,11 @@ public class Runnables {
 
                             if (slo_violation_probability >= slo_violation_probability_threshold) {
                                 JSONObject severity_json = new JSONObject();
-                                severity_json.put("severity", rule_severity);
+                                if (publish_normalized_severity) {
+                                    severity_json.put("severity", rule_severity/100);
+                                }else{
+                                    severity_json.put("severity", rule_severity);
+                                }
                                 severity_json.put("probability", slo_violation_probability);
                                 severity_json.put("predictionTime", targeted_prediction_time);
                                 finalPersistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()));
