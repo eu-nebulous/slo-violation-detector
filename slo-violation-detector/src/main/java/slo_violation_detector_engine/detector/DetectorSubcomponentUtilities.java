@@ -1,6 +1,5 @@
 package slo_violation_detector_engine.detector;
 
-import groovy.util.logging.Log;
 import metric_retrieval.AttributeSubscription;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -21,7 +20,6 @@ import static configuration.Constants.*;
 import static slo_violation_detector_engine.director.DirectorSubcomponent.MESSAGE_CONTENTS;
 import static slo_violation_detector_engine.generic.ComponentState.prop;
 import static slo_violation_detector_engine.generic.Runnables.get_severity_calculation_runnable;
-import static runtime.Main.*;
 import static utility_beans.monitoring.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
 public class DetectorSubcomponentUtilities {
@@ -119,13 +117,21 @@ public class DetectorSubcomponentUtilities {
     }
 
 
-    public static boolean slo_rule_arrived_has_updated_version(String rule_representation) {
+    public static boolean slo_rule_arrived_has_updated_version(String rule_representation,DetectorSubcomponent detector, boolean assume_version_is_always_updated) {
+        if (assume_version_is_always_updated){ //This behaviour shortcuts this method
+            return true;
+        }
+        //TODO: The json object version is ignored for now. However, it should not be, we should keep track separately per application
         JSONObject json_object = null;
         long json_object_version = 1;
         try {
             json_object = (JSONObject) new JSONParser().parse(rule_representation);
-            //json_object_version = (Long) json_object.get("version");
-            json_object_version++;
+            if (json_object.containsKey("version")){
+                json_object_version = (Long) json_object.get("version");
+            }else{
+                Logger.getGlobal().log(info_logging_level,"The rule which was received does not have a version field, and as we do not assume the version of the rule is always updated, it is ignored");
+            }
+            //json_object_version++;
         } catch (NullPointerException n){
             n.printStackTrace();
             Logger.getGlobal().log(info_logging_level,"Unfortunately a null message was sent to the SLO Violation Detector, which is being ignored");
@@ -135,9 +141,9 @@ public class DetectorSubcomponentUtilities {
             Logger.getGlobal().log(info_logging_level,"Could not parse the JSON of the new SLO, assuming it is not an updated rule...");
             return false;
         }
-        if (json_object_version > current_slo_rules_version){
-            Logger.getGlobal().log(info_logging_level,"An SLO with updated version ("+json_object_version+" vs older "+current_slo_rules_version+") has arrived");
-            current_slo_rules_version=json_object_version;
+        if (json_object_version > detector.getCurrent_slo_rule_version()){
+            Logger.getGlobal().log(info_logging_level,"An SLO with updated version ("+json_object_version+" vs older "+detector.getCurrent_slo_rule_version()+") has arrived");
+            detector.setCurrent_slo_rule_version(json_object_version);
             return true;
         }else {
             Logger.getGlobal().log(info_logging_level,"Taking no action for the received SLO message as the version number is not updated");
@@ -267,7 +273,7 @@ public class DetectorSubcomponentUtilities {
                 associated_detector_subcomponent.can_modify_slo_rules.setValue(false);
                 associated_detector_subcomponent.slo_rule_arrived.set(false);
                 String rule_representation = MESSAGE_CONTENTS.get_synchronized_contents(associated_detector_subcomponent.get_application_name(),slo_rules_topic);
-                if (slo_rule_arrived_has_updated_version(rule_representation)) {
+                if (slo_rule_arrived_has_updated_version(rule_representation,associated_detector_subcomponent,assume_slo_rule_version_is_always_updated)) {
                     if (single_slo_rule_active) {
                         associated_detector_subcomponent.getSubcomponent_state().slo_rules.clear();
                     }

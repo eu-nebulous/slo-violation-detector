@@ -26,6 +26,7 @@ import static utility_beans.monitoring.RealtimeMonitoringAttribute.aggregate_met
 
 public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public static final SynchronizedInteger detector_integer_id = new SynchronizedInteger();
+    private Long current_slo_rule_version = -1L;
     public static Map<String,DetectorSubcomponent> detector_subcomponents = Collections.synchronizedMap(new HashMap<>()); //A HashMap containing all detector subcomponents
     private DetectorSubcomponentState subcomponent_state;
     public final AtomicBoolean stop_signal = new AtomicBoolean(false);
@@ -164,5 +165,13 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
         }
         return associated_detector;
 
+    }
+
+    public Long getCurrent_slo_rule_version() {
+        return current_slo_rule_version;
+    }
+
+    public void setCurrent_slo_rule_version(Long current_slo_rule_version) {
+        this.current_slo_rule_version = current_slo_rule_version;
     }
 }

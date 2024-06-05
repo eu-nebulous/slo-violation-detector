@@ -38,6 +38,7 @@ public class Constants {
     public static int kept_values_per_metric = 5; //Default to be overriden from the configuration file. This indicates how many metric values are kept to calculate the "previous" metric value during the rate of change calculation
     public static String roc_calculation_mode = "prototype";
     public static boolean single_slo_rule_active = true; //default value to be overriden
+    public static boolean assume_slo_rule_version_is_always_updated = false;
     public static double roc_limit = 1;
     public static double epsilon = 0.00000000001;
     public static Level debug_logging_level = Level.OFF;
