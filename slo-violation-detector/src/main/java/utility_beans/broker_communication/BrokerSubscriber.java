@@ -75,6 +75,11 @@ public class BrokerSubscriber {
                 throw new RuntimeException(e);
             }
         }
+        this.topic = topic;
+        this.broker_ip = broker_ip;
+        this.broker_port = broker_port;
+        this.brokerUsername = brokerUsername;
+        this.brokerPassword = brokerPassword;
         broker_details = new BrokerSubscriptionDetails(broker_ip, brokerUsername, brokerPassword, application_name, topic);
         boolean subscriber_configuration_changed;
         if (!broker_and_topics_to_subscribe_to.containsKey(broker_ip)) {
@@ -106,12 +111,6 @@ public class BrokerSubscriber {
                 Logger.getGlobal().log(INFO, "HIGH level subscriber " + topic);
             }
             active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic, current_consumer);
-
-            this.topic = topic;
-            this.broker_ip = broker_ip;
-            this.broker_port = broker_port;
-            this.brokerUsername = brokerUsername;
-            this.brokerPassword = brokerPassword;
             add_topic_consumer_to_broker_connector(current_consumer);
         }
     }
