@@ -1,0 +1,20 @@
+- project:
+    check:
+      jobs:
+        - opendev-buildset-registry
+        - nebulous-slo-violation-detector-helm-lint
+        - nebulous-slo-violation-detector-build-container-images
+        - nebulous-slo-violation-detector-hadolint
+        - nebulous-platform-apply-helm-charts
+        - nox-linters
+    gate:
+      jobs:
+        - opendev-buildset-registry
+        - nebulous-slo-violation-detector-helm-lint
+        - nebulous-slo-violation-detector-upload-container-images
+        - nebulous-slo-violation-detector-hadolint
+        - nebulous-platform-apply-helm-charts
+        - nox-linters
+    promote:
+      jobs:
+        - nebulous-slo-violation-detector-promote-container-images
