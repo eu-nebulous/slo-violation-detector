@@ -95,7 +95,7 @@ public class DetectorSubcomponentUtilities {
     }
 
     public static Long get_next_targeted_prediction_time(DetectorSubcomponent detector) {
-        List<Long> possible_targeted_prediction_times = detector.getSubcomponent_state().adaptation_times.stream().sorted().limit(maximum_acceptable_forward_predictions).collect(Collectors.toList());
+        List<Long> possible_targeted_prediction_times = detector.getSubcomponent_state().adaptation_times.stream().sorted().limit(maximum_acceptable_forward_predictions).toList();
         for (int i=0; i<possible_targeted_prediction_times.size(); i++){
             Long possible_targeted_adaptation_time = possible_targeted_prediction_times.get(i);
             if (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(possible_targeted_adaptation_time)){
