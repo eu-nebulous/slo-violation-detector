@@ -11,5 +11,5 @@ public class ComponentState {
     public static int broker_port = 5672;
     public static String broker_username= "admin";
     public static String broker_password= "admin";
-    public static ArrayList<String> unbounded_metric_strings;
+    public static ArrayList<String> unbounded_metric_strings = new ArrayList<>();
 }

@@ -25,8 +25,8 @@ public class Constants {
     public static final String default_application_name = "default_application";
     public static final String slovid_subscriber_key = "slovid_publisher";
     public static URI base_project_path;
-    public static String configuration_file_location =  "slo-violation-detector/src/main/resources/config/eu.nebulous.slo_violation_detector.properties";
-    public static String amq_library_configuration_location = "slo-violation-detector/src/main/resources/config/eu.melodic.event.brokerclient.properties";
+    public static String configuration_file_location =  "src/main/resources/config/eu.nebulous.slo_violation_detector.properties";
+    public static String amq_library_configuration_location = "src/main/resources/config/eu.melodic.event.brokerclient.properties";
     public static String topic_for_severity_announcement = "eu.nebulouscloud.monitoring.slo.severity_value";
     public static String topic_for_lost_device_announcement = "eu.nebulouscloud.monitoring.device_lost";
     public static String slo_rules_topic = "eu.nebulouscloud.monitoring.slo.new";
