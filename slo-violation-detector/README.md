@@ -131,7 +131,7 @@ The component can be built using Maven (`mvn clean install -Dtest=!UnboundedMoni
 
 In the above command, jar_name is the file name of the executable jar of the slo-violation-detector; role_type is a string - either DIRECTOR or DETECTOR; and <configuration_file_location> is another string holding the path to the configuration file.
 
-When the component starts correctly it will not display any error logs, and it may also display that it listens for events on the topic in which SLO rules are to be specified (by default **metrics.metric_list**).
+When the component starts correctly it will not display any error logs, and it may also display that it listens for events on the topic in which SLO rules are to be specified (by default **eu.nebulouscloud.monitoring.slo.new**).
 
 It is not mandatory to specify the <configuration_file_location> or the <role_type> but the defaults will be assumed (the location of the configuration file will be based on the Constants.java class and the role will be OperationalMode.DIRECTOR )
 
@@ -141,7 +141,7 @@ When debugging/developing, the component can be started from the Java main metho
 
 To test the functionality of the component - provided that a working ActiveMQ Broker / Event Management System (EMS) installation is available, the following steps should be followed:
 
-1. Send a message with the rule to be monitored (In production, the EMS translator is responsible to send this message, as well messages described in step 2. Messages described in step 3 are sent by the Prediction Orchestrator.)
+1. Send a message with the rule to be monitored (In production, the EMS translator is responsible to send this message, as well messages described in step 2. Messages described in step 3 are sent by the Prediction Orchestrator). Optionally, send a message to the `metric_list_topic` defined in the `Constants` class, with the metric boundaries (either before or after sending the rule message, order does not matter) for the metrics to be appropriately processed.
 
 2. Create a monitoring metrics stream, sending at a monitoring topic some values resembling real monitoring values.
 

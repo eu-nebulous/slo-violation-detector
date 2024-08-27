@@ -26,7 +26,7 @@ import static utility_beans.monitoring.RealtimeMonitoringAttribute.aggregate_met
 
 public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public static final SynchronizedInteger detector_integer_id = new SynchronizedInteger();
-    private Long current_slo_rule_version = -1L;
+    private Double current_slo_rule_version = -1.0;
     public static Map<String,DetectorSubcomponent> detector_subcomponents = Collections.synchronizedMap(new HashMap<>()); //A HashMap containing all detector subcomponents
     private DetectorSubcomponentState subcomponent_state;
     public final AtomicBoolean stop_signal = new AtomicBoolean(false);
@@ -154,6 +154,8 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
     public static DetectorSubcomponent get_associated_detector(String application_name){
         DetectorSubcomponent associated_detector = detector_subcomponents.get(application_name);
+        //The default behaviour of this method is to return the (only) existing default_application detector, if it exists
+        //TODO perhaps deprecate this functionality and only initialize a new detector, since the default application is not normally created by default
         if (associated_detector==null){
             if (detector_subcomponents.size()==1 && detector_subcomponents.get(default_application_name)!=null){//This means only the initial 'default_application' application exists
                 associated_detector = detector_subcomponents.get(default_application_name);
@@ -167,11 +169,11 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
     }
 
-    public Long getCurrent_slo_rule_version() {
+    public Double getCurrent_slo_rule_version() {
         return current_slo_rule_version;
     }
 
-    public void setCurrent_slo_rule_version(Long current_slo_rule_version) {
+    public void setCurrent_slo_rule_version(Double current_slo_rule_version) {
         this.current_slo_rule_version = current_slo_rule_version;
     }
 }

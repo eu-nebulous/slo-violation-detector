@@ -158,16 +158,17 @@ public class Runnables {
                             if (slo_violation_probability >= slo_violation_probability_threshold) {
                                 JSONObject severity_json = new JSONObject();
                                 if (publish_normalized_severity) {
-                                    severity_json.put("severity", rule_severity/100);
-                                }else{
-                                    severity_json.put("severity", rule_severity);
+                                    rule_severity = rule_severity/100;
                                 }
+                                severity_json.put("severity", rule_severity);
+
                                 severity_json.put("probability", slo_violation_probability);
                                 severity_json.put("predictionTime", targeted_prediction_time);
                                 finalPersistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()));
                             }
 
                             detector.getSubcomponent_state().slo_violation_event_recording_queue.add(System.currentTimeMillis());
+                            detector.getSubcomponent_state().add_violation_record(rule.getRule_representation().toJSONString(),rule_severity,slo_violation_probability,targeted_prediction_time);
 
                             //Probably not necessary to synchronize the line below as each removal will happen only once in a reconfiguration interval, and reconfiguration intervals are assumed to have a duration of minutes.
                             //Necessary to synchronize because another severity calculation thread might invoke clean_data above, and then a concurrent modification exception may arise

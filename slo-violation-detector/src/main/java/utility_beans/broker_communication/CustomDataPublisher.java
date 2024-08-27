@@ -72,15 +72,16 @@ public class CustomDataPublisher {
                         "    \"metricValue\": 12.34,\n" +
                         "    \"level\": 1,\n" +
                         "    \"component_id\":\"postgresql_1\",\n" +
-                        "    \"timestamp\": "+(int)(System.currentTimeMillis()/1000)+"\n" +
+//                        "    \"timestamp\": "+(int)(System.currentTimeMillis()/1000)+"\n" +
+                        "    \"timestamp\": "+(System.currentTimeMillis())+"\n" +
                         "}\n");
         presetTexts.put("eu.nebulouscloud.monitoring.predicted.cpu_usage", "{\n" +
                 "    \"metricValue\": 92.34,\n" +
                 "    \"level\": 1,\n" +
-                "    \"timestamp\": "+(int)(System.currentTimeMillis()/1000)+"\n" +
+                "    \"timestamp\": "+(System.currentTimeMillis())+"\n" +
                 "    \"probability\": 0.98,\n" +
                 "    \"confidence_interval\" : [8,15]\n" +
-                "    \"predictionTime\": "+(int)(10+System.currentTimeMillis()/1000)+"\n" +
+                "    \"predictionTime\": "+(10000+System.currentTimeMillis())+"\n" +
                 "}");
         presetTexts.put("eu.nebulouscloud.monitoring.metric_list","{\n" +
                 "  \"name\": \"_Application1\",\n" +
@@ -107,6 +108,10 @@ public class CustomDataPublisher {
                 "    \"prediction_horizon\": 10\n" +
                 "}");
         presetTexts.put(debug_data_trigger_topic_name,"{}");
+        presetTexts.put("eu.nebulouscloud.monitoring.debug_dp","{}");
+        presetTexts.put("eu.nebulouscloud.ui.dsl.generic","{\n" +
+                " \"application\":\"_Application1\"\n" +
+                "}");
     }
     private Publisher private_publisher_instance;
     private String topic;
@@ -148,10 +153,10 @@ public class CustomDataPublisher {
         JFrame frame = new JFrame("Broker input app");
         JTextField broker_ipTextField = new JTextField("localhost", 30);
         JTextField broker_portTextField = new JTextField("5672", 20);
-        JComboBox<String> TopicTextField = new JComboBox<>(new String[]{"eu.nebulouscloud.monitoring.slo.new","eu.nebulouscloud.monitoring.realtime.cpu_usage", "eu.nebulouscloud.monitoring.predicted.cpu_usage", "eu.nebulouscloud.monitoring.metric_list","eu.nebulouscloud.forecasting.start_forecasting.exponentialsmoothing",debug_data_trigger_topic_name});
+        JComboBox<String> TopicTextField = new JComboBox<>(new String[]{"eu.nebulouscloud.monitoring.slo.new","eu.nebulouscloud.monitoring.realtime.cpu_usage", "eu.nebulouscloud.monitoring.predicted.cpu_usage", "eu.nebulouscloud.monitoring.metric_list","eu.nebulouscloud.forecasting.start_forecasting.exponentialsmoothing",debug_data_trigger_topic_name,"eu.nebulouscloud.ui.dsl.generic","eu.nebulouscloud.monitoring.debug_dp"});
         TopicTextField.setEditable(true);
-        JTextField PublisherKeyTextField = new JTextField("slovid", 20);
-        JTextField PublisherApplicationTextField = new JTextField(default_application_name, 20);
+        JTextField PublisherKeyTextField = new JTextField("broker_gui_input_app", 20);
+        JTextField PublisherApplicationTextField = new JTextField("_Application1", 20);
         JTextArea largeTextArea = new JTextArea(10, 30);
         JButton submitButton = new JButton("Send");
 

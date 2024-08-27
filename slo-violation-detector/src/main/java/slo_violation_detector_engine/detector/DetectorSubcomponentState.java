@@ -1,10 +1,15 @@
 package slo_violation_detector_engine.detector;
 
+import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_rule_modelling.SLORule;
 import utility_beans.monitoring.MonitoringAttributeStatistics;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +30,8 @@ public class DetectorSubcomponentState{
     public HashSet<Long> adaptation_times_to_remove = new HashSet<>();
 
     public ArrayList<SLORule> slo_rules = new ArrayList<>();
+
+    public HikariDataSource slo_violations_database = null;
 
     //Debugging variables
     public CircularFifoQueue<Long> slo_violation_event_recording_queue = new CircularFifoQueue<>(50);
@@ -97,5 +104,40 @@ public class DetectorSubcomponentState{
 
     public void setAdaptation_times_to_remove(HashSet<Long> adaptation_times_to_remove) {
         this.adaptation_times_to_remove = adaptation_times_to_remove;
+    }
+
+    public HikariDataSource getSlo_violations_database() {
+        return slo_violations_database;
+    }
+
+    public void setSlo_violations_database(HikariDataSource slo_violations_database) {
+        this.slo_violations_database = slo_violations_database;
+    }
+
+    public void add_violation_record(String rule_string, double rule_severity, double slo_violation_probability, Long targeted_prediction_time) {
+        String url = "jdbc:h2:file:path/to/your/database.mv.db"; // For a file-based database
+        int rowsAffected = 0;
+        try {
+            //Connection conn = DriverManager.getConnection(url, "sa", ""); // Username and password (default is sa and empty)
+            Connection conn = this.slo_violations_database.getConnection();
+            PreparedStatement stmt = conn.prepareStatement("INSERT INTO SLO_VIOLATIONS (column1, column2, ...) VALUES (?, ? , ...)");
+            stmt.setString(1, rule_string);  // Set values for each parameter in the order they appear in the query
+            //TODO stmt.setInt(2, rule_severity);
+            // ...
+
+            rowsAffected = stmt.executeUpdate(); // Execute the insert query
+
+        } catch (SQLException e) {
+            System.err.println("Failed to connect to database: " + e.getMessage());
+            // Handle the exception appropriately
+        }
+
+        if (rowsAffected > 0) {
+            System.out.println("New record inserted successfully!");
+        } else {
+            System.err.println("Failed to insert new record.");
+        }
+        //TODO stmt.close();
+        //TODO conn.close();
     }
 }
