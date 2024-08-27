@@ -123,11 +123,11 @@ public class DetectorSubcomponentUtilities {
         }
         //TODO: The json object version is ignored for now. However, it should not be, we should keep track separately per application
         JSONObject json_object = null;
-        long json_object_version = 1;
+        Double json_object_version = 1.0;
         try {
             json_object = (JSONObject) new JSONParser().parse(rule_representation);
             if (json_object.containsKey("version")){
-                json_object_version = (Long) json_object.get("version");
+                json_object_version = (Double) json_object.get("version");
             }else{
                 Logger.getGlobal().log(info_logging_level,"The rule which was received does not have a version field, and as we do not assume the version of the rule is always updated, it is ignored");
             }

@@ -110,7 +110,7 @@ public class BrokerPublisher {
                 Logger.getGlobal().log(Level.WARNING, "Could not parse the string content to be published to the broker as json, which is the following: "+json_string_content);
             }
             if (!is_publisher_null()) {
-                private_publisher_instance.send(json_object);
+                private_publisher_instance.send(json_object,application_name);
             } else {
                 Logger.getGlobal().log(Level.SEVERE, "Could not send message to AMQP broker, as the private publisher instance is null");
             }

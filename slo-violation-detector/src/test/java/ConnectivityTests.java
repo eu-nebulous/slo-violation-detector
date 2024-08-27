@@ -14,6 +14,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.junit.Test;
+import utility_beans.broker_communication.BrokerSubscriptionDetails;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,6 +25,7 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
@@ -53,7 +55,8 @@ public class ConnectivityTests {
             object_to_publish.put("ram","95");
             object_to_publish.put("cpu","99");
 
-            BiFunction<String,String,String> slo_function = (topic,message)->{
+            BiFunction<BrokerSubscriptionDetails,String,String> slo_function = (broker_subscription_details, message)->{
+                String topic = broker_subscription_details.getTopic();
                 Double cpu_slo_limit = 70.0;
                 Double ram_slo_limit = 60.0;
                 Boolean return_value = false;
@@ -74,9 +77,14 @@ public class ConnectivityTests {
                 subscriber.subscribe(slo_function,default_application_name,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
             });
             subscription_thread.start();
-            //slo_bound_running_threads.put("Test topic subscription thread",subscription_thread);
-
+            Logger.getAnonymousLogger().log(Level.INFO,"Waiting 2 seconds before publishing message to broker");
+            try {
+                Thread.sleep(2000);
+            }catch (InterruptedException i){
+                i.printStackTrace();
+            }
             publisher.publish(object_to_publish.toJSONString(), Collections.singleton(default_application_name));
+            Logger.getAnonymousLogger().log(Level.INFO,"Published message "+object_to_publish.toJSONString());
             try {
                 Thread.sleep(2000);
             }catch (InterruptedException i){
