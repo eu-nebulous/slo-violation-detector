@@ -13,7 +13,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-<!-- Uncomment to allow the creation of a Java Sender
+<!-- Uncomment to allow the creation of a Java Sender -->
              <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -21,12 +21,12 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>utility_beans.broker_communication.CustomDataSubscriber</mainClass>
+                            <mainClass>utility_beans.broker_communication.CustomDataPublisher</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
             </plugin>
-             -->
+            <!--  -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -118,6 +118,17 @@
             <version>3.0.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.3.230</version> <!-- Use the latest version -->
+        </dependency>
+
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.0.1</version> <!-- Use the latest version -->
+        </dependency>
 
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
