@@ -13,7 +13,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-<!-- Uncomment to allow the creation of a Java Sender -->
+<!-- Uncomment to allow the creation of a Java Sender
              <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -26,7 +26,7 @@
                     </archive>
                 </configuration>
             </plugin>
-            <!--  -->
+       -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
