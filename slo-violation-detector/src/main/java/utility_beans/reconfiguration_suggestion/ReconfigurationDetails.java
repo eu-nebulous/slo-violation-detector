@@ -3,25 +3,25 @@ package utility_beans.reconfiguration_suggestion;
 public class ReconfigurationDetails implements Comparable<ReconfigurationDetails> {
     private double severity;
     private double reconfiguration_probability;
+    private double current_slo_threshold;
     private long timestamp;
     private long targeted_reconfiguration_timestamp;
     private boolean will_reconfigure;
 
-    public ReconfigurationDetails(double reconfiguration_probability, double severity, boolean will_reconfigure, long targeted_reconfiguration_timestamp){
+    public ReconfigurationDetails(double reconfiguration_probability, double severity, boolean will_reconfigure, double current_slo_threshold, long targeted_reconfiguration_timestamp){
         timestamp = System.currentTimeMillis();
         this.severity = severity;
         this.reconfiguration_probability = reconfiguration_probability;
-        this.will_reconfigure = true;
+        this.will_reconfigure = will_reconfigure;
+        this.current_slo_threshold = current_slo_threshold;
         this.targeted_reconfiguration_timestamp = targeted_reconfiguration_timestamp;
     }
 
     public static ReconfigurationDetails get_details_for_noop_reconfiguration(){
-        ReconfigurationDetails reconfiguration_details = new ReconfigurationDetails();
-        reconfiguration_details.setWill_reconfigure(false);
-        return reconfiguration_details;
+        return new ReconfigurationDetails();
     }
     public ReconfigurationDetails(){
-
+        will_reconfigure = false;
     }
     /*public ReconfigurationDetails (boolean will_reconfigure, long targeted_reconfiguration_timestamp){
         this.will_reconfigure = will_reconfigure;
@@ -51,7 +51,7 @@ public class ReconfigurationDetails implements Comparable<ReconfigurationDetails
         this.reconfiguration_probability = reconfiguration_probability;
     }
 
-    public boolean isWill_reconfigure() {
+    public boolean will_reconfigure() {
         return will_reconfigure;
     }
 
@@ -74,8 +74,15 @@ public class ReconfigurationDetails implements Comparable<ReconfigurationDetails
     public void setTargeted_reconfiguration_timestamp(long targeted_reconfiguration_timestamp) {
         this.targeted_reconfiguration_timestamp = targeted_reconfiguration_timestamp;
     }
-
-    @Override
+    
+    public double getCurrent_slo_threshold() {
+	    return current_slo_threshold;
+	}
+	
+	public void setCurrent_slo_threshold(double current_slo_threshold) {
+	    this.current_slo_threshold = current_slo_threshold;
+	}
+	@Override
     public int compareTo (ReconfigurationDetails other){
         if (this.will_reconfigure && !other.will_reconfigure){
             return 1;
@@ -96,4 +103,17 @@ public class ReconfigurationDetails implements Comparable<ReconfigurationDetails
         }
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        if (will_reconfigure){
+            sb.append("Active reconfiguration");
+            sb.append("Severity is: "+severity);
+            sb.append("The reconfiguration probability is "+reconfiguration_probability);
+            sb.append("The targeted timestamp is "+targeted_reconfiguration_timestamp);
+        }else{
+            sb.append("Will not make a reconfiguration as Severity is "+severity);
+        }
+        return sb.toString();
+    }
 }

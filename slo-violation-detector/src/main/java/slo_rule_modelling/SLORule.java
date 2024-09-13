@@ -20,7 +20,6 @@ import utility_beans.monitoring.PredictedMonitoringAttribute;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -239,10 +238,10 @@ public class SLORule {
                 }
             }
 
-            if (slo_violation_determination_method.equals("all-metrics")&& individual_severity_contributions.size()>0) {
+            if (severity_calculation_method.equals("all-metrics")&& individual_severity_contributions.size()>0) {
                 rule_result_value = MathUtils.get_average(individual_severity_contributions);
                 calculation_logging_string.append("Calculating average of individual severity contributions: ").append(individual_severity_contributions).append(" equals ").append(rule_result_value).append("\n");
-            }else if (slo_violation_determination_method.equals("prconf-delta") && individual_severity_contributions.size()>0){
+            }else if (severity_calculation_method.equals("prconf-delta") && individual_severity_contributions.size()>0){
                 rule_result_value = Math.sqrt(MathUtils.sum(individual_severity_contributions.stream().map(x->x.doubleValue()*x.doubleValue()).collect(Collectors.toList())))/Math.sqrt(individual_severity_contributions.size());
                 calculation_logging_string.append("Calculating square root of sum of individual severity contributions: ").append(individual_severity_contributions).append(" - the result is ").append(rule_result_value).append("\n");
 
@@ -279,9 +278,9 @@ public class SLORule {
                 rule_result_value = -1;
             }else {
                 rule_result_value = 1; //not a real value, but a positive number to signify that there is a threshold violation
-                if (slo_violation_determination_method.equals("all-metrics")){
+                if (severity_calculation_method.equals("all-metrics")){
                     rule_result_value = SLOViolationCalculator.get_Severity_all_metrics_method(new_prediction_attribute,rule_type);
-                }else if (slo_violation_determination_method.equals("prconf-delta")){
+                }else if (severity_calculation_method.equals("prconf-delta")){
                     rule_result_value = SLOViolationCalculator.get_Severity_prconf_delta_method(new_prediction_attribute,rule_type);
                 }
             }

@@ -6,7 +6,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */        
 
-package metric_retrieval;
+package communication;
 
 //import eu.melodic.event.brokerclient.BrokerSubscriber;
 //import eu.melodic.event.brokerclient.templates.EventFields;
@@ -32,7 +32,7 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 import static utility_beans.monitoring.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
-public class AttributeSubscription {
+public class AttributeSubscription extends AbstractFullBrokerSubscriber {
     SLORule slo_rule;
 
     public AttributeSubscription(SLORule slo_rule, String broker_ip_address,int broker_port, String broker_username, String broker_password){
@@ -102,7 +102,7 @@ public class AttributeSubscription {
                         confidence_interval = Double.NEGATIVE_INFINITY;
                     }
                     long timestamp = ((Number)json_message.get("timestamp")).longValue();
-                    long targeted_prediction_time = ((Number)json_message.get("predictionTime")).longValue();
+                    long targeted_prediction_time = ((Number)json_message.get("predictionTime")).longValue()/1000; //Convert to millisecond accuracy
                     Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
 
 
@@ -191,7 +191,8 @@ public class AttributeSubscription {
                     }
                 }finally {
                     Logger.getGlobal().log(info_logging_level,"Removing forecasting subscriber thread for "+forecasted_metric_topic_name);
-                    detector.getSubcomponent_state().persistent_running_detector_threads.remove("forecasting_subscriber_thread_"+forecasted_metric_topic_name);
+                    //detector.getSubcomponent_state().persistent_running_detector_threads.remove("forecasting_subscriber_thread_"+forecasted_metric_topic_name);
+                    detector.getSubcomponent_state().slo_bound_running_threads.remove("forecasting_subscriber_thread_" + forecasted_metric_topic_name);
                 }
             };
             CharacterizedThread.create_new_thread(forecasted_subscription_runnable, "forecasting_subscriber_thread_" + forecasted_metric_topic_name, true,detector, CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread);

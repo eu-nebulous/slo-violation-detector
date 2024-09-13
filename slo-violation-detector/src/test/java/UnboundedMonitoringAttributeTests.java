@@ -14,7 +14,6 @@
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utility_beans.broker_communication.BrokerPublisher;
 import utility_beans.broker_communication.BrokerSubscriber;
-import utility_beans.broker_communication.BrokerSubscriber.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -102,7 +101,7 @@ public class UnboundedMonitoringAttributeTests {
         detector.getSubcomponent_state().getMonitoring_attributes_bounds_representation().put(metric_string.split(";")[0], metric_string.split(";",2)[1]);
 
 
-        slo_violation_determination_method = "all-metrics";
+        severity_calculation_method = "all-metrics";
         JSONObject rule_json = (JSONObject) new JSONParser().parse(String.join(EMPTY, Files.readAllLines(Paths.get(new File(json_file_name).getAbsolutePath()))));
 
         ArrayList<SLORule> slo_rules = new ArrayList<>();

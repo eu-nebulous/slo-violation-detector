@@ -20,9 +20,10 @@ public class BrokerSubscriber {
 
     private class MessageProcessingHandler extends Handler {
         private BrokerSubscriptionDetails broker_details;
-        private static final BiFunction temporary_function = (Object o, Object o2) -> {
-            //System.out.println("");
-            Logger.getGlobal().log(INFO, "REPLACE_TEMPORARY_HANDLING_FUNCTIONALITY");
+        private final BiFunction temporary_function = (Object o, Object o2) -> {
+            //REPLACE_TEMPORARY_HANDLING_FUNCTIONALITY
+            //It is not removed until after firing once, possibly a bug in the Java implementation of the AMQP library
+            Logger.getGlobal().log(INFO, "REPLACE_TEMPORARY_HANDLING_FUNCTIONALITY "+broker_details.getTopic());
             return "IN_PROCESSING";
         };
         private BiFunction<BrokerSubscriptionDetails, String, String> processing_function;
@@ -104,11 +105,11 @@ public class BrokerSubscriber {
         if (subscriber_configuration_changed) {
             Consumer current_consumer;
             if (application_name != null && !application_name.equals(EMPTY)) { //Create a consumer for one application
-                Logger.getGlobal().log(INFO, "APP level subscriber " + topic);
+                Logger.getGlobal().log(INFO, "APP level subscriber for "+application_name + " at " + topic);
                 current_consumer = new Consumer(topic, topic, new MessageProcessingHandler(broker_details), application_name, true, true);
             } else { //Allow the consumer to get information from any publisher
                 current_consumer = new Consumer(topic, topic, new MessageProcessingHandler(broker_details), true, true);
-                Logger.getGlobal().log(INFO, "HIGH level subscriber " + topic);
+                Logger.getGlobal().log(INFO, "HIGH level subscriber for all applications at " + topic);
             }
             active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic, current_consumer);
             add_topic_consumer_to_broker_connector(current_consumer);
@@ -183,8 +184,8 @@ public class BrokerSubscriber {
                     break;
                 }
             }
-            Logger.getGlobal().log(INFO, "Stopping subscription for broker " + broker_ip + " and topic " + topic + "at thread " + Thread.currentThread().getName());
-            stop_signal.set(false);
+            //Logger.getGlobal().log(INFO, "Stopping subscription for broker " + broker_ip + " and topic " + topic + " at thread " + Thread.currentThread().getName());
+            //stop_signal.set(false);
         }
         active_consumers_per_topic_per_broker_ip.get(broker_ip).remove(topic);
         remove_topic_from_broker_connector(topic);

@@ -10,6 +10,10 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.awt.*;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -81,7 +85,7 @@ public class CustomDataPublisher {
                 "    \"timestamp\": "+(System.currentTimeMillis())+"\n" +
                 "    \"probability\": 0.98,\n" +
                 "    \"confidence_interval\" : [8,15]\n" +
-                "    \"predictionTime\": "+(10000+System.currentTimeMillis())+"\n" +
+                "    \"predictionTime\": "+(15000+System.currentTimeMillis())+"\n" +
                 "}");
         presetTexts.put("eu.nebulouscloud.monitoring.metric_list","{\n" +
                 "  \"name\": \"_Application1\",\n" +
@@ -109,6 +113,10 @@ public class CustomDataPublisher {
                 "}");
         presetTexts.put(debug_data_trigger_topic_name,"{}");
         presetTexts.put("eu.nebulouscloud.monitoring.debug_dp","{}");
+        presetTexts.put("eu.nebulouscloud.optimiser.controller.app_state","{\n" +
+                "    \"when\": \""+ OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'")) +"\",\n"+
+                "    \"state\": \"RUNNING\"\n" +
+                "}");
         presetTexts.put("eu.nebulouscloud.ui.dsl.generic","{\n" +
                 " \"application\":\"_Application1\"\n" +
                 "}");
@@ -153,7 +161,19 @@ public class CustomDataPublisher {
         JFrame frame = new JFrame("Broker input app");
         JTextField broker_ipTextField = new JTextField("localhost", 30);
         JTextField broker_portTextField = new JTextField("5672", 20);
-        JComboBox<String> TopicTextField = new JComboBox<>(new String[]{"eu.nebulouscloud.monitoring.slo.new","eu.nebulouscloud.monitoring.realtime.cpu_usage", "eu.nebulouscloud.monitoring.predicted.cpu_usage", "eu.nebulouscloud.monitoring.metric_list","eu.nebulouscloud.forecasting.start_forecasting.exponentialsmoothing",debug_data_trigger_topic_name,"eu.nebulouscloud.ui.dsl.generic","eu.nebulouscloud.monitoring.debug_dp"});
+        JComboBox<String> TopicTextField = new JComboBox<>(new String[]
+            {
+                "eu.nebulouscloud.monitoring.slo.new",
+                "eu.nebulouscloud.monitoring.realtime.cpu_usage",
+                "eu.nebulouscloud.monitoring.predicted.cpu_usage",
+                "eu.nebulouscloud.monitoring.metric_list",
+                "eu.nebulouscloud.forecasting.start_forecasting.exponentialsmoothing",
+                debug_data_trigger_topic_name,
+                "eu.nebulouscloud.ui.dsl.generic",
+                "eu.nebulouscloud.monitoring.debug_dp",
+                "eu.nebulouscloud.optimiser.controller.app_state"
+            }
+        );
         TopicTextField.setEditable(true);
         JTextField PublisherKeyTextField = new JTextField("broker_gui_input_app", 20);
         JTextField PublisherApplicationTextField = new JTextField("_Application1", 20);
@@ -283,7 +303,8 @@ public class CustomDataPublisher {
         try{
             json_object = (JSONObject) parser.parse(json_string_content);
         }catch (ParseException p){
-            Logger.getGlobal().log(Level.SEVERE,"Could not parse the string content");
+            Logger.getGlobal().log(Level.SEVERE,"Had a problem parsing the string content "+json_string_content);
+            p.printStackTrace();
         }
         if (application_name!=null && !application_name.equals(EMPTY)){
             private_publisher_instance.send(json_object, application_name);

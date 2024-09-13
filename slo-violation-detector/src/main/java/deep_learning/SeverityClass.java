@@ -2,13 +2,15 @@ package deep_learning;
 
 import utility_beans.synchronization.SynchronizedDouble;
 
+import static configuration.Constants.slo_violation_probability_threshold;
+
 public class SeverityClass{
     private Double minimum_severity_value;
     private Double maximum_severity_value;
     private double decrease_factor = 0.05;
     private double increase_factor = 0.05;
 
-    private final SynchronizedDouble adaptation_threshold = new SynchronizedDouble(0.5);
+    private final SynchronizedDouble adaptation_threshold = new SynchronizedDouble(slo_violation_probability_threshold);
 
 
 
