@@ -35,7 +35,7 @@ class MyPublisherTestConnectorHandler extends ConnectorHandler {
 
 
         /*
-            Here we are checking to see inf the default `state` publisher is
+            Here we are checking to see if the default `state` publisher is
             available. Even though this should be already be known by the
             developer, a check never did any harm.
 

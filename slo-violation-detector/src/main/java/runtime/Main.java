@@ -17,6 +17,8 @@ import utility_beans.generic_component_functionality.OperationalMode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
@@ -30,6 +32,7 @@ import static utility_beans.generic_component_functionality.CharacterizedThread.
 
 @SpringBootApplication
 public class Main {
+    public static final Logger LOGGER = Logger.getGlobal();
     public static HashMap<String,DetectorSubcomponent> detectors = new HashMap<>();
     public static void main(String[] args) {
 
@@ -42,6 +45,17 @@ public class Main {
         // - The prediction confidence
 
         //The above functionality is carried out by a subcomponent of the SLO Violation Detector which is the Detector. There is at least one Detector in each SLO Violation Detector, but there is also one Director responsible for guiding the Detector(s).
+        
+        //Initiate Logging functionality
+       
+        Handler[] handlers = LOGGER.getHandlers();
+        for (int i = 0 ; i < handlers.length ; i++) {
+            LOGGER.removeHandler(handlers[i]);
+        }
+        Logger.getLogger("").setLevel(Level.ALL);
+        //LOGGER.addHandler(new CustomFormatter());
+        
+        
         try {
             {
                 InputStream inputStream;
@@ -67,7 +81,7 @@ public class Main {
                 time_horizon_seconds = Integer.parseInt(prop.getProperty("time_horizon_seconds"));
 
                 slo_violation_probability_threshold = Double.parseDouble(prop.getProperty("slo_violation_probability_threshold"));
-                slo_violation_determination_method = prop.getProperty("slo_violation_determination_method");
+                severity_calculation_method = prop.getProperty("slo_violation_determination_method");
                 maximum_acceptable_forward_predictions = Integer.parseInt(prop.getProperty("maximum_acceptable_forward_predictions"));
 
                 broker_ip = prop.getProperty("broker_ip_url");
@@ -75,7 +89,9 @@ public class Main {
                 broker_username = prop.getProperty("broker_username");
                 broker_password = prop.getProperty("broker_password");
                 unbounded_metric_strings = new ArrayList<>(Arrays.asList(prop.getProperty("metrics_bounds").split(",")));
-
+                slo_violation_feedback_method = prop.getProperty("slo_violation_feedback_method");
+                number_of_severity_classes = Integer.parseInt(prop.getProperty("number_of_severity_classes"));
+                
                 //TODO Delete below two lines
                 //DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name,detached);
                 //detectors.put(default_application_name,detector);

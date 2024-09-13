@@ -18,15 +18,18 @@ public class Constants {
     public static Double LOWER_LIMIT_DELTA = - 100.0;
     public static String NAME_SEPARATOR = "#";
     //Operational constants
-    public static String slo_violation_determination_method;
+    public static String severity_calculation_method;
     public static int time_horizon_seconds;
+    public static Long buffer_time = 500L ; //This is a time interval in milliseconds allowing for many SLO violations to be gathered
     public static int maximum_acceptable_forward_predictions;
+    public static String slo_violation_feedback_method;
+    public static Integer number_of_severity_classes;
     public static String [] logic_operators = {"and","or"};
     public static final String default_application_name = "default_application";
     public static final String slovid_subscriber_key = "slovid_publisher";
     public static URI base_project_path;
-    public static String configuration_file_location =  "src/main/resources/config/eu.nebulous.slo_violation_detector.properties";
-    public static String amq_library_configuration_location = "src/main/resources/config/eu.melodic.event.brokerclient.properties";
+    public static String configuration_file_location =  "slo-violation-detector/src/main/resources/config/eu.nebulous.slo_violation_detector.properties";
+    public static String amq_library_configuration_location = "slo-violation-detector/src/main/resources/config/eu.melodic.event.brokerclient.properties";
     public static String topic_for_severity_announcement = "eu.nebulouscloud.monitoring.slo.severity_value";
     public static String topic_for_lost_device_announcement = "eu.nebulouscloud.monitoring.device_lost";
     public static String slo_rules_topic = "eu.nebulouscloud.monitoring.slo.new";

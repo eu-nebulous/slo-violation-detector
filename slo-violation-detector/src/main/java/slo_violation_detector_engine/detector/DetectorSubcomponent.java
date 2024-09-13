@@ -6,12 +6,13 @@ import slo_violation_detector_engine.generic.SLOViolationDetectorSubcomponent;
 import utility_beans.broker_communication.BrokerSubscriptionDetails;
 import utility_beans.generic_component_functionality.CharacterizedThread;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
+import utility_beans.reconfiguration_suggestion.DecisionMaker;
 import utility_beans.synchronization.SynchronizedBoolean;
 import utility_beans.synchronization.SynchronizedBooleanMap;
 import utility_beans.synchronization.SynchronizedInteger;
 
 
-import java.util.Collections;
+import java.sql.SQLException;import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,6 +30,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     private Double current_slo_rule_version = -1.0;
     public static Map<String,DetectorSubcomponent> detector_subcomponents = Collections.synchronizedMap(new HashMap<>()); //A HashMap containing all detector subcomponents
     private DetectorSubcomponentState subcomponent_state;
+    private DecisionMaker slo_improvement_decision_maker;
     public final AtomicBoolean stop_signal = new AtomicBoolean(false);
     public final SynchronizedBoolean can_modify_slo_rules = new SynchronizedBoolean(false);
     public final SynchronizedBoolean can_modify_monitoring_metrics = new SynchronizedBoolean(false);
@@ -39,7 +41,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public final SynchronizedBoolean ADAPTATION_TIMES_MODIFY = new SynchronizedBoolean(true);
     public final AtomicBoolean slo_rule_arrived = new AtomicBoolean(false);
 
-    public Long last_processed_adaptation_time = -1L;//initialization
+    public Long last_processed_adaptation_time = 0L;//initialization
     private String detector_name;
     private String handled_application_name;
     private static String broker_ip = prop.getProperty("broker_ip_url");
@@ -49,7 +51,11 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
     public DetectorSubcomponent(String application_name, CharacterizedThread.CharacterizedThreadRunMode characterized_thread_run_mode) {
         super.thread_type = CharacterizedThread.CharacterizedThreadType.persistent_running_detector_thread;
-        subcomponent_state = new DetectorSubcomponentState();
+        try {
+             subcomponent_state = new DetectorSubcomponentState();
+        }catch (SQLException e) {
+             throw new RuntimeException(e);
+        }
         Integer current_detector_id;
         synchronized (detector_integer_id){
             /*try {
@@ -167,6 +173,14 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
         }
         return associated_detector;
 
+    }
+
+    public DecisionMaker getDm() {
+        return slo_improvement_decision_maker;
+    }
+
+    public void setDm(DecisionMaker dm) {
+        this.slo_improvement_decision_maker = dm;
     }
 
     public Double getCurrent_slo_rule_version() {

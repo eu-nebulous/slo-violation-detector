@@ -1,6 +1,9 @@
 package slo_violation_detector_engine.detector;
 
-import metric_retrieval.AttributeSubscription;
+import communication.AbstractFullBrokerSubscriber;
+import communication.AttributeSubscription;
+import communication.DeploymentSubscriber;
+import communication.ReconfigurationEventSubscriber;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -14,7 +17,6 @@ import utility_beans.synchronization.SynchronizedBoolean;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import static configuration.Constants.*;
 import static slo_violation_detector_engine.director.DirectorSubcomponent.MESSAGE_CONTENTS;
@@ -108,12 +110,15 @@ public class DetectorSubcomponentUtilities {
         return null;
     }
 
-    public static ArrayList<AttributeSubscription> initialize_attribute_subscribers(ArrayList<SLORule> rules_list, String broker_ip_address,int broker_port, String broker_username, String broker_password){
-        ArrayList<AttributeSubscription> attribute_subscribers = new ArrayList<>();
+    public static ArrayList<AbstractFullBrokerSubscriber> initialize_attribute_and_application_deployment_subscribers( DetectorSubcomponent detector, String broker_ip_address, int broker_port, String broker_username, String broker_password){
+        ArrayList<SLORule> rules_list = detector.getSubcomponent_state().slo_rules;
+        ArrayList<AbstractFullBrokerSubscriber> subscribers = new ArrayList<>();
         for (SLORule rule:rules_list){
-            attribute_subscribers.add(new AttributeSubscription(rule,broker_ip_address,broker_port,broker_username,broker_password));
+            subscribers.add(new AttributeSubscription(rule,broker_ip_address,broker_port,broker_username,broker_password));
         }
-        return attribute_subscribers;
+        subscribers.add(new DeploymentSubscriber(broker_ip_address,broker_port,broker_username,broker_password,detector));
+        subscribers.add(new ReconfigurationEventSubscriber(broker_ip_address,broker_port,broker_username,broker_password,detector));
+        return subscribers;
     }
 
 
@@ -161,7 +166,10 @@ public class DetectorSubcomponentUtilities {
             }
             try {
                 Thread.sleep(3000);
-                associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.values().forEach(Thread::interrupt);
+                for (Thread thread : associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.values()) {
+                    thread.interrupt();
+                    Logger.getGlobal().log(info_logging_level,"Interrupted "+thread.getName());
+                }
                 for (Thread thread : associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.values()) {
                     thread.join();
                 }
@@ -170,6 +178,9 @@ public class DetectorSubcomponentUtilities {
             Logger.getGlobal().log(info_logging_level,"Stopped "+(initial_number_of_running_threads- associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size())+"/"+initial_number_of_running_threads+" already running threads");
             if (associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size()>1){
                 Logger.getGlobal().log(info_logging_level,"The threads which are still running are the following: "+ associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads);
+                synchronized (associated_detector_subcomponent.stop_signal) {
+                    Logger.getGlobal().log(info_logging_level, "The value of detector stop signal is " + associated_detector_subcomponent.stop_signal);
+                }
             }else if (associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size()>0){
                 Logger.getGlobal().log(info_logging_level,"The thread which is still running is the following: "+ associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads);
             }
@@ -231,7 +242,7 @@ public class DetectorSubcomponentUtilities {
      * @return The probability of the rule being violated. The minimum value of this probability is 0, and increases as the severity increases
      */
     public static double determine_slo_violation_probability(double rule_severity) {
-        if (slo_violation_determination_method.equals("all-metrics")) {
+        if (severity_calculation_method.equals("all-metrics")) {
             //39.64 is the mean severity value when examining all integer severity values for roc x probability x confidence_interval x delta_value in (-100,100)x(0,100)x(0,100)x(-100,100)
             /*
             if (rule_severity >= 40) {
@@ -243,7 +254,7 @@ public class DetectorSubcomponentUtilities {
 
              */
             return Math.min(rule_severity/100,100);
-        }else if (slo_violation_determination_method.equals("prconf-delta")){
+        }else if (severity_calculation_method.equals("prconf-delta")){
             //Logger.getGlobal().log(warning_logging_level,"The calculation of probability for the prconf-delta method needs to be implemented");
             //return 0;
             if (rule_severity >= 6.52){
@@ -297,7 +308,7 @@ public class DetectorSubcomponentUtilities {
             initialize_monitoring_datastructures_with_empty_data(associated_detector_subcomponent.getSubcomponent_state().slo_rules);
             //
             /*associated_detector_subcomponent.getUtilities().*/initialize_subrule_and_attribute_associations(associated_detector_subcomponent.getSubcomponent_state().slo_rules,associated_detector_subcomponent.can_modify_slo_rules);
-            initialize_attribute_subscribers(associated_detector_subcomponent.getSubcomponent_state().slo_rules, prop.getProperty("broker_ip_url"), Integer.parseInt(prop.getProperty("broker_port")), prop.getProperty("broker_username"), prop.getProperty("broker_password"));
+            initialize_attribute_and_application_deployment_subscribers(associated_detector_subcomponent, prop.getProperty("broker_ip_url"), Integer.parseInt(prop.getProperty("broker_port")), prop.getProperty("broker_username"), prop.getProperty("broker_password"));
             initialize_slo_processing(associated_detector_subcomponent.getSubcomponent_state().slo_rules);
 
         }

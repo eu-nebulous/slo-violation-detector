@@ -6,13 +6,10 @@ import slo_rule_modelling.SLORule;
 import utility_beans.monitoring.MonitoringAttributeStatistics;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.HashSet;import java.util.logging.Logger;import static configuration.Constants.info_logging_level;
 
 public class DetectorSubcomponentState{
     private HashMap<String, MonitoringAttributeStatistics> monitoring_attributes_statistics = new HashMap<>();
@@ -31,11 +28,27 @@ public class DetectorSubcomponentState{
 
     public ArrayList<SLORule> slo_rules = new ArrayList<>();
 
-    public HikariDataSource slo_violations_database = null;
-
+    private static String slo_violations_database_url = "jdbc:h2:file:/home/andreas/Desktop/database.mv.db";
+    private static String database_username = "sa";//TODO move to config
+    private static String database_password = "";//TODO move to config
+    private Connection conn = DriverManager.getConnection(slo_violations_database_url,database_username,database_password);
     //Debugging variables
     public CircularFifoQueue<Long> slo_violation_event_recording_queue = new CircularFifoQueue<>(50);
     public CircularFifoQueue<String> severity_calculation_event_recording_queue = new CircularFifoQueue<>(50);
+	public CircularFifoQueue<Long> reconfiguration_time_recording_queue = new CircularFifoQueue<>(50);
+    public static final Object reconfigurationTimeRecordingQueueLock = new Object();
+    public DetectorSubcomponentState() throws SQLException {
+        Statement statement = conn.createStatement();
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS slo_violations ("
+                            + "id INT AUTO_INCREMENT PRIMARY KEY, "
+                            + "application_name VARCHAR(255) NOT NULL,"
+                            + "rule_string VARCHAR(10000) NOT NULL,"                            
+                            + "rule_severity REAL NOT NULL,"
+                            + "slo_violation_probability REAL NOT NULL,"
+                            + "targeted_prediction_time BIGINT NOT NULL)";
+        statement.executeUpdate(createTableSQL);
+        Logger.getGlobal().log(info_logging_level,"Sql table created");
+    }
 
 
 
@@ -105,27 +118,29 @@ public class DetectorSubcomponentState{
     public void setAdaptation_times_to_remove(HashSet<Long> adaptation_times_to_remove) {
         this.adaptation_times_to_remove = adaptation_times_to_remove;
     }
-
-    public HikariDataSource getSlo_violations_database() {
-        return slo_violations_database;
+    
+	public CircularFifoQueue<Long> getReconfiguration_time_recording_queue() {
+	    return reconfiguration_time_recording_queue;
+    }
+	public void setReconfiguration_time_recording_queue(CircularFifoQueue<Long> reconfiguration_time_recording_queue) {
+	this.reconfiguration_time_recording_queue = reconfiguration_time_recording_queue;
     }
 
-    public void setSlo_violations_database(HikariDataSource slo_violations_database) {
-        this.slo_violations_database = slo_violations_database;
-    }
-
-    public void add_violation_record(String rule_string, double rule_severity, double slo_violation_probability, Long targeted_prediction_time) {
-        String url = "jdbc:h2:file:path/to/your/database.mv.db"; // For a file-based database
+    public void add_violation_record(String application_name, String rule_string, double rule_severity, double current_threshold, Long targeted_prediction_time) {
         int rowsAffected = 0;
         try {
-            //Connection conn = DriverManager.getConnection(url, "sa", ""); // Username and password (default is sa and empty)
-            Connection conn = this.slo_violations_database.getConnection();
-            PreparedStatement stmt = conn.prepareStatement("INSERT INTO SLO_VIOLATIONS (column1, column2, ...) VALUES (?, ? , ...)");
-            stmt.setString(1, rule_string);  // Set values for each parameter in the order they appear in the query
-            //TODO stmt.setInt(2, rule_severity);
-            // ...
+            
+            PreparedStatement stmt = conn.prepareStatement("INSERT INTO SLO_VIOLATIONS (application_name, rule_string, rule_severity,current_threshold,targeted_prediction_time) VALUES (?,?,?,?,?)");
+            stmt.setString(1, application_name);
+            stmt.setString(2, rule_string);
+            stmt.setDouble(3, rule_severity);
+            //stmt.setDouble(4, slo_violation_probability);
+            stmt.setDouble (4, current_threshold);
+            stmt.setLong(5, targeted_prediction_time);
+            // Set values for each parameter in the order they appear in the query
 
             rowsAffected = stmt.executeUpdate(); // Execute the insert query
+            stmt.close();
 
         } catch (SQLException e) {
             System.err.println("Failed to connect to database: " + e.getMessage());
@@ -134,9 +149,15 @@ public class DetectorSubcomponentState{
 
         if (rowsAffected > 0) {
             System.out.println("New record inserted successfully!");
+//            try {
+//                conn.close();
+//            } catch (SQLException e) {
+//                throw new RuntimeException(e);
+//            }
         } else {
             System.err.println("Failed to insert new record.");
         }
+        
         //TODO stmt.close();
         //TODO conn.close();
     }
