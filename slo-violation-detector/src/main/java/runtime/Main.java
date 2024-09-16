@@ -75,7 +75,7 @@ public class Main {
                 prop.load(inputStream);
                 slo_rules_topic = prop.getProperty("slo_rules_topic");
                 kept_values_per_metric = Integer.parseInt(prop.getProperty("stored_values_per_metric", "5"));
-                //TODO remove from docs as well: self_publish_rule_file = Boolean.parseBoolean(prop.getProperty("self_publish_rule_file"));
+                
                 single_slo_rule_active = Boolean.parseBoolean(prop.getProperty("single_slo_rule_active"));
                 assume_slo_rule_version_is_always_updated = Boolean.parseBoolean((prop.getProperty("assume_slo_rule_version_is_always_updated")));
                 time_horizon_seconds = Integer.parseInt(prop.getProperty("time_horizon_seconds"));
