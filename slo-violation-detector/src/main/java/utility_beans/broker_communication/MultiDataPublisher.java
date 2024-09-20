@@ -74,6 +74,9 @@ public class MultiDataPublisher {
         int max_bound=100;
         AtomicInteger interval_between_events=new AtomicInteger(1);
         AtomicReference<Double> random_value = new AtomicReference<>();
+        AtomicReference<Double> upper_bound = new AtomicReference<>();
+        AtomicReference<Double> lower_bound = new AtomicReference<>();
+
         AtomicReference<String> application_name = new AtomicReference<>("");
         AtomicReference<String> broker_topic = new AtomicReference<>("eu.nebulouscloud.monitoring.realtime.cpu_usage");
 
@@ -101,7 +104,8 @@ public class MultiDataPublisher {
             broker_ip.set(fields[0].getText());
             broker_port.set(fields[1].getText());
             message_count.set(Integer.parseInt(fields[2].getText()));
-            random_value.set(new Random().nextDouble() * (Integer.parseInt(fields[4].getText()) - Integer.parseInt(fields[3].getText())) + Integer.parseInt(fields[3].getText()));
+            upper_bound.set( Double.parseDouble(fields[4].getText()));
+            lower_bound.set(Double.parseDouble(fields[3].getText()));
             interval_between_events.set(Integer.parseInt(fields[5].getText()));
             broker_topic.set(fields[6].getText());
             application_name.set(fields[7].getText());
@@ -118,13 +122,15 @@ public class MultiDataPublisher {
             if (submit_button_pressed.get()) {
                 CustomDataPublisher publisher = new CustomDataPublisher(broker_topic.toString(), broker_ip.toString(), Integer.parseInt(broker_port.get()), "admin", "admin", EMPTY, "demo_batch_publisher");
 
-                String message_payload = "{\n" +
-                        "    \"metricValue\": " + random_value + ",\n" +
-                        "    \"level\": 1,\n" +
-                        "    \"component_id\":\"postgresql_1\",\n" +
-                        "    \"timestamp\": " + (System.currentTimeMillis()) + "\n" +
-                        "}\n";
+                String message_payload;
                 for (int i = 0; i < message_count.get(); i++) {
+                    random_value.set(new Random().nextDouble() * (upper_bound.get() - lower_bound.get()) + lower_bound.get());
+                    message_payload = "{\n" +
+                            "    \"metricValue\": " + random_value + ",\n" +
+                            "    \"level\": 1,\n" +
+                            "    \"component_id\":\"postgresql_1\",\n" +
+                            "    \"timestamp\": " + (System.currentTimeMillis()) + "\n" +
+                            "}\n";
                     publisher.publish(message_payload.toString(), application_name.get()); //second argument was EMPTY
                     Thread.sleep(interval_between_events.get() * 1000);
                 }

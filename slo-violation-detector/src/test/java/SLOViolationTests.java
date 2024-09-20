@@ -1,15 +1,21 @@
 
-import deep_learning.SeverityClassModel;
+import reinforcement_learning.SeverityClassModel;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.junit.Test;
+import runtime.Main;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
+import utility_beans.broker_communication.NewSLORuleEventPublisher;
+import utility_beans.broker_communication.PredictedEventPublisher;
+import utility_beans.broker_communication.RealtimeEventPublisher;
+import utility_beans.generic_component_functionality.CharacterizedThread;
 import utility_beans.reconfiguration_suggestion.DecisionMaker;
 import utility_beans.reconfiguration_suggestion.SLOViolation;
 
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
-import static configuration.Constants.info_logging_level;
-import static configuration.Constants.time_horizon_seconds;
+import static configuration.Constants.*;
+import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_subcomponents;
 
 public class SLOViolationTests {
     @Test
@@ -19,20 +25,21 @@ public class SLOViolationTests {
         int reconfiguration_period = time_horizon_seconds*1000;
         int longer_than_reconfiguration_period = (time_horizon_seconds+1)*1000;
         CircularFifoQueue<Long> adaptation_times = new CircularFifoQueue<>();
+        DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name, CharacterizedThread.CharacterizedThreadRunMode.detached);
         SeverityClassModel scm = new SeverityClassModel(2,true);
-        DecisionMaker dm  = new DecisionMaker(scm,adaptation_times);
+        DecisionMaker dm  = new DecisionMaker(scm,adaptation_times,detector.getSubcomponent_state());
         Logger.getGlobal().log(info_logging_level, "Starting experiment");
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.8");
         SLOViolation a = new SLOViolation(0.8);
-        dm.submitSLOViolation(a);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations();
         Thread.sleep(longer_than_reconfiguration_period);
         adaptation_times.add(System.currentTimeMillis());
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.9");
         SLOViolation b = new SLOViolation(0.9);
-        dm.submitSLOViolation(b);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations();
         Thread.sleep(longer_than_reconfiguration_period);
         adaptation_times.add(System.currentTimeMillis());
@@ -41,20 +48,20 @@ public class SLOViolationTests {
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.8");
         SLOViolation c = new SLOViolation(0.8);
-        dm.submitSLOViolation(c);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         Thread.sleep(reconfiguration_period/3);
         dm.processSLOViolations();
 
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.7");
         SLOViolation d = new SLOViolation(0.7);
-        dm.submitSLOViolation(d);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         Thread.sleep(reconfiguration_period/3);
         dm.processSLOViolations();
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.8");
         SLOViolation e = new SLOViolation(0.8);
-        dm.submitSLOViolation(e);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         
         adaptation_times.add(System.currentTimeMillis());
         
@@ -96,4 +103,38 @@ public class SLOViolationTests {
 
     }
 
+    
+    @Test
+    public void test_simple_slo_violation() throws InterruptedException {
+        Logger.getGlobal().log(info_logging_level, "Starting experiment - starting application");
+        Thread app_thread = new Thread(() -> {
+            Main.main(new String[]{});
+        });
+        app_thread.start();
+        Logger.getGlobal().log(info_logging_level, "Sleeping for 5 seconds to allow SLOVID to start");
+        Thread.sleep(5000);
+        q_learning_exploration_factor=1.0;
+        slo_violations_database_url="jdbc:h2:file:"+base_project_path.getPath()+"slodb.db";
+        Logger.getGlobal().log(info_logging_level, "Publishing SLO rule");
+        NewSLORuleEventPublisher s_publisher = new NewSLORuleEventPublisher("eu.nebulouscloud.monitoring.slo.new");
+        s_publisher.publish();
+        Logger.getGlobal().log(info_logging_level, "Sleeping for 3 seconds to allow SLOVID to subscribe to needed topics");
+        Thread.sleep(3000);
+        Logger.getGlobal().log(info_logging_level, "Publishing realtime metric");
+        RealtimeEventPublisher r_publisher = new RealtimeEventPublisher("eu.nebulouscloud.monitoring.realtime.cpu_usage","12.34");
+        r_publisher.publish();
+        Logger.getGlobal().log(info_logging_level, "Sleeping for 5 seconds");
+        Thread.sleep(5000);
+        Logger.getGlobal().log(info_logging_level, "Publishing predicted metric");
+        PredictedEventPublisher p_publisher = new PredictedEventPublisher("eu.nebulouscloud.monitoring.predicted.cpu_usage","92.34");
+        p_publisher.publish();
+        Logger.getGlobal().log(info_logging_level, "Waiting for SLO!");
+        Thread.sleep(20000);
+
+        Logger.getGlobal().log(info_logging_level,System.currentTimeMillis()+" - These are the slo violations: " + detector_subcomponents.get(default_application_name).getSubcomponent_state().getSlo_violations());
+        //Since the violating predicted event was fired about 20 sec ago, the last adaptation should first exist and then should be less than 25 seconds in the past
+        assert System.currentTimeMillis() - detector_subcomponents.get(default_application_name).getSubcomponent_state().getSlo_violations().get(0).getTime_calculated() < 25000;
+        //Since the exploration (no-op) is deemed to be correct, the threshold should increase. The expected severity value of the previous violation is 0.6042... hence we are searching for the related severity class 
+        assert detector_subcomponents.get(default_application_name).getDm().getSeverity_class_model().get_severity_class(0.604236738).getAdaptation_threshold().getValue() > slo_violation_probability_threshold;
+    }
 }

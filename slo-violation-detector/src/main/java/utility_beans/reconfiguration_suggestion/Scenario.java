@@ -1,7 +1,9 @@
 package utility_beans.reconfiguration_suggestion;
 
-import deep_learning.SeverityClassModel;
+import reinforcement_learning.SeverityClassModel;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
+import utility_beans.generic_component_functionality.CharacterizedThread;
 import utility_beans.generic_component_functionality.CustomFormatter;
 
 import java.util.logging.ConsoleHandler;
@@ -9,8 +11,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static configuration.Constants.info_logging_level;
-import static configuration.Constants.time_horizon_seconds;
+import static configuration.Constants.*;
 import static runtime.Main.LOGGER;
 
 public class Scenario {
@@ -43,12 +44,13 @@ public class Scenario {
         
         SeverityClassModel severity_class_model = new SeverityClassModel(2,true);
         CircularFifoQueue<Long> adaptation_timestamps = new CircularFifoQueue<>();
-        DecisionMaker dm  = new DecisionMaker(severity_class_model,adaptation_timestamps);
+        DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name, CharacterizedThread.CharacterizedThreadRunMode.detached);
+        DecisionMaker dm  = new DecisionMaker(severity_class_model,adaptation_timestamps,detector.getSubcomponent_state());
         LOGGER.log(info_logging_level, "Starting experiment");
 
         LOGGER.log(info_logging_level, "Creating an SLO Violation with a severity value of 0.8");
         SLOViolation a = new SLOViolation(0.8);
-        dm.submitSLOViolation(a);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations();
         Thread.sleep(reconfiguration_period+1000);
         
@@ -56,7 +58,7 @@ public class Scenario {
         LOGGER.log(info_logging_level,"Reconfiguration completed at "+adaptation_timestamps.get(adaptation_timestamps.size()-1));
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.9");
         SLOViolation b = new SLOViolation(0.9);
-        dm.submitSLOViolation(b);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations();
         Thread.sleep(reconfiguration_period+1000);
 
@@ -68,19 +70,19 @@ public class Scenario {
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.8");
         SLOViolation c = new SLOViolation(0.8);
-        dm.submitSLOViolation(c);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         Thread.sleep(reconfiguration_period/3);
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.7");
         SLOViolation d = new SLOViolation(0.7);
-        dm.submitSLOViolation(d);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         Thread.sleep(reconfiguration_period/3);
 
         dm.processSLOViolations();
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.85");
         SLOViolation e = new SLOViolation(0.85);
-        dm.submitSLOViolation(e);
+        detector.getSubcomponent_state().submitSLOViolation(a);
         
         adaptation_timestamps.add(System.currentTimeMillis());
         LOGGER.log(info_logging_level,"Reconfiguration completed at "+adaptation_timestamps.get(adaptation_timestamps.size()-1));

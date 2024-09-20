@@ -1,15 +1,20 @@
 package slo_violation_detector_engine.detector;
 
-import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
+import reinforcement_learning.QTable;
+import reinforcement_learning.SeverityClass;
 import slo_rule_modelling.SLORule;
 import utility_beans.monitoring.MonitoringAttributeStatistics;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
+import utility_beans.reconfiguration_suggestion.DecisionMaker;
+import utility_beans.reconfiguration_suggestion.SLOViolation;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;import java.util.logging.Logger;import static configuration.Constants.info_logging_level;
+import java.util.HashSet;import java.util.logging.Logger;
+
+import static configuration.Constants.*;
 
 public class DetectorSubcomponentState{
     private HashMap<String, MonitoringAttributeStatistics> monitoring_attributes_statistics = new HashMap<>();
@@ -27,27 +32,44 @@ public class DetectorSubcomponentState{
     public HashSet<Long> adaptation_times_to_remove = new HashSet<>();
 
     public ArrayList<SLORule> slo_rules = new ArrayList<>();
+    private CircularFifoQueue<SLOViolation> slo_violations = new CircularFifoQueue<>();
+    public static final Object slo_violations_list_lock = new Object();
+    private long last_optimizer_adaptation_initiation_timestamp =-1;
+    private SLOViolation last_slo_violation_triggering_optimizer;
+    private DetectorSubcomponent associated_detector;
 
-    private static String slo_violations_database_url = "jdbc:h2:file:/home/andreas/Desktop/database.mv.db";
-    private static String database_username = "sa";//TODO move to config
-    private static String database_password = "";//TODO move to config
+
     private Connection conn = DriverManager.getConnection(slo_violations_database_url,database_username,database_password);
     //Debugging variables
     public CircularFifoQueue<Long> slo_violation_event_recording_queue = new CircularFifoQueue<>(50);
     public CircularFifoQueue<String> severity_calculation_event_recording_queue = new CircularFifoQueue<>(50);
 	public CircularFifoQueue<Long> reconfiguration_time_recording_queue = new CircularFifoQueue<>(50);
     public static final Object reconfigurationTimeRecordingQueueLock = new Object();
-    public DetectorSubcomponentState() throws SQLException {
+    
+    private QTable q_table = new QTable();
+    public DetectorSubcomponentState(DetectorSubcomponent detector) throws SQLException {
         Statement statement = conn.createStatement();
-        String createTableSQL = "CREATE TABLE IF NOT EXISTS slo_violations ("
+        String createSLOViolationTableSQL = "CREATE TABLE IF NOT EXISTS slo_violations ("
                             + "id INT AUTO_INCREMENT PRIMARY KEY, "
                             + "application_name VARCHAR(255) NOT NULL,"
                             + "rule_string VARCHAR(10000) NOT NULL,"                            
                             + "rule_severity REAL NOT NULL,"
-                            + "slo_violation_probability REAL NOT NULL,"
+                            + "current_threshold REAL NOT NULL,"
                             + "targeted_prediction_time BIGINT NOT NULL)";
-        statement.executeUpdate(createTableSQL);
-        Logger.getGlobal().log(info_logging_level,"Sql table created");
+        String createQTableSQL = "CREATE TABLE IF NOT EXISTS q_table ("
+                + "id INT AUTO_INCREMENT, "
+                + "application_name VARCHAR(255) NOT NULL,"
+                + "severity_value REAL NOT NULL,"
+                + "current_threshold REAL NOT NULL,"
+                + "action VARCHAR(255) NOT NULL,"
+                + "q_value REAL NOT NULL,"
+                + "PRIMARY KEY (application_name,severity_value,current_threshold,action)"
+                +")";
+        statement.executeUpdate(createSLOViolationTableSQL);
+        
+        statement.executeUpdate(createQTableSQL);
+        Logger.getGlobal().log(info_logging_level,"Sql tables for slo violations and the q-table were created");
+        associated_detector = detector; 
     }
 
 
@@ -129,8 +151,9 @@ public class DetectorSubcomponentState{
     public void add_violation_record(String application_name, String rule_string, double rule_severity, double current_threshold, Long targeted_prediction_time) {
         int rowsAffected = 0;
         try {
-            
+
             PreparedStatement stmt = conn.prepareStatement("INSERT INTO SLO_VIOLATIONS (application_name, rule_string, rule_severity,current_threshold,targeted_prediction_time) VALUES (?,?,?,?,?)");
+
             stmt.setString(1, application_name);
             stmt.setString(2, rule_string);
             stmt.setDouble(3, rule_severity);
@@ -143,22 +166,117 @@ public class DetectorSubcomponentState{
             stmt.close();
 
         } catch (SQLException e) {
-            System.err.println("Failed to connect to database: " + e.getMessage());
+            Logger.getGlobal().log(severe_logging_level,"Failed to connect to database: " + e.getMessage());
             // Handle the exception appropriately
         }
 
         if (rowsAffected > 0) {
-            System.out.println("New record inserted successfully!");
+            Logger.getGlobal().log(info_logging_level,"New record inserted successfully!");
 //            try {
 //                conn.close();
 //            } catch (SQLException e) {
 //                throw new RuntimeException(e);
 //            }
         } else {
-            System.err.println("Failed to insert new record.");
+            Logger.getGlobal().log(severe_logging_level,"Failed to insert new record.");
         }
         
-        //TODO stmt.close();
         //TODO conn.close();
+    }
+    
+    
+    public void add_q_table_database_entry(String application_name, double severity_value, double current_threshold, DecisionMaker.ViolationDecisionEnum action, double q_value){
+        
+        double quantized_severity_value = (int) Math.round(severity_value*100);
+        double quantized_current_threshold = (int) Math.round(current_threshold*100);
+        
+        int rowsAffected=0;
+        try {
+
+            //UPDATE slo_violations SET application_name = '_App1'
+            //WHERE  current_threshold = 0.1
+            PreparedStatement stmt = conn.prepareStatement("" +
+                    "UPDATE Q_TABLE SET q_value =? WHERE application_name =? AND severity_value =? AND current_threshold =? AND action =?");
+
+            stmt.setDouble(1, q_value);
+            stmt.setString(2, application_name);
+            stmt.setDouble(3, quantized_severity_value);
+            stmt.setDouble(4, quantized_current_threshold);
+            stmt.setString(5, String.valueOf(action));
+
+            rowsAffected = stmt.executeUpdate(); // Execute the insert query
+            stmt.close();
+            
+            if (rowsAffected == 0) {
+                Logger.getGlobal().log(info_logging_level,"Inserting new record into the Q table.");
+                stmt = conn.prepareStatement("" +
+                        "INSERT INTO Q_TABLE (application_name,severity_value,current_threshold,action,q_value) VALUES (?,?,?,?,?)"
+                );
+
+                stmt.setString(1, application_name);
+                stmt.setDouble(2, quantized_severity_value);
+                stmt.setDouble(3, quantized_current_threshold);
+                stmt.setString(4, String.valueOf(action));
+                stmt.setDouble(5, q_value);
+                rowsAffected = stmt.executeUpdate(); // Execute the insert query
+                stmt.close();
+            }
+            
+
+        } catch (SQLException e) {
+            Logger.getGlobal().log(severe_logging_level,"Failed to connect to database: " + e.getMessage());
+            // Handle the exception appropriately
+        }
+
+        if (rowsAffected > 0) {
+            Logger.getGlobal().log(info_logging_level,"New record inserted successfully in q-table!");
+//            try {
+//                conn.close();
+//            } catch (SQLException e) {
+//                throw new RuntimeException(e);
+//            }
+        } else {
+            Logger.getGlobal().log(severe_logging_level,"Failed to insert new record.");
+        }
+    }
+    
+    
+    public void submitSLOViolation (SLOViolation slo_violation){
+        synchronized (slo_violations_list_lock) {
+            slo_violations.add(slo_violation);
+        }
+    }
+
+    public CircularFifoQueue<SLOViolation> getSlo_violations() {
+        return slo_violations;
+    }
+
+    public void setSlo_Violations(CircularFifoQueue<SLOViolation> slo_violations) {
+        this.slo_violations = slo_violations;
+    }
+
+    public long getLast_optimizer_adaptation_initiation_timestamp() {
+        return last_optimizer_adaptation_initiation_timestamp;
+    }
+
+    public void setLast_optimizer_adaptation_initiation_timestamp(long last_optimizer_adaptation_initiation_timestamp) {
+        this.last_optimizer_adaptation_initiation_timestamp = last_optimizer_adaptation_initiation_timestamp;
+        this.last_slo_violation_triggering_optimizer = slo_violations.get((slo_violations.size()-1));
+    }
+
+    public SLOViolation getLast_slo_violation_triggering_optimizer() {
+        return last_slo_violation_triggering_optimizer;
+    }
+
+    public long calculate_last_total_reconfiguration_time_from_last_slo() {
+        return System.currentTimeMillis()-last_optimizer_adaptation_initiation_timestamp;
+    }
+
+    public QTable getQ_table() {
+        return q_table;
+    }
+
+    public DetectorSubcomponent getAssociated_detector() {
+        return associated_detector;
     }
 }
