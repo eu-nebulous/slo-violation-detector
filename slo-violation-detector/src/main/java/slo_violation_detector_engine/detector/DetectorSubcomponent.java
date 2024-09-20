@@ -52,7 +52,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public DetectorSubcomponent(String application_name, CharacterizedThread.CharacterizedThreadRunMode characterized_thread_run_mode) {
         super.thread_type = CharacterizedThread.CharacterizedThreadType.persistent_running_detector_thread;
         try {
-             subcomponent_state = new DetectorSubcomponentState();
+             subcomponent_state = new DetectorSubcomponentState(this);
         }catch (SQLException e) {
              throw new RuntimeException(e);
         }

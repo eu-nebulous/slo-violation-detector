@@ -23,6 +23,14 @@ public class Constants {
     public static Long buffer_time = 500L ; //This is a time interval in milliseconds allowing for many SLO violations to be gathered
     public static int maximum_acceptable_forward_predictions;
     public static String slo_violation_feedback_method;
+    public static double maximum_adaptation_threshold_for_reconfigurations = 0.9; 
+    public static double q_learning_initial_value = 100;
+    public static double q_learning_exploration_factor = 1;
+    public static double q_learning_learning_rate = 0.1;
+    public static double q_learning_discounting_factor = 0.95;
+    public static String slo_violations_database_url = "jdbc:h2:file:" + System.getProperty("user.dir") + "/sloviolations.db";
+    public static String database_username="sa";
+    public static String database_password="";
     public static Integer number_of_severity_classes;
     public static String [] logic_operators = {"and","or"};
     public static final String default_application_name = "default_application";

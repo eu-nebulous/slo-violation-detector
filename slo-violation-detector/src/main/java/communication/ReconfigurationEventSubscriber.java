@@ -1,6 +1,5 @@
 package communication;
 
-import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -8,7 +7,6 @@ import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utility_beans.broker_communication.BrokerSubscriber;
 import utility_beans.broker_communication.BrokerSubscriptionDetails;
 import utility_beans.generic_component_functionality.CharacterizedThread;
-import utility_beans.reconfiguration_suggestion.SLOViolation;
 
 import java.util.function.BiFunction;
 import java.util.logging.Logger;
@@ -33,12 +31,14 @@ public class ReconfigurationEventSubscriber extends AbstractFullBrokerSubscriber
                 application_state state_received = application_state.valueOf(message_object.get("state").toString());
                Logger.getGlobal().log(info_logging_level,"Received application state message "+ state_received+" for application "+detector.get_application_name());
                 if (state_received.equals(application_state.DEPLOYING) && current_state.equals(application_state.RUNNING)){
+                    detector.getSubcomponent_state().setLast_optimizer_adaptation_initiation_timestamp(System.currentTimeMillis());
                     ongoing_reconfiguration=true;
                 }else if (state_received.equals(application_state.RUNNING) && ongoing_reconfiguration){
                     ongoing_reconfiguration=false;
                     //slo_violation.setTimepoint_of_implementation_of_reconfiguration(System.currentTimeMillis());
                     detector.getSubcomponent_state().getReconfiguration_time_recording_queue().add(System.currentTimeMillis());
-                    Logger.getGlobal().log(info_logging_level,"Reconfiguration action is now complete");
+                    Logger.getGlobal().log(info_logging_level,"Reconfiguration action is now complete as signalled by the optimizer");
+                    Logger.getGlobal().log(info_logging_level, "The total reconfiguration time from slo "+detector.getSubcomponent_state().getLast_slo_violation_triggering_optimizer()+" was "+detector.getSubcomponent_state().calculate_last_total_reconfiguration_time_from_last_slo());
                 }
                 current_state = state_received;
                 //state processing here

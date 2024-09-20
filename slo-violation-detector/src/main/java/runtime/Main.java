@@ -83,7 +83,7 @@ public class Main {
                 slo_violation_probability_threshold = Double.parseDouble(prop.getProperty("slo_violation_probability_threshold"));
                 severity_calculation_method = prop.getProperty("slo_violation_determination_method");
                 maximum_acceptable_forward_predictions = Integer.parseInt(prop.getProperty("maximum_acceptable_forward_predictions"));
-
+                
                 broker_ip = prop.getProperty("broker_ip_url");
                 broker_port = Integer.parseInt(prop.getProperty("broker_port"));
                 broker_username = prop.getProperty("broker_username");
@@ -91,7 +91,13 @@ public class Main {
                 unbounded_metric_strings = new ArrayList<>(Arrays.asList(prop.getProperty("metrics_bounds").split(",")));
                 slo_violation_feedback_method = prop.getProperty("slo_violation_feedback_method");
                 number_of_severity_classes = Integer.parseInt(prop.getProperty("number_of_severity_classes"));
-                
+                q_learning_exploration_factor = Double.parseDouble(prop.getProperty("q_learning_exploration_factor"));
+                q_learning_discounting_factor = Double.parseDouble(prop.getProperty("q_learning_discounting_factor"));
+                q_learning_learning_rate = Double.parseDouble(prop.getProperty("q_learning_learning_rate"));
+                q_learning_initial_value = Double.parseDouble(prop.getProperty("q_learning_initial_value"));
+                slo_violations_database_url = prop.getProperty("slo_violations_database_url");
+                database_username = prop.getProperty("database_username");
+                database_password = prop.getProperty("database_password");maximum_adaptation_threshold_for_reconfigurations = Double.parseDouble(prop.getProperty("maximum_adaptation_threshold_for_reconfigurations"));
                 //TODO Delete below two lines
                 //DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name,detached);
                 //detectors.put(default_application_name,detector);

@@ -1,7 +1,7 @@
 package slo_violation_detector_engine.generic;
 
 //import eu.melodic.event.brokerclient.BrokerPublisher;
-import deep_learning.SeverityClassModel;
+import reinforcement_learning.SeverityClassModel;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import slo_violation_detector_engine.detector.DetectorSubcomponentUtilities;
@@ -171,19 +171,20 @@ public class Runnables {
                                     SLOViolation current_slo_violation = new SLOViolation(normalized_rule_severity);
                                     CircularFifoQueue<Long> reconfiguration_queue = detector.getSubcomponent_state().getReconfiguration_time_recording_queue();
                                     if (detector.getDm()!=null){
-                                        detector.getDm().submitSLOViolation(current_slo_violation);
+                                        detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
                                     }else {
                                         SeverityClassModel scm = new SeverityClassModel(number_of_severity_classes, true);
-                                        detector.setDm(new DecisionMaker(scm, reconfiguration_queue));
-                                        detector.getDm().submitSLOViolation(current_slo_violation);
+                                        detector.setDm(new DecisionMaker(scm, reconfiguration_queue,detector.getSubcomponent_state()));
+                                        detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
                                     }
                                     
                                     sleep(adjusted_buffer_time); //Breaking sleep into two parts (sleep_time and adjusted_buffer_time) to allow possibly other slo violations to be gathered during adjusted_buffer_time and only use the highest one. Overdoing it (having large buffer times), may result in ignoring recent realtime/predicted metric data sent during adjusted_buffer_time
                                     ReconfigurationDetails reconfiguration_details = detector.getDm().processSLOViolations();
                                     if (reconfiguration_details.will_reconfigure()) {
+                                        Logger.getGlobal().log(info_logging_level,"Adding violation record for violation "+current_slo_violation.getId()+" to database");
                                         detector.getSubcomponent_state().add_violation_record(detector.get_application_name(), rule.getRule_representation().toJSONString(), normalized_rule_severity, reconfiguration_details.getCurrent_slo_threshold(), targeted_prediction_time);
                                     }
-                                } else if (slo_violation_feedback_method.equals("using_static_probability_threshold")) {
+                                } else if (slo_violation_feedback_method.equals("none")) {
                                     sleep(sleep_time + adjusted_buffer_time); //Not interested in other SLO Violations, directly processing any SLOs
                                     double rule_severity = process_rule_value(rule, targeted_prediction_time);
                                     double slo_violation_probability = determine_slo_violation_probability(rule_severity);

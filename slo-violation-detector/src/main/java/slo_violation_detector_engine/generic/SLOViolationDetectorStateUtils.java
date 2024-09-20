@@ -25,7 +25,8 @@ public class SLOViolationDetectorStateUtils {
             URI absolute_configuration_file_path = new File(configuration_file_location).toURI();
             URI relative_configuration_file_path = base_project_path.relativize(absolute_configuration_file_path);
             Logger.getGlobal().log(info_logging_level, "This is the base project path:" + base_project_path);
-            String configuration_path = base_project_path.getPath() + relative_configuration_file_path;
+            String base_project_path_without_last_folder = get_path_without_last_folder(base_project_path.getPath());
+            String configuration_path = base_project_path_without_last_folder + relative_configuration_file_path;
             Logger.getGlobal().log(info_logging_level, "Loading configuration from path: "+configuration_path);
             return new FileInputStream(configuration_path);
         }else{
@@ -34,6 +35,21 @@ public class SLOViolationDetectorStateUtils {
             }
             Logger.getGlobal().log(info_logging_level, "Loading configuration from path: "+base_project_path);
             return new FileInputStream(base_project_path.getPath());
+        }
+    }
+
+    private static String get_path_without_last_folder(String path) {
+        if (path == null || path.equals(EMPTY)) {
+            return "";
+        }else{
+            String result;
+            result = path.substring(0, path.lastIndexOf(File.separator));
+                if (result.length()+1>=path.length()){
+                    return result.substring(0, result.lastIndexOf(File.separator)+1);
+                }
+                else{
+                    return result+File.separator;
+                }
         }
     }
 }

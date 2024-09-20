@@ -1,7 +1,8 @@
-package deep_learning;
+package reinforcement_learning;
 
 import utility_beans.synchronization.SynchronizedDouble;
 
+import static configuration.Constants.maximum_adaptation_threshold_for_reconfigurations;
 import static configuration.Constants.slo_violation_probability_threshold;
 
 public class SeverityClass{
@@ -21,12 +22,12 @@ public class SeverityClass{
 
     public void decrease_threshold(){
         synchronized (adaptation_threshold){
-            adaptation_threshold.setValue(adaptation_threshold.getValue()-decrease_factor);
+            adaptation_threshold.setValue(Math.max(0,adaptation_threshold.getValue()-decrease_factor));
         }
     }
     public void increase_threshold(){
         synchronized (adaptation_threshold){
-            adaptation_threshold.setValue(adaptation_threshold.getValue()+increase_factor);
+            adaptation_threshold.setValue(Math.min(maximum_adaptation_threshold_for_reconfigurations,adaptation_threshold.getValue()+increase_factor));
         }
     }
     public Double getMinimum_severity_value() {

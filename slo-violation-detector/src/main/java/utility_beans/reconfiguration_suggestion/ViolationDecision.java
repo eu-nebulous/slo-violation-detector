@@ -1,6 +1,9 @@
 package utility_beans.reconfiguration_suggestion;
 
 
+import reinforcement_learning.QTableEntry;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
+
 import java.util.logging.Logger;
 
 import static configuration.Constants.info_logging_level;
@@ -13,11 +16,13 @@ public class ViolationDecision {
     private Long evaluation_timestamp;
     private int reconfiguration_alert_counter =0;
     private SLOViolation slo_violation;
+    private DetectorSubcomponent associated_detector;
 
-    public ViolationDecision(SLOViolation slo_violation, boolean suggested_adaptation){
+    public ViolationDecision(SLOViolation slo_violation, boolean suggested_adaptation, DetectorSubcomponent detector){
         this.slo_violation = slo_violation;
         decision_timestamp = System.currentTimeMillis();
         this.suggested_adaptation = suggested_adaptation;
+        this.associated_detector = detector;
     }
 
     public Long getDecision_timestamp() {
@@ -63,7 +68,6 @@ public class ViolationDecision {
         if (last_interesting_timepoint<System.currentTimeMillis()-365.25*24*60*60*1000){
             was_correct_decision=true;
             Logger.getGlobal().log(info_logging_level,"The last decision on "+slo_violation.getId()+" was correct as no previous reconfiguration existed in the recent past");
-            return was_correct_decision;
         }
         //was_correct_decision = 
         //last_interesting_timepoint < slo_violation.getTime_calculated() ||
@@ -80,6 +84,40 @@ public class ViolationDecision {
                 (last_reconfiguration_timestamp-slo_violation.getTime_calculated()) >= time_horizon_seconds * 1000L
             )
         ;
+        
+        long seconds_from_last_slo_violation = -1;
+        long seconds_from_last_adaptation = -1;
+        
+        if (last_slo_violation_timestamp>slo_violation.getTime_calculated() &&
+                (
+                        (last_slo_violation_timestamp-slo_violation.getTime_calculated()) >= time_horizon_seconds * 1000L
+                )){
+            seconds_from_last_slo_violation = (last_slo_violation_timestamp-slo_violation.getTime_calculated()) / 1000L;
+        }else if  (last_reconfiguration_timestamp>slo_violation.getTime_calculated() &&
+                (
+                        (last_reconfiguration_timestamp-slo_violation.getTime_calculated()) >= time_horizon_seconds * 1000L
+                )){
+            seconds_from_last_adaptation = (last_reconfiguration_timestamp-slo_violation.getTime_calculated())/1000L;
+
+        }else if  (last_interesting_timepoint<slo_violation.getTime_calculated()){
+            seconds_from_last_adaptation = Long.MAX_VALUE;
+            seconds_from_last_slo_violation = Long.MAX_VALUE;
+        }
+        long reward_seconds = Math.min(seconds_from_last_adaptation,seconds_from_last_slo_violation);
+
+        QTableEntry old_q_table_state = associated_detector.getSubcomponent_state().getQ_table().get_entry(slo_violation.getSeverity_value(),associated_detector.getDm().getSeverity_class_model().get_severity_class(slo_violation.getSeverity_value()).getAdaptation_threshold().getValue(), DecisionMaker.ViolationDecisionEnum.exploration);
+        double old_q_table_state_value = old_q_table_state.getQ_table_value();
+        QTableEntry new_q_table_state = old_q_table_state.update(slo_violation.getSeverity_value(),associated_detector.getDm().getSeverity_class_model().get_severity_class(slo_violation.getSeverity_value()).getAdaptation_threshold().getValue(),reward_seconds);
+        double new_q_table_state_value = new_q_table_state.getQ_table_value();
+        //Updating Q-table database entries 
+        associated_detector.getSubcomponent_state().add_q_table_database_entry(
+                associated_detector.get_application_name(),
+                slo_violation.getSeverity_value(),
+                associated_detector.getDm().getSeverity_class_model().get_severity_class(slo_violation.getSeverity_value()).getAdaptation_threshold().getValue(),
+                DecisionMaker.ViolationDecisionEnum.exploration,
+                new_q_table_state_value
+        );
+        
         Logger.getGlobal().log(info_logging_level, 
                 "Checking last decision...\n" +
                 "SLO Violation:\t\t\t\t\t" + slo_violation + ",\n" +
@@ -87,7 +125,9 @@ public class ViolationDecision {
                 "Last slo violation timestamp:\t" + last_slo_violation_timestamp + ",\n" +                        
                 "Time horizon (seconds):\t\t\t" + time_horizon_seconds + ".\n" +                        
                 "Current time is:\t\t\t\t"+current_time+"\n" +
-                "Calculating if decision was appropriate... The result is: " + (was_correct_decision? "correct" : "incorrect"));
+                "Calculating if decision was appropriate... The result is: " + (was_correct_decision? "correct" : "incorrect")+"\n" +
+                "Previous and current q-table values are " +old_q_table_state_value+" and "+new_q_table_state_value+", respectively"
+        );
         
         return was_correct_decision;
     }

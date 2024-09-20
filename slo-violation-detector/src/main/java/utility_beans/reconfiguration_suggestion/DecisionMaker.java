@@ -1,8 +1,10 @@
 package utility_beans.reconfiguration_suggestion;
 
-import deep_learning.SeverityClass;
-import deep_learning.SeverityClassModel;
+import reinforcement_learning.SeverityClass;
+import reinforcement_learning.SeverityClassModel;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
+import slo_violation_detector_engine.detector.DetectorSubcomponent;
+import slo_violation_detector_engine.detector.DetectorSubcomponentState;
 import utility_beans.generic_component_functionality.OutputFormattingPhase;
 import utility_beans.generic_component_functionality.ProcessingStatus;
 
@@ -12,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static java.lang.Double.MAX_VALUE;
+import static slo_violation_detector_engine.detector.DetectorSubcomponentState.slo_violations_list_lock;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.determine_slo_violation_probability;
 import static utility_beans.reconfiguration_suggestion.DecisionMaker.ViolationDecisionEnum.exploration;
 import static utility_beans.reconfiguration_suggestion.ReconfigurationDetails.get_details_for_noop_reconfiguration;
@@ -21,18 +23,18 @@ public class DecisionMaker {
 
     private SeverityClassModel severity_class_model;
     private CircularFifoQueue<SLOViolation> slo_violations = new CircularFifoQueue<>();
-    //TODO set this value in the config and the constants
-    private double exploration_factor = 1;
 
-    private int reconfiguration_interval_seconds = time_horizon_seconds;
+    private int average_reconfiguration_interval_seconds = time_horizon_seconds;
     private static final CircularFifoQueue<ViolationDecision> pending_decision_evaluations = new CircularFifoQueue<>();
     private final AtomicBoolean pending_decisions = new AtomicBoolean();
-    public static final Object slo_violations_list_lock = new Object();
     private CircularFifoQueue<Long> reconfiguration_queue;
+    private DetectorSubcomponent associated_detector;
     
-    public DecisionMaker(SeverityClassModel severity_class_model, CircularFifoQueue<Long> reconfiguration_queue) {
+    public DecisionMaker(SeverityClassModel severity_class_model, CircularFifoQueue<Long> reconfiguration_queue, DetectorSubcomponentState detector_state) {
         this.severity_class_model = severity_class_model;
         this.reconfiguration_queue = reconfiguration_queue;
+        this.slo_violations = detector_state.getSlo_violations();
+        this.associated_detector = detector_state.getAssociated_detector();
     }
 
     public static void add_pending_decision_evaluation(ViolationDecision decision){
@@ -96,7 +98,7 @@ public class DecisionMaker {
             Logger.getGlobal().log(info_logging_level, "Processing slo violation\n\t" + slo_violation_to_process+ "\nout of\n\t"+slo_violations_descr);
             reconfiguration_details = processSLOViolation(slo_violation_to_process,reconfiguration_queue);
             //slo_violations.clear();
-            slo_violations.add(slo_violation_to_process);
+            //slo_violations.add(slo_violation_to_process);
         }
 		if (reconfiguration_details.will_reconfigure()){
 	        Logger.getGlobal().log(info_logging_level,"The reconfiguration details which were gathered indicate that the maximum reconfiguration is the following:\n"+reconfiguration_details.toString());
@@ -122,14 +124,9 @@ public class DecisionMaker {
         }
     }
 
-    enum ViolationDecisionEnum {exploration,exploitation}
+    public enum ViolationDecisionEnum {exploration,exploitation}
 
-
-    public void submitSLOViolation (SLOViolation slo_violation){
-        synchronized (slo_violations_list_lock) {
-            slo_violations.add(slo_violation);
-        }
-    }
+    
 
     /**
      * Processes a SLO violation and determines the reconfiguration details based on the severity value.
@@ -154,7 +151,7 @@ public class DecisionMaker {
             return get_details_for_noop_reconfiguration();
         }
 
-        ViolationDecisionEnum violation_processing_mode = decide_exploration_or_exploitation(exploration_factor);
+        ViolationDecisionEnum violation_processing_mode = decide_exploration_or_exploitation(q_learning_exploration_factor);
 
         if (violation_processing_mode.equals(ViolationDecisionEnum.exploitation)){
             Logger.getGlobal().log(info_logging_level,"Following the exploitation path of Q-learning");
@@ -171,15 +168,15 @@ public class DecisionMaker {
             Logger.getGlobal().log(info_logging_level,slo_violation.getId()+" - Following the exploration path of Q-learning");
             //Monte carlo episode learning
             Thread get_results = new Thread(() -> {
-                ViolationDecision decision = new ViolationDecision(slo_violation,false);
+                ViolationDecision decision = new ViolationDecision(slo_violation,false,associated_detector);
                 slo_violation.setDecision(decision);
                 try {
-                    String message = String.format(slo_violation.getId()+" - Starting a new learning thread at %d - waiting for %d seconds",System.currentTimeMillis(),reconfiguration_interval_seconds);
+                    String message = String.format(slo_violation.getId()+" - Starting a new learning thread at %d - waiting for %d seconds",System.currentTimeMillis(), average_reconfiguration_interval_seconds);
                     Logger.getGlobal().log(info_logging_level,message);
                     synchronized(pending_decisions) {
                         add_pending_decision_evaluation(decision);
                     }
-                    Thread.sleep(reconfiguration_interval_seconds* 1000L);
+                    Thread.sleep(average_reconfiguration_interval_seconds * 1000L);
                     Long last_reconfiguration_timestamp;
                     if (!reconfiguration_queue.isEmpty()) {
                         last_reconfiguration_timestamp = reconfiguration_queue.get(reconfiguration_queue.size() - 1);
@@ -240,5 +237,11 @@ public class DecisionMaker {
         return next_value > threshold;
     }
 
+    public SeverityClassModel getSeverity_class_model() {
+        return severity_class_model;
+    }
 
+    public void setSeverity_class_model(SeverityClassModel severity_class_model) {
+        this.severity_class_model = severity_class_model;
+    }
 }

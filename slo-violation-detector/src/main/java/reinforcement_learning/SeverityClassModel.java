@@ -1,4 +1,4 @@
-package deep_learning;
+package reinforcement_learning;
 
 import java.util.ArrayList;
 import java.util.Comparator;
