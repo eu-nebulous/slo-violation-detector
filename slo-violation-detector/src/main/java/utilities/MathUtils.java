@@ -34,4 +34,14 @@ public class MathUtils {
         }
         return sum;
     }
+    
+    public static double findmax(Double... values){
+        double max = Double.NEGATIVE_INFINITY;
+        for (Double value: values){
+            if (value>max){
+                max = value;
+            }
+        }
+        return max;
+    }
 }

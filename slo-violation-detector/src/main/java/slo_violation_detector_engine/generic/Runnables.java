@@ -169,7 +169,7 @@ public class Runnables {
                                     double rule_severity = process_rule_value(rule, targeted_prediction_time);
                                     double normalized_rule_severity = rule_severity / 100;
                                     SLOViolation current_slo_violation = new SLOViolation(normalized_rule_severity);
-                                    CircularFifoQueue<Long> reconfiguration_queue = detector.getSubcomponent_state().getReconfiguration_time_recording_queue();
+                                    CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue = detector.getSubcomponent_state().getReconfiguration_time_recording_queue();
                                     if (detector.getDm()!=null){
                                         detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
                                     }else {
@@ -183,6 +183,7 @@ public class Runnables {
                                     if (reconfiguration_details.will_reconfigure()) {
                                         Logger.getGlobal().log(info_logging_level,"Adding violation record for violation "+current_slo_violation.getId()+" to database");
                                         detector.getSubcomponent_state().add_violation_record(detector.get_application_name(), rule.getRule_representation().toJSONString(), normalized_rule_severity, reconfiguration_details.getCurrent_slo_threshold(), targeted_prediction_time);
+                                        detector.getSubcomponent_state().reconfiguration_time_recording_queue.add(reconfiguration_details);
                                     }
                                 } else if (slo_violation_feedback_method.equals("none")) {
                                     sleep(sleep_time + adjusted_buffer_time); //Not interested in other SLO Violations, directly processing any SLOs
@@ -205,7 +206,6 @@ public class Runnables {
 
 
                                 }
-                                detector.getSubcomponent_state().slo_violation_event_recording_queue.add(System.currentTimeMillis());
 
                                 //Probably not necessary to synchronize the line below as each removal will happen only once in a reconfiguration interval, and reconfiguration intervals are assumed to have a duration of minutes.
                                 //Necessary to synchronize because another severity calculation thread might invoke clean_data above, and then a concurrent modification exception may arise

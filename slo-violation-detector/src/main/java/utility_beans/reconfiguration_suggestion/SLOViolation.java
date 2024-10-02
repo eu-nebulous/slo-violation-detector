@@ -21,7 +21,7 @@ public class SLOViolation {
     private Boolean proposed_adaptation_successful;
     private Long proposed_reconfiguration_timestamp;
     private HashMap<SLOViolationMetaMetric, Double> slo_metametric_values;
-    private ViolationDecision decision;
+    private ViolationHandlingAction violation_handling_action;
     private boolean reconfiguration_is_completed = false;
 
 
@@ -109,12 +109,12 @@ public class SLOViolation {
         this.slo_metametric_values = slo_metametric_values;
     }
 
-    public ViolationDecision getDecision() {
-        return decision;
+    public ViolationHandlingAction getViolation_handling_action() {
+        return violation_handling_action;
     }
 
-    public void setDecision(ViolationDecision decision) {
-        this.decision = decision;
+    public void setViolation_handling_action(ViolationHandlingAction violation_handling_action) {
+        this.violation_handling_action = violation_handling_action;
     }
 
     public Long getProposed_reconfiguration_timestamp() {

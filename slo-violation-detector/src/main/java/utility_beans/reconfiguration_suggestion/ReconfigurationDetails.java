@@ -17,6 +17,15 @@ public class ReconfigurationDetails implements Comparable<ReconfigurationDetails
         this.targeted_reconfiguration_timestamp = targeted_reconfiguration_timestamp;
     }
 
+    public ReconfigurationDetails(SLOViolation slo_violation, DecisionMaker decision_maker){
+        timestamp = System.currentTimeMillis();
+        severity = slo_violation.getSeverity_value();
+        reconfiguration_probability = slo_violation.getReconf_probability();
+        will_reconfigure = true;
+        current_slo_threshold = decision_maker.getSeverity_class_model().get_severity_class(severity).getAdaptation_threshold().getValue();
+        targeted_reconfiguration_timestamp  = slo_violation.getProposed_reconfiguration_timestamp();
+    }
+    
     public static ReconfigurationDetails get_details_for_noop_reconfiguration(){
         return new ReconfigurationDetails();
     }
@@ -107,10 +116,10 @@ public class ReconfigurationDetails implements Comparable<ReconfigurationDetails
     public String toString() {
         StringBuilder sb = new StringBuilder();
         if (will_reconfigure){
-            sb.append("Active reconfiguration");
-            sb.append("Severity is: "+severity);
-            sb.append("The reconfiguration probability is "+reconfiguration_probability);
-            sb.append("The targeted timestamp is "+targeted_reconfiguration_timestamp);
+            sb.append("Active reconfiguration: ");
+            sb.append(" Severity is: "+severity);
+            sb.append(" The reconfiguration probability is "+reconfiguration_probability);
+            sb.append(" The targeted timestamp is "+targeted_reconfiguration_timestamp);
         }else{
             sb.append("Will not make a reconfiguration as Severity is "+severity);
         }

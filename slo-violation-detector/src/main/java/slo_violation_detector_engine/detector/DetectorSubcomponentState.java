@@ -2,11 +2,11 @@ package slo_violation_detector_engine.detector;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import reinforcement_learning.QTable;
-import reinforcement_learning.SeverityClass;
 import slo_rule_modelling.SLORule;
+import utilities.ViolationHandlingActionNames;
 import utility_beans.monitoring.MonitoringAttributeStatistics;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
-import utility_beans.reconfiguration_suggestion.DecisionMaker;
+import utility_beans.reconfiguration_suggestion.ReconfigurationDetails;
 import utility_beans.reconfiguration_suggestion.SLOViolation;
 
 import java.sql.*;
@@ -33,6 +33,7 @@ public class DetectorSubcomponentState{
 
     public ArrayList<SLORule> slo_rules = new ArrayList<>();
     private CircularFifoQueue<SLOViolation> slo_violations = new CircularFifoQueue<>();
+    private CircularFifoQueue<Long> deployment_timestamps = new CircularFifoQueue<>();
     public static final Object slo_violations_list_lock = new Object();
     private long last_optimizer_adaptation_initiation_timestamp =-1;
     private SLOViolation last_slo_violation_triggering_optimizer;
@@ -43,10 +44,10 @@ public class DetectorSubcomponentState{
     //Debugging variables
     public CircularFifoQueue<Long> slo_violation_event_recording_queue = new CircularFifoQueue<>(50);
     public CircularFifoQueue<String> severity_calculation_event_recording_queue = new CircularFifoQueue<>(50);
-	public CircularFifoQueue<Long> reconfiguration_time_recording_queue = new CircularFifoQueue<>(50);
-    public static final Object reconfigurationTimeRecordingQueueLock = new Object();
+	public CircularFifoQueue<ReconfigurationDetails> reconfiguration_time_recording_queue = new CircularFifoQueue<>(50);
+    public static final Object deploymentTimeRecordingQueueLock = new Object();
     
-    private QTable q_table = new QTable();
+    private QTable q_table = new QTable(conn);
     public DetectorSubcomponentState(DetectorSubcomponent detector) throws SQLException {
         Statement statement = conn.createStatement();
         String createSLOViolationTableSQL = "CREATE TABLE IF NOT EXISTS slo_violations ("
@@ -141,10 +142,10 @@ public class DetectorSubcomponentState{
         this.adaptation_times_to_remove = adaptation_times_to_remove;
     }
     
-	public CircularFifoQueue<Long> getReconfiguration_time_recording_queue() {
+	public CircularFifoQueue<ReconfigurationDetails> getReconfiguration_time_recording_queue() {
 	    return reconfiguration_time_recording_queue;
     }
-	public void setReconfiguration_time_recording_queue(CircularFifoQueue<Long> reconfiguration_time_recording_queue) {
+	public void setReconfiguration_time_recording_queue(CircularFifoQueue<ReconfigurationDetails> reconfiguration_time_recording_queue) {
 	this.reconfiguration_time_recording_queue = reconfiguration_time_recording_queue;
     }
 
@@ -171,21 +172,21 @@ public class DetectorSubcomponentState{
         }
 
         if (rowsAffected > 0) {
-            Logger.getGlobal().log(info_logging_level,"New record inserted successfully!");
+            Logger.getGlobal().log(info_logging_level,"New record inserted successfully to the slo violations table!");
 //            try {
 //                conn.close();
 //            } catch (SQLException e) {
 //                throw new RuntimeException(e);
 //            }
         } else {
-            Logger.getGlobal().log(severe_logging_level,"Failed to insert new record.");
+            Logger.getGlobal().log(severe_logging_level,"Failed to insert new record to the slo violations table.");
         }
         
         //TODO conn.close();
     }
     
     
-    public void add_q_table_database_entry(String application_name, double severity_value, double current_threshold, DecisionMaker.ViolationDecisionEnum action, double q_value){
+    public void add_q_table_database_entry(String application_name, double severity_value, double current_threshold, ViolationHandlingActionNames action, double q_value){
         
         double quantized_severity_value = (int) Math.round(severity_value*100);
         double quantized_current_threshold = (int) Math.round(current_threshold*100);
@@ -229,14 +230,14 @@ public class DetectorSubcomponentState{
         }
 
         if (rowsAffected > 0) {
-            Logger.getGlobal().log(info_logging_level,"New record inserted successfully in q-table!");
+            Logger.getGlobal().log(info_logging_level,"New record inserted successfully to the q-table!");
 //            try {
 //                conn.close();
 //            } catch (SQLException e) {
 //                throw new RuntimeException(e);
 //            }
         } else {
-            Logger.getGlobal().log(severe_logging_level,"Failed to insert new record.");
+            Logger.getGlobal().log(severe_logging_level,"Failed to insert new record to the q-table.");
         }
     }
     
@@ -253,6 +254,10 @@ public class DetectorSubcomponentState{
 
     public void setSlo_Violations(CircularFifoQueue<SLOViolation> slo_violations) {
         this.slo_violations = slo_violations;
+    }
+
+    public CircularFifoQueue<Long> getDeployment_timestamps() {
+        return deployment_timestamps;
     }
 
     public long getLast_optimizer_adaptation_initiation_timestamp() {

@@ -15,6 +15,7 @@ import utility_beans.generic_component_functionality.CharacterizedThread;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
 
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 import static configuration.Constants.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -54,6 +55,7 @@ public class DirectorRequestMappings {
             return "Error in parsing the input string, the exception message follows:\n"+e;
         }
         application_name = (String) metric_list_json.get("name");
+        Logger.getGlobal().log(info_logging_level,"Creating new SLO Violation Detector subcomponent using the Spring API, as the result of a new metric_list request");
         DetectorSubcomponent new_detector = DetectorSubcomponent.detector_subcomponents.getOrDefault(application_name,new DetectorSubcomponent(application_name,CharacterizedThread.CharacterizedThreadRunMode.detached));
 
         HashMap<String,RealtimeMonitoringAttribute> application_metrics = new_detector.getSubcomponent_state().getMonitoring_attributes();
