@@ -130,7 +130,7 @@ public class DebugDataSubscription {
             intermediate_debug_string.append("Details for threads belonging to detector ").append(detector_id).append(":\n");
             intermediate_debug_string.append("--------------------------:");
             intermediate_debug_string.append("\nShowing the adaptation times that pend processing:\n").append(detector_subcomponents.get(detector_id).getSubcomponent_state().adaptation_times_pending_processing);
-            intermediate_debug_string.append("\nThese are the timestamps of the latest adaptation events\n").append(detector_subcomponents.get(detector_id).getSubcomponent_state().slo_violation_event_recording_queue).append("\n");
+            intermediate_debug_string.append("\nThese are the reconfiguration details of the latest adaptations\n").append(detector_subcomponents.get(detector_id).getSubcomponent_state().getReconfiguration_time_recording_queue()).append("\n");
         }
         output_debug_data = output_debug_data+intermediate_debug_string;
 

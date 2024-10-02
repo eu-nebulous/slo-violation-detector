@@ -36,7 +36,7 @@ public class ReconfigurationEventSubscriber extends AbstractFullBrokerSubscriber
                 }else if (state_received.equals(application_state.RUNNING) && ongoing_reconfiguration){
                     ongoing_reconfiguration=false;
                     //slo_violation.setTimepoint_of_implementation_of_reconfiguration(System.currentTimeMillis());
-                    detector.getSubcomponent_state().getReconfiguration_time_recording_queue().add(System.currentTimeMillis());
+                    //detector.getSubcomponent_state().getReconfiguration_time_recording_queue().add(System.currentTimeMillis());
                     Logger.getGlobal().log(info_logging_level,"Reconfiguration action is now complete as signalled by the optimizer");
                     Logger.getGlobal().log(info_logging_level, "The total reconfiguration time from slo "+detector.getSubcomponent_state().getLast_slo_violation_triggering_optimizer()+" was "+detector.getSubcomponent_state().calculate_last_total_reconfiguration_time_from_last_slo());
                 }

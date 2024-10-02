@@ -77,7 +77,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
         }else/*detached mode*/{
             CharacterizedThread.create_new_thread(new Runnables.SLODetectionEngineRunnable(this), detector_name+"_master_thread", true,this, CharacterizedThread.CharacterizedThreadType.persistent_running_detector_thread);
         }
-        detector_subcomponents.put(detector_name,this);
+        detector_subcomponents.put(application_name,this);
     }
 
     public void update_monitoring_attribute_value(String name,Number value){
@@ -168,6 +168,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
                 associated_detector.set_name(application_name);
             }
             else {
+                Logger.getGlobal().log(info_logging_level,"Creating new SLO Violation Detector subcomponent  as a result of a call to get_associated_detector for "+application_name);
                 associated_detector = new DetectorSubcomponent(application_name, CharacterizedThread.CharacterizedThreadRunMode.detached);
             }
         }

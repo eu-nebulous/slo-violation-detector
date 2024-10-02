@@ -114,7 +114,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
 
             BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location,EMPTY);
-             BiFunction<BrokerSubscriptionDetails, String, String> device_lost_subscriber_function = (broker_details, message) -> {
+            BiFunction<BrokerSubscriptionDetails, String, String> device_lost_subscriber_function = (broker_details, message) -> {
                 BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location, true);
 
                 Clock clock = Clock.systemUTC();
@@ -171,7 +171,6 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
     }
 
     public BiFunction<BrokerSubscriptionDetails, String, String> metric_list_subscriber_function = (broker_details, message) -> {
-        DetectorSubcomponent associated_detector = get_associated_detector(broker_details.getApplication_name());
         synchronized (can_modify_monitoring_metrics) {
             can_modify_monitoring_metrics.setValue(true);
             MESSAGE_CONTENTS.assign_value(broker_details.getApplication_name(),metric_list_topic, message);
@@ -181,6 +180,9 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
             JSONObject metric_list_object;
             try {
                 metric_list_object = (JSONObject) parser.parse(message);
+                //DetectorSubcomponent associated_detector = get_associated_detector(broker_details.getApplication_name());
+                String application_name = (String) metric_list_object.get("name");
+                DetectorSubcomponent associated_detector = get_associated_detector(application_name);
                 for (Object element : (JSONArray) metric_list_object.get("metric_list")){
                     metric_name = (String)((JSONObject)element).get("name");
                     String lower_bound_str = (String)((JSONObject)element).get("lower_bound");
@@ -254,7 +256,6 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
         }
 
         DetectorSubcomponent new_detector = get_associated_detector(application);
-        detector_subcomponents.put(application,new_detector);
         synchronized (new_detector.can_modify_slo_rules) {
             new_detector.can_modify_slo_rules.setValue(true);
             MESSAGE_CONTENTS.assign_value(application,slo_rules_topic, message);

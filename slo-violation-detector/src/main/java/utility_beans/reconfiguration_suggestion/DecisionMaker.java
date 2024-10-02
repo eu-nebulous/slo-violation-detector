@@ -5,6 +5,7 @@ import reinforcement_learning.SeverityClassModel;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import slo_violation_detector_engine.detector.DetectorSubcomponentState;
+import utilities.ViolationHandlingActionNames;
 import utility_beans.generic_component_functionality.OutputFormattingPhase;
 import utility_beans.generic_component_functionality.ProcessingStatus;
 
@@ -16,7 +17,6 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentState.slo_violations_list_lock;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.determine_slo_violation_probability;
-import static utility_beans.reconfiguration_suggestion.DecisionMaker.ViolationDecisionEnum.exploration;
 import static utility_beans.reconfiguration_suggestion.ReconfigurationDetails.get_details_for_noop_reconfiguration;
 
 public class DecisionMaker {
@@ -25,27 +25,17 @@ public class DecisionMaker {
     private CircularFifoQueue<SLOViolation> slo_violations = new CircularFifoQueue<>();
 
     private int average_reconfiguration_interval_seconds = time_horizon_seconds;
-    private static final CircularFifoQueue<ViolationDecision> pending_decision_evaluations = new CircularFifoQueue<>();
     private final AtomicBoolean pending_decisions = new AtomicBoolean();
-    private CircularFifoQueue<Long> reconfiguration_queue;
+    private CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue;
     private DetectorSubcomponent associated_detector;
     
-    public DecisionMaker(SeverityClassModel severity_class_model, CircularFifoQueue<Long> reconfiguration_queue, DetectorSubcomponentState detector_state) {
+    public DecisionMaker(SeverityClassModel severity_class_model, CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue, DetectorSubcomponentState detector_state) {
         this.severity_class_model = severity_class_model;
         this.reconfiguration_queue = reconfiguration_queue;
         this.slo_violations = detector_state.getSlo_violations();
         this.associated_detector = detector_state.getAssociated_detector();
     }
-
-    public static void add_pending_decision_evaluation(ViolationDecision decision){
-        for (ViolationDecision violation_decision : pending_decision_evaluations){
-            int counter_value = violation_decision.getReconfiguration_alert_counter()+1;
-            violation_decision.setReconfiguration_alert_counter(counter_value);
-        }
-        if (decision!=null) {
-            pending_decision_evaluations.add(decision);
-        }
-    }
+    
 
     public ReconfigurationDetails processSLOViolations() {
 
@@ -103,7 +93,8 @@ public class DecisionMaker {
 		if (reconfiguration_details.will_reconfigure()){
 	        Logger.getGlobal().log(info_logging_level,"The reconfiguration details which were gathered indicate that the maximum reconfiguration is the following:\n"+reconfiguration_details.toString());
 			
-	        Logger.getGlobal().log(info_logging_level,"Returning to publish the reconfiguration and save the reconfiguration action to the database ");
+	        Logger.getGlobal().log(info_logging_level,"Returning to publish the reconfiguration and save the reconfiguration action to the queue and the database");
+            reconfiguration_queue.add(reconfiguration_details);
 		}
         
         clean_slo_violations();
@@ -123,9 +114,6 @@ public class DecisionMaker {
             }
         }
     }
-
-    public enum ViolationDecisionEnum {exploration,exploitation}
-
     
 
     /**
@@ -142,86 +130,164 @@ public class DecisionMaker {
      * then adjusts the threshold accordingly.
      */
   
-    public ReconfigurationDetails processSLOViolation(SLOViolation slo_violation, CircularFifoQueue<Long> reconfiguration_queue){
+    public ReconfigurationDetails processSLOViolation(SLOViolation slo_violation, CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue){
 
+        boolean was_adaptation_suggested = false;
+        ReconfigurationDetails reconfiguration_details;
+        
         double severity_value_to_process = slo_violation.getSeverity_value();
         SeverityClass severity_class = severity_class_model.get_severity_class(severity_value_to_process);
-        double current_slo_threshold = severity_class.getAdaptation_threshold().getValue();
-        if (! (severity_value_to_process > current_slo_threshold)){
-            return get_details_for_noop_reconfiguration();
+        double severity_class_threshold = severity_class.getAdaptation_threshold().getValue();
+//        if (! (severity_value_to_process > severity_class_threshold)){
+//            return reconfiguration_details;
+//        }
+
+        boolean will_explore = decide_exploration_or_exploitation(q_learning_exploration_factor);
+
+        //if (violation_processing_mode.equals(ViolationDecisionEnum.exploitation)){
+        ViolationHandlingActionNames handling_action_name;
+        if (!will_explore) {
+            Logger.getGlobal().log(info_logging_level, "Following the exploitation path of Q-learning");
+            handling_action_name = decide_best_slo_violation_handling_action(severity_value_to_process, severity_class_threshold);
+            Logger.getGlobal().log(info_logging_level, "The best action to handle the current slo violation is "+handling_action_name);
+        }else //Exploration path of q-learning 
+        {
+            Logger.getGlobal().log(info_logging_level, slo_violation.getId() + " - Following the exploration path of Q-learning");
+            handling_action_name = ViolationHandlingActionNames.values()[new Random().nextInt(ViolationHandlingActionNames.values().length)];
+            Logger.getGlobal().log(info_logging_level, "The explored action to handle the current slo violation is "+handling_action_name);
         }
 
-        ViolationDecisionEnum violation_processing_mode = decide_exploration_or_exploitation(q_learning_exploration_factor);
+        if (
+                handling_action_name.equals(ViolationHandlingActionNames.send_reconfiguration_and_do_not_change) ||
+                handling_action_name.equals(ViolationHandlingActionNames.send_reconfiguration_and_change)
+        ) {
+            //need_to_evaluate_decision = handling_action_name.equals(ViolationHandlingActionNames.send_reconfiguration_and_change);
+            was_adaptation_suggested = true;
+        }else if (
+                handling_action_name.equals(ViolationHandlingActionNames.consult_threshold_and_do_not_change)    ||
+                handling_action_name.equals(ViolationHandlingActionNames.consult_threshold_and_change)
+        )
+        {
+            //need_to_evaluate_decision = handling_action_name.equals(ViolationHandlingActionNames.consult_threshold_and_change);
+            was_adaptation_suggested = should_send_adaptation(severity_value_to_process, severity_class_threshold);
+        }
+        else if (
+                handling_action_name.equals(ViolationHandlingActionNames.drop_reconfiguration_and_do_not_change) ||
+                handling_action_name.equals(ViolationHandlingActionNames.drop_reconfiguration_and_change)
+        ){
+            //need_to_evaluate_decision = handling_action_name.equals(ViolationHandlingActionNames.drop_reconfiguration_and_change);
+            was_adaptation_suggested = false;
+        }
+        ViolationHandlingAction violation_handling_action = new ViolationHandlingAction(handling_action_name,slo_violation,was_adaptation_suggested,associated_detector);
+        slo_violation.setViolation_handling_action(violation_handling_action);
 
-        if (violation_processing_mode.equals(ViolationDecisionEnum.exploitation)){
-            Logger.getGlobal().log(info_logging_level,"Following the exploitation path of Q-learning");
-            if (should_send_adaptation(severity_value_to_process,severity_class.getAdaptation_threshold().getValue())) {
-                synchronized (pending_decisions) {
-                    add_pending_decision_evaluation(null);
+        Thread get_results = new Thread(() -> {
+
+            try {
+                String message = String.format(slo_violation.getId() + " - Starting a new learning thread at %d - waiting for %d seconds", System.currentTimeMillis(), average_reconfiguration_interval_seconds);
+                Logger.getGlobal().log(info_logging_level, message);
+
+                Thread.sleep(average_reconfiguration_interval_seconds * 1000L);
+                Long last_reconfiguration_timestamp;
+                if (!reconfiguration_queue.isEmpty()) {
+                    last_reconfiguration_timestamp = get_last_reconfiguration_timestamp(reconfiguration_queue,slo_violation);
+                } else {
+                    last_reconfiguration_timestamp = 0L;
                 }
-                return new ReconfigurationDetails(determine_slo_violation_probability(severity_value_to_process), severity_value_to_process,true,current_slo_threshold,slo_violation.getProposed_reconfiguration_timestamp());
-            }else{
-                return get_details_for_noop_reconfiguration();
-            }
 
-        }else if (violation_processing_mode.equals(exploration)){
-            Logger.getGlobal().log(info_logging_level,slo_violation.getId()+" - Following the exploration path of Q-learning");
-            //Monte carlo episode learning
-            Thread get_results = new Thread(() -> {
-                ViolationDecision decision = new ViolationDecision(slo_violation,false,associated_detector);
-                slo_violation.setDecision(decision);
-                try {
-                    String message = String.format(slo_violation.getId()+" - Starting a new learning thread at %d - waiting for %d seconds",System.currentTimeMillis(), average_reconfiguration_interval_seconds);
-                    Logger.getGlobal().log(info_logging_level,message);
-                    synchronized(pending_decisions) {
-                        add_pending_decision_evaluation(decision);
+                synchronized (slo_violations_list_lock) {
+                    boolean was_correct_decision;
+                    //If the last slo violation was the one examined now, the only way to have proposed something suboptimal would be for a reconfiguration to have occurred
+                    if (slo_violations.get(slo_violations.size() - 1).equals(slo_violation)) {
+                        was_correct_decision = violation_handling_action.evaluate_correctness(handling_action_name, last_reconfiguration_timestamp, 0L);
+                    } else {
+                        was_correct_decision = violation_handling_action.evaluate_correctness(handling_action_name, last_reconfiguration_timestamp, get_last_slo_violation_timestamp());
                     }
-                    Thread.sleep(average_reconfiguration_interval_seconds * 1000L);
-                    Long last_reconfiguration_timestamp;
-                    if (!reconfiguration_queue.isEmpty()) {
-                        last_reconfiguration_timestamp = reconfiguration_queue.get(reconfiguration_queue.size() - 1);
-                    }else{
-                        last_reconfiguration_timestamp = 0L;
-                    }
-                    
-                    synchronized (slo_violations_list_lock) {
-                        boolean was_correct_decision;
-                        //If the last slo violation was the one examined now, the only way to have proposed something suboptimal would be for a reconfiguration to have occurred
-                        if (slo_violations.get(slo_violations.size()-1).equals(slo_violation)){
-                            was_correct_decision = decision.evaluate_correctness(slo_violation,last_reconfiguration_timestamp,0L);
-                        }else {
-                            was_correct_decision = decision.evaluate_correctness(slo_violation, last_reconfiguration_timestamp, slo_violations.get(slo_violations.size() - 1).getTime_calculated());
-                        }
+                    if (
+                        handling_action_name.equals(ViolationHandlingActionNames.consult_threshold_and_change) ||
+                        handling_action_name.equals(ViolationHandlingActionNames.drop_reconfiguration_and_change) ||
+                        handling_action_name.equals(ViolationHandlingActionNames.send_reconfiguration_and_change)
+                    ) {
                         if (was_correct_decision) {
-                            Logger.getGlobal().log(info_logging_level, "Made a correct decision not to reconfigure, increasing the threshold");
+                            Logger.getGlobal().log(info_logging_level, "Made a correct violation_handling_action not to reconfigure, increasing the threshold");
                             severity_class.increase_threshold();
                         } else {
-                            Logger.getGlobal().log(info_logging_level, "Made a wrong decision not to reconfigure, decreasing the threshold");
+                            Logger.getGlobal().log(info_logging_level, "Made a wrong violation_handling_action not to reconfigure, decreasing the threshold");
                             severity_class.decrease_threshold();
                         }
-                        slo_violation.setProcessing_status(ProcessingStatus.finished);
+                    }else{
+                        Logger.getGlobal().log(info_logging_level, "Not modifying the threshold for the related severity class due to a "+handling_action_name+" handling action");
                     }
-                    //TODO evaluate whether this is appropriate or waiting is also required in synchronization
-                    synchronized(pending_decisions) {
-                        pending_decision_evaluations.remove(decision);
-                    }
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
                 }
-            });
-            get_results.start();
+                //TODO evaluate whether this is appropriate or waiting is also required in synchronization
+                slo_violation.setProcessing_status(ProcessingStatus.finished);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        get_results.start();
+
+        if (was_adaptation_suggested) {
+            reconfiguration_details = new ReconfigurationDetails(determine_slo_violation_probability(severity_value_to_process), severity_value_to_process, true, severity_class_threshold, slo_violation.getProposed_reconfiguration_timestamp());
+        }else{
+            reconfiguration_details = get_details_for_noop_reconfiguration();
         }
-        //TODO Will the exploration always target a no-reconfiguration result?
-        return get_details_for_noop_reconfiguration();
+        return reconfiguration_details;
     }
 
-    private ViolationDecisionEnum decide_exploration_or_exploitation(double explorationFactor) {
+    private static Long get_last_reconfiguration_timestamp(CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue, SLOViolation slo_violation) {
+        ReconfigurationDetails last_reconfiguration_details = reconfiguration_queue.get(reconfiguration_queue.size() - 1);
+        if (
+            last_reconfiguration_details.getTargeted_reconfiguration_timestamp() ==
+            slo_violation.getProposed_reconfiguration_timestamp()
+        ){
+            if (reconfiguration_queue.size()>1) {
+                ReconfigurationDetails second_last_reconfiguration_details = reconfiguration_queue.get(reconfiguration_queue.size() - 2);
+
+                if (
+                        second_last_reconfiguration_details.getTargeted_reconfiguration_timestamp() ==
+                                slo_violation.getProposed_reconfiguration_timestamp()
+                ) {
+                    if (reconfiguration_queue.size()>2) {
+                        Logger.getGlobal().log(warning_logging_level, "Warning: The same reconfiguration timestamp " + slo_violation.getProposed_reconfiguration_timestamp() + " has been found for SLO " + slo_violation.getId() + " and the last two reconfiguration detail objects - setting last reconfiguration timestamp to the reconfiguration timestamp of the third from the end reconfiguration object " + reconfiguration_queue.get(reconfiguration_queue.size() - 3) + "in good faith that it will be different (no checking)");
+                        return reconfiguration_queue.get(reconfiguration_queue.size() - 3).getTargeted_reconfiguration_timestamp();
+                    }else{
+                        Logger.getGlobal().log(info_logging_level, "Setting last reconfiguration timestamp to 0 as the two last reconfigurations have been provoked by the SLO violation trigerring them (and comparing these with the SLO violation creation timestamp two is not useful to gauge the suitability of selecting an SLO violation handling action)");
+                        return 0L;
+                    }
+                }else{
+                    return second_last_reconfiguration_details.getTargeted_reconfiguration_timestamp();
+                }
+            }else{
+                Logger.getGlobal().log(info_logging_level, "Setting last reconfiguration timestamp to 0 as the only reconfiguration until now has been provoked by the SLO violation trigerring it (and comparing these two is not useful to gauge the suitability of selecting an SLO violation handling action)");
+                return 0L;
+            }
+        }else{
+            return last_reconfiguration_details.getTargeted_reconfiguration_timestamp();
+        }
+    }
+
+    private Long get_last_slo_violation_timestamp() {
+        return slo_violations.get(slo_violations.size() - 1).getTime_calculated();
+    }
+
+    private ViolationHandlingActionNames decide_best_slo_violation_handling_action(double severity_value_to_process, double severity_class_threshold) {
+        double max_q_value = Double.NEGATIVE_INFINITY;
+        ViolationHandlingActionNames handling_action_name = ViolationHandlingActionNames.values()[0];
+        for (ViolationHandlingActionNames action : ViolationHandlingActionNames.values()) {
+            double q_value = associated_detector.getSubcomponent_state().getQ_table().get_entry(severity_value_to_process, severity_class_threshold, action).getQ_table_value();
+            if (q_value>max_q_value){
+                max_q_value = q_value;
+                handling_action_name = action;
+            }
+        }
+        return handling_action_name;
+    }
+
+    private boolean decide_exploration_or_exploitation(double explorationFactor) {
         Random rand = new Random();
         rand.setSeed(System.currentTimeMillis());
-        if (rand.nextDouble()<=explorationFactor){
-            return exploration;
-        }
-        return  ViolationDecisionEnum.exploitation;
+        return (rand.nextDouble()<=explorationFactor);
     }
 
     private boolean should_send_adaptation(double severity_value, double threshold){

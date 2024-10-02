@@ -106,6 +106,7 @@ public class Main {
             } //initialization
             if (operational_mode.equals(OperationalMode.DETECTOR)) {
                 if (args.length>2){
+                    Logger.getGlobal().log(info_logging_level,"Creating new SLO Violation Detector subcomponent within the main class");
                     DetectorSubcomponent detector = new DetectorSubcomponent(args[args.length - 1],detached);
                     detectors.put(args[args.length-1],detector);
                 }else{

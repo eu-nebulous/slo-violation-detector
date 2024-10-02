@@ -4,7 +4,10 @@ import org.springframework.web.bind.annotation.*;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utility_beans.broker_communication.BrokerSubscriptionDetails;
 
+import java.util.logging.Logger;
+
 import static configuration.Constants.EMPTY;
+import static configuration.Constants.info_logging_level;
 import static runtime.Main.detectors;
 import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_integer_id;
 import static slo_violation_detector_engine.detector.DetectorSubcomponent.detector_subcomponents;
@@ -16,6 +19,7 @@ public class DetectorRequestMappings {
 
     @RequestMapping("/add-new-detector/{application_name}")
     public static String start_new_detector_subcomponent(@PathVariable String application_name) {
+        Logger.getGlobal().log(info_logging_level,"Creating new SLO Violation Detector subcomponent using the Spring API");
         detectors.put(application_name,new DetectorSubcomponent(application_name,detached));
         return ("Spawned new SLO Detector subcomponent instance! Currently, there have been "+detector_integer_id+" detectors spawned");
     }

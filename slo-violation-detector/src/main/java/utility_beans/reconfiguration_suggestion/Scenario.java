@@ -43,7 +43,7 @@ public class Scenario {
         
         
         SeverityClassModel severity_class_model = new SeverityClassModel(2,true);
-        CircularFifoQueue<Long> adaptation_timestamps = new CircularFifoQueue<>();
+        CircularFifoQueue<ReconfigurationDetails> adaptation_timestamps = new CircularFifoQueue<>();
         DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name, CharacterizedThread.CharacterizedThreadRunMode.detached);
         DecisionMaker dm  = new DecisionMaker(severity_class_model,adaptation_timestamps,detector.getSubcomponent_state());
         LOGGER.log(info_logging_level, "Starting experiment");
@@ -53,16 +53,16 @@ public class Scenario {
         detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations();
         Thread.sleep(reconfiguration_period+1000);
-        
-        adaptation_timestamps.add(System.currentTimeMillis());
+
+        adaptation_timestamps.add(new ReconfigurationDetails(a,dm));
         LOGGER.log(info_logging_level,"Reconfiguration completed at "+adaptation_timestamps.get(adaptation_timestamps.size()-1));
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.9");
         SLOViolation b = new SLOViolation(0.9);
         detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations();
         Thread.sleep(reconfiguration_period+1000);
-
-        adaptation_timestamps.add(System.currentTimeMillis());
+        
+        adaptation_timestamps.add(new ReconfigurationDetails(b,dm));
         LOGGER.log(info_logging_level,"Reconfiguration completed at "+adaptation_timestamps.get(adaptation_timestamps.size()-1));
 
         //Thread.sleep(reconfiguration_period);
@@ -84,7 +84,7 @@ public class Scenario {
         SLOViolation e = new SLOViolation(0.85);
         detector.getSubcomponent_state().submitSLOViolation(a);
         
-        adaptation_timestamps.add(System.currentTimeMillis());
+        adaptation_timestamps.add(new ReconfigurationDetails(e,dm));
         LOGGER.log(info_logging_level,"Reconfiguration completed at "+adaptation_timestamps.get(adaptation_timestamps.size()-1));
 
         dm.processSLOViolations();
