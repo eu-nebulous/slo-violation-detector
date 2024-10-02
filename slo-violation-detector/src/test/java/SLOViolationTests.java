@@ -9,6 +9,7 @@ import utility_beans.broker_communication.PredictedEventPublisher;
 import utility_beans.broker_communication.RealtimeEventPublisher;
 import utility_beans.generic_component_functionality.CharacterizedThread;
 import utility_beans.reconfiguration_suggestion.DecisionMaker;
+import utility_beans.reconfiguration_suggestion.ReconfigurationDetails;
 import utility_beans.reconfiguration_suggestion.SLOViolation;
 
 import java.util.ArrayList;
@@ -22,9 +23,10 @@ public class SLOViolationTests {
     public void test_threshold_modification() throws InterruptedException {
         //The scenario method
         time_horizon_seconds = 3;
+        severity_calculation_method = "all-metrics";
         int reconfiguration_period = time_horizon_seconds*1000;
         int longer_than_reconfiguration_period = (time_horizon_seconds+1)*1000;
-        CircularFifoQueue<Long> adaptation_times = new CircularFifoQueue<>();
+        CircularFifoQueue<ReconfigurationDetails> adaptation_times = new CircularFifoQueue<>();
         DetectorSubcomponent detector = new DetectorSubcomponent(default_application_name, CharacterizedThread.CharacterizedThreadRunMode.detached);
         SeverityClassModel scm = new SeverityClassModel(2,true);
         DecisionMaker dm  = new DecisionMaker(scm,adaptation_times,detector.getSubcomponent_state());
@@ -35,14 +37,14 @@ public class SLOViolationTests {
         detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations();
         Thread.sleep(longer_than_reconfiguration_period);
-        adaptation_times.add(System.currentTimeMillis());
+        adaptation_times.add(new ReconfigurationDetails(a,dm));
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.9");
         SLOViolation b = new SLOViolation(0.9);
         detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations();
         Thread.sleep(longer_than_reconfiguration_period);
-        adaptation_times.add(System.currentTimeMillis());
+        adaptation_times.add(new ReconfigurationDetails(b,dm));
         //Thread.sleep(reconfiguration_period);
         scm.get_severity_class_status();
 
@@ -63,8 +65,7 @@ public class SLOViolationTests {
         SLOViolation e = new SLOViolation(0.8);
         detector.getSubcomponent_state().submitSLOViolation(a);
         
-        adaptation_times.add(System.currentTimeMillis());
-        
+        adaptation_times.add(new ReconfigurationDetails(e,dm));
         dm.processSLOViolations();
         Thread.sleep(reconfiguration_period);
 
@@ -97,8 +98,8 @@ public class SLOViolationTests {
         assert 0.999999999<=Double.parseDouble(class_2_info.split(",")[1]) &&
                 1.00000001>=Double.parseDouble(class_2_info.split(",")[1]);
 
-        assert 0.549999999<=Double.parseDouble(class_2_info.split(",")[2]) &&
-                0.550000001>=Double.parseDouble(class_2_info.split(",")[2]);
+        assert 0.4999999999<=Double.parseDouble(class_2_info.split(",")[2]) &&
+                0.50000001>=Double.parseDouble(class_2_info.split(",")[2]);
 
 
     }
