@@ -185,8 +185,8 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
                 DetectorSubcomponent associated_detector = get_associated_detector(application_name);
                 for (Object element : (JSONArray) metric_list_object.get("metric_list")){
                     metric_name = (String)((JSONObject)element).get("name");
-                    String lower_bound_str = (String)((JSONObject)element).get("lower_bound");
-                    String upper_bound_str = (String)((JSONObject)element).get("upper_bound");
+                    String lower_bound_str = String.valueOf(((JSONObject)element).get("lower_bound"));
+                    String upper_bound_str = String.valueOf(((JSONObject)element).get("upper_bound"));
                     NumberFormat numberFormat = NumberFormat.getInstance();
                     Number lower_bound_number, upper_bound_number;
                     boolean is_lower_bound_integer=false,is_lower_bound_double=false;
