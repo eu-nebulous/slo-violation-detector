@@ -123,7 +123,7 @@ public class DetectorSubcomponentUtilities {
 
 
     public static boolean slo_rule_arrived_has_updated_version(String rule_representation,DetectorSubcomponent detector, boolean assume_version_is_always_updated) {
-        if (assume_version_is_always_updated){ //This behaviour shortcuts this method
+        if (assume_version_is_always_updated){ //This variable can be used to shortcut this method
             return true;
         }
         //TODO: The json object version is ignored for now. However, it should not be, we should keep track separately per application
