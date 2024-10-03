@@ -66,7 +66,7 @@ public class SeverityClassModel {
         int minimum_containing_severity_class_index = 0;
         int previous_midpoint=0;
         int midpoint = maximum_containing_severity_class_index/2;
-        while (this_was_not_the_midpoint(midpoint,severity_value_searched_for) && midpoint-(severity_classes.size()-1)<=0){
+        while (midpoint-(severity_classes.size()-1)<=0 && midpoint>=0 && this_was_not_the_midpoint(midpoint,severity_value_searched_for)){
             previous_midpoint = midpoint;
             if (greater_than_midpoint(midpoint,severity_value_searched_for)>0){
                 midpoint = max(midpoint+1,midpoint+(maximum_containing_severity_class_index-midpoint)/2);

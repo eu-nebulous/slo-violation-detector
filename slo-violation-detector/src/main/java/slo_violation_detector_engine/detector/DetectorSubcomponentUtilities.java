@@ -272,7 +272,6 @@ public class DetectorSubcomponentUtilities {
 
     public static void run_slo_violation_detection_engine(DetectorSubcomponent associated_detector_subcomponent)  {
         while (true) {
-            Logger.getGlobal().log(info_logging_level,"Initializing new slo violation detection engine for "+associated_detector_subcomponent.get_name());
             synchronized (associated_detector_subcomponent.can_modify_slo_rules) {
                 while((!associated_detector_subcomponent.can_modify_slo_rules.getValue()) || (!associated_detector_subcomponent.slo_rule_arrived.get())){
                     try {
@@ -285,6 +284,7 @@ public class DetectorSubcomponentUtilities {
                 associated_detector_subcomponent.slo_rule_arrived.set(false);
                 String rule_representation = MESSAGE_CONTENTS.get_synchronized_contents(associated_detector_subcomponent.get_application_name(),slo_rules_topic);
                 if (slo_rule_arrived_has_updated_version(rule_representation,associated_detector_subcomponent,assume_slo_rule_version_is_always_updated)) {
+                    Logger.getGlobal().log(info_logging_level,"Initializing new slo violation detection engine for "+associated_detector_subcomponent.get_name());
                     if (single_slo_rule_active) {
                         associated_detector_subcomponent.getSubcomponent_state().slo_rules.clear();
                     }

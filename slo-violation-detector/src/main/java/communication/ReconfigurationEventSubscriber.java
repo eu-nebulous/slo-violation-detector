@@ -30,7 +30,7 @@ public class ReconfigurationEventSubscriber extends AbstractFullBrokerSubscriber
                 JSONObject message_object = (JSONObject) parser.parse(message);
                 application_state state_received = application_state.valueOf(message_object.get("state").toString());
                Logger.getGlobal().log(info_logging_level,"Received application state message "+ state_received+" for application "+detector.get_application_name());
-                if (state_received.equals(application_state.DEPLOYING) && current_state.equals(application_state.RUNNING)){
+                if (current_state!=null && state_received.equals(application_state.DEPLOYING) && current_state.equals(application_state.RUNNING)){
                     detector.getSubcomponent_state().setLast_optimizer_adaptation_initiation_timestamp(System.currentTimeMillis());
                     ongoing_reconfiguration=true;
                 }else if (state_received.equals(application_state.RUNNING) && ongoing_reconfiguration){
