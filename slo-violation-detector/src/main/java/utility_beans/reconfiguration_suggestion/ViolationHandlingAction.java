@@ -3,7 +3,6 @@ package utility_beans.reconfiguration_suggestion;
 
 import reinforcement_learning.QTableEntry;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
-import utilities.ViolationHandlingActionNames;
 
 import java.util.logging.Logger;
 
@@ -11,7 +10,7 @@ import static configuration.Constants.info_logging_level;
 import static configuration.Constants.time_horizon_seconds;
 
 public class ViolationHandlingAction {
-    private ViolationHandlingActionNames handling_action_name;
+    private ViolationHandlingActionName handling_action_name;
     private boolean suggested_adaptation;
     private boolean was_correct_handling_action;
     private Long handling_action_timestamp;
@@ -20,7 +19,7 @@ public class ViolationHandlingAction {
     private SLOViolation slo_violation;
     private DetectorSubcomponent associated_detector;
 
-    public ViolationHandlingAction(ViolationHandlingActionNames handling_action_name, SLOViolation slo_violation, boolean suggested_adaptation, DetectorSubcomponent detector){
+    public ViolationHandlingAction(ViolationHandlingActionName handling_action_name, SLOViolation slo_violation, boolean suggested_adaptation, DetectorSubcomponent detector){
         this.handling_action_name = handling_action_name;
         this.slo_violation = slo_violation;
         handling_action_timestamp = System.currentTimeMillis();
@@ -60,7 +59,7 @@ public class ViolationHandlingAction {
         this.suggested_adaptation = suggested_adaptation;
     }
 
-    public boolean evaluate_correctness(ViolationHandlingActionNames action_name, Long last_reconfiguration_timestamp, Long last_slo_violation_timestamp) {
+    public boolean evaluate_correctness(ViolationHandlingActionName action_name, Long last_reconfiguration_timestamp, Long last_slo_violation_timestamp) {
         
             Long current_time = System.currentTimeMillis();
             //The option below checks for the last reconfiguration. However, a reconfiguration should be mapped to this slo violation in order to have meaning (in the case that the component receiving the SLO violation blocks until the reconfiguration is complete, we can assume there is an implicit mapping). 
