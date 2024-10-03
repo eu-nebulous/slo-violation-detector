@@ -1,6 +1,6 @@
-package utilities;
+package utility_beans.reconfiguration_suggestion;
 
-public enum ViolationHandlingActionNames {
+public enum ViolationHandlingActionName {
     consult_threshold_and_change,
     consult_threshold_and_do_not_change,
     //delayed_consult_threshold_and_change,

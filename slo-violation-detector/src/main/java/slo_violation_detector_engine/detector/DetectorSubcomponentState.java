@@ -3,7 +3,7 @@ package slo_violation_detector_engine.detector;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import reinforcement_learning.QTable;
 import slo_rule_modelling.SLORule;
-import utilities.ViolationHandlingActionNames;
+import utility_beans.reconfiguration_suggestion.ViolationHandlingActionName;
 import utility_beans.monitoring.MonitoringAttributeStatistics;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
 import utility_beans.reconfiguration_suggestion.ReconfigurationDetails;
@@ -186,7 +186,7 @@ public class DetectorSubcomponentState{
     }
     
     
-    public void add_q_table_database_entry(String application_name, double severity_value, double current_threshold, ViolationHandlingActionNames action, double q_value){
+    public void add_q_table_database_entry(String application_name, double severity_value, double current_threshold, ViolationHandlingActionName action, double q_value){
         
         double quantized_severity_value = (int) Math.round(severity_value*100);
         double quantized_current_threshold = (int) Math.round(current_threshold*100);

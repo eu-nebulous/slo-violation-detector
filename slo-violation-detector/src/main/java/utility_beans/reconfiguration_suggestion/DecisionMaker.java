@@ -5,11 +5,11 @@ import reinforcement_learning.SeverityClassModel;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import slo_violation_detector_engine.detector.DetectorSubcomponentState;
-import utilities.ViolationHandlingActionNames;
 import utility_beans.generic_component_functionality.OutputFormattingPhase;
 import utility_beans.generic_component_functionality.ProcessingStatus;
 
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
@@ -34,10 +34,16 @@ public class DecisionMaker {
         this.reconfiguration_queue = reconfiguration_queue;
         this.slo_violations = detector_state.getSlo_violations();
         this.associated_detector = detector_state.getAssociated_detector();
+        associated_detector.setDm(this);
     }
-    
 
-    public ReconfigurationDetails processSLOViolations() {
+    /**
+     * This method is called by the DetectorSubcomponent to determine whether a reconfiguration is required based on the SLO violation list
+     * and the current state of the system. It will consider all slo violations that have been detected and will choose the one that is most severe to process.
+     * @param action the optional ViolationHandlingAction that is being considered to be used to process the SLO violation with the highest severity (and decide the reconfiguration details for it, and if the threshold should be changed)
+     * @return the ReconfigurationDetails object that contains the details of the most severe violation to be processed, or an empty ReconfigurationDetails object if there are no reconfigurations that need to be made
+     */
+    public ReconfigurationDetails processSLOViolations(Optional<ViolationHandlingActionName> action) {
 
         OutputFormattingPhase.phase_start("Processing slo violations", 1);
         ReconfigurationDetails reconfiguration_details = null;
@@ -86,7 +92,7 @@ public class DecisionMaker {
                 return get_details_for_noop_reconfiguration();
             }
             Logger.getGlobal().log(info_logging_level, "Processing slo violation\n\t" + slo_violation_to_process+ "\nout of\n\t"+slo_violations_descr);
-            reconfiguration_details = processSLOViolation(slo_violation_to_process,reconfiguration_queue);
+            reconfiguration_details = processSLOViolation(slo_violation_to_process,reconfiguration_queue,action);
             //slo_violations.clear();
             //slo_violations.add(slo_violation_to_process);
         }
@@ -130,7 +136,7 @@ public class DecisionMaker {
      * then adjusts the threshold accordingly.
      */
   
-    public ReconfigurationDetails processSLOViolation(SLOViolation slo_violation, CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue){
+    public ReconfigurationDetails processSLOViolation(SLOViolation slo_violation, CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue, Optional<ViolationHandlingActionName> action){
 
         boolean was_adaptation_suggested = false;
         ReconfigurationDetails reconfiguration_details;
@@ -145,35 +151,43 @@ public class DecisionMaker {
         boolean will_explore = decide_exploration_or_exploitation(q_learning_exploration_factor);
 
         //if (violation_processing_mode.equals(ViolationDecisionEnum.exploitation)){
-        ViolationHandlingActionNames handling_action_name;
+        ViolationHandlingActionName handling_action_name;
         if (!will_explore) {
             Logger.getGlobal().log(info_logging_level, "Following the exploitation path of Q-learning");
-            handling_action_name = decide_best_slo_violation_handling_action(severity_value_to_process, severity_class_threshold);
+            if (action.isPresent()){
+                handling_action_name = action.get();
+            }else{
+                handling_action_name = decide_best_slo_violation_handling_action(severity_value_to_process, severity_class_threshold);
+            }
             Logger.getGlobal().log(info_logging_level, "The best action to handle the current slo violation is "+handling_action_name);
         }else //Exploration path of q-learning 
         {
             Logger.getGlobal().log(info_logging_level, slo_violation.getId() + " - Following the exploration path of Q-learning");
-            handling_action_name = ViolationHandlingActionNames.values()[new Random().nextInt(ViolationHandlingActionNames.values().length)];
+            if (action.isPresent()){
+                handling_action_name = action.get();
+            }else{
+                handling_action_name = ViolationHandlingActionName.values()[new Random().nextInt(ViolationHandlingActionName.values().length)];
+            }
             Logger.getGlobal().log(info_logging_level, "The explored action to handle the current slo violation is "+handling_action_name);
         }
 
         if (
-                handling_action_name.equals(ViolationHandlingActionNames.send_reconfiguration_and_do_not_change) ||
-                handling_action_name.equals(ViolationHandlingActionNames.send_reconfiguration_and_change)
+                handling_action_name.equals(ViolationHandlingActionName.send_reconfiguration_and_do_not_change) ||
+                handling_action_name.equals(ViolationHandlingActionName.send_reconfiguration_and_change)
         ) {
             //need_to_evaluate_decision = handling_action_name.equals(ViolationHandlingActionNames.send_reconfiguration_and_change);
             was_adaptation_suggested = true;
         }else if (
-                handling_action_name.equals(ViolationHandlingActionNames.consult_threshold_and_do_not_change)    ||
-                handling_action_name.equals(ViolationHandlingActionNames.consult_threshold_and_change)
+                handling_action_name.equals(ViolationHandlingActionName.consult_threshold_and_do_not_change)    ||
+                handling_action_name.equals(ViolationHandlingActionName.consult_threshold_and_change)
         )
         {
             //need_to_evaluate_decision = handling_action_name.equals(ViolationHandlingActionNames.consult_threshold_and_change);
             was_adaptation_suggested = should_send_adaptation(severity_value_to_process, severity_class_threshold);
         }
         else if (
-                handling_action_name.equals(ViolationHandlingActionNames.drop_reconfiguration_and_do_not_change) ||
-                handling_action_name.equals(ViolationHandlingActionNames.drop_reconfiguration_and_change)
+                handling_action_name.equals(ViolationHandlingActionName.drop_reconfiguration_and_do_not_change) ||
+                handling_action_name.equals(ViolationHandlingActionName.drop_reconfiguration_and_change)
         ){
             //need_to_evaluate_decision = handling_action_name.equals(ViolationHandlingActionNames.drop_reconfiguration_and_change);
             was_adaptation_suggested = false;
@@ -204,9 +218,9 @@ public class DecisionMaker {
                         was_correct_decision = violation_handling_action.evaluate_correctness(handling_action_name, last_reconfiguration_timestamp, get_last_slo_violation_timestamp());
                     }
                     if (
-                        handling_action_name.equals(ViolationHandlingActionNames.consult_threshold_and_change) ||
-                        handling_action_name.equals(ViolationHandlingActionNames.drop_reconfiguration_and_change) ||
-                        handling_action_name.equals(ViolationHandlingActionNames.send_reconfiguration_and_change)
+                        handling_action_name.equals(ViolationHandlingActionName.consult_threshold_and_change) ||
+                        handling_action_name.equals(ViolationHandlingActionName.drop_reconfiguration_and_change) ||
+                        handling_action_name.equals(ViolationHandlingActionName.send_reconfiguration_and_change)
                     ) {
                         if (was_correct_decision) {
                             Logger.getGlobal().log(info_logging_level, "Made a correct violation_handling_action not to reconfigure, increasing the threshold");
@@ -271,10 +285,10 @@ public class DecisionMaker {
         return slo_violations.get(slo_violations.size() - 1).getTime_calculated();
     }
 
-    private ViolationHandlingActionNames decide_best_slo_violation_handling_action(double severity_value_to_process, double severity_class_threshold) {
+    private ViolationHandlingActionName decide_best_slo_violation_handling_action(double severity_value_to_process, double severity_class_threshold) {
         double max_q_value = Double.NEGATIVE_INFINITY;
-        ViolationHandlingActionNames handling_action_name = ViolationHandlingActionNames.values()[0];
-        for (ViolationHandlingActionNames action : ViolationHandlingActionNames.values()) {
+        ViolationHandlingActionName handling_action_name = ViolationHandlingActionName.values()[0];
+        for (ViolationHandlingActionName action : ViolationHandlingActionName.values()) {
             double q_value = associated_detector.getSubcomponent_state().getQ_table().get_entry(severity_value_to_process, severity_class_threshold, action).getQ_table_value();
             if (q_value>max_q_value){
                 max_q_value = q_value;

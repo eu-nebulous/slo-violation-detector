@@ -1,6 +1,6 @@
 package reinforcement_learning;
 
-import utilities.ViolationHandlingActionNames;
+import utility_beans.reconfiguration_suggestion.ViolationHandlingActionName;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,7 +11,7 @@ import static configuration.Constants.info_logging_level;
 import static configuration.Constants.slo_violations_database_url;
 
 public class QTable {
-    private final QTableEntry[][][] q_table = new QTableEntry[101][101][ViolationHandlingActionNames.values().length];
+    private final QTableEntry[][][] q_table = new QTableEntry[101][101][ViolationHandlingActionName.values().length];
     private long updates = 0;
     private final Connection conn;
     public QTable(Connection conn){
@@ -19,7 +19,7 @@ public class QTable {
         this.conn = conn;
         for(int i=0 ; i<101 ; i++){
             for (int j=0 ; j<101 ;j++){
-                for (int k=0 ; k<ViolationHandlingActionNames.values().length ; k++) {
+                for (int k = 0; k< ViolationHandlingActionName.values().length ; k++) {
                     q_table[i][j][k] = new QTableEntry(this);
                 }
             }
@@ -49,7 +49,7 @@ public class QTable {
                 String action = rs.getString("action");
                 double q_value = rs.getDouble("q_value");
 
-                QTableEntry current_entry = get_entry(severity_value,current_threshold, ViolationHandlingActionNames.valueOf(action));
+                QTableEntry current_entry = get_entry(severity_value,current_threshold, ViolationHandlingActionName.valueOf(action));
                 current_entry.setQ_table_value(q_value);
                 // 
                 Logger.getGlobal().log(info_logging_level,"Severity Value: " + severity_value);
@@ -79,13 +79,13 @@ public class QTable {
 
 
 
-    public QTableEntry get_entry(double severity_value, double severity_threshold, ViolationHandlingActionNames action){
+    public QTableEntry get_entry(double severity_value, double severity_threshold, ViolationHandlingActionName action){
         int quantized_severity_value  = (int) Math.round(severity_value*100);
         int quantized_current_threshold  = (int) Math.round(severity_threshold*100);
         return q_table[quantized_severity_value][quantized_current_threshold][action.ordinal()];
     }
 
-    public QTableEntry get_entry(int severity_value, int current_threshold, ViolationHandlingActionNames action){
+    public QTableEntry get_entry(int severity_value, int current_threshold, ViolationHandlingActionName action){
         return q_table[severity_value][current_threshold][action.ordinal()];
     }
     

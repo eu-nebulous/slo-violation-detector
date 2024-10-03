@@ -6,6 +6,7 @@ import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import utility_beans.generic_component_functionality.CharacterizedThread;
 import utility_beans.generic_component_functionality.CustomFormatter;
 
+import java.util.Optional;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -26,6 +27,7 @@ public class Scenario {
         //The scenario method
         time_horizon_seconds = 3;
         int reconfiguration_period = time_horizon_seconds*1000;
+        ViolationHandlingActionName handling_action_name = ViolationHandlingActionName.consult_threshold_and_change;
 
         //Initiate Logging functionality
         
@@ -51,7 +53,7 @@ public class Scenario {
         LOGGER.log(info_logging_level, "Creating an SLO Violation with a severity value of 0.8");
         SLOViolation a = new SLOViolation(0.8);
         detector.getSubcomponent_state().submitSLOViolation(a);
-        dm.processSLOViolations();
+        dm.processSLOViolations(Optional.of(handling_action_name));
         Thread.sleep(reconfiguration_period+1000);
 
         adaptation_timestamps.add(new ReconfigurationDetails(a,dm));
@@ -59,7 +61,7 @@ public class Scenario {
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.9");
         SLOViolation b = new SLOViolation(0.9);
         detector.getSubcomponent_state().submitSLOViolation(a);
-        dm.processSLOViolations();
+        dm.processSLOViolations(Optional.of(handling_action_name));
         Thread.sleep(reconfiguration_period+1000);
         
         adaptation_timestamps.add(new ReconfigurationDetails(b,dm));
@@ -78,7 +80,7 @@ public class Scenario {
         detector.getSubcomponent_state().submitSLOViolation(a);
         Thread.sleep(reconfiguration_period/3);
 
-        dm.processSLOViolations();
+        dm.processSLOViolations(Optional.of(handling_action_name));
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.85");
         SLOViolation e = new SLOViolation(0.85);
@@ -87,7 +89,7 @@ public class Scenario {
         adaptation_timestamps.add(new ReconfigurationDetails(e,dm));
         LOGGER.log(info_logging_level,"Reconfiguration completed at "+adaptation_timestamps.get(adaptation_timestamps.size()-1));
 
-        dm.processSLOViolations();
+        dm.processSLOViolations(Optional.of(handling_action_name));
         Thread.sleep(reconfiguration_period);
         //severity_class_model.get_severity_class_status();
     }

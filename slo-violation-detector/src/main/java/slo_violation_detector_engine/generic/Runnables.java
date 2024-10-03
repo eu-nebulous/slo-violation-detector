@@ -17,6 +17,7 @@ import java.time.Clock;
 import java.util.Collections;
 import java.util.Date;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -179,7 +180,7 @@ public class Runnables {
                                     }
                                     
                                     sleep(adjusted_buffer_time); //Breaking sleep into two parts (sleep_time and adjusted_buffer_time) to allow possibly other slo violations to be gathered during adjusted_buffer_time and only use the highest one. Overdoing it (having large buffer times), may result in ignoring recent realtime/predicted metric data sent during adjusted_buffer_time
-                                    ReconfigurationDetails reconfiguration_details = detector.getDm().processSLOViolations();
+                                    ReconfigurationDetails reconfiguration_details = detector.getDm().processSLOViolations(Optional.empty());
                                     if (reconfiguration_details.will_reconfigure()) {
                                         Logger.getGlobal().log(info_logging_level,"Adding violation record for violation "+current_slo_violation.getId()+" to database");
                                         detector.getSubcomponent_state().add_violation_record(detector.get_application_name(), rule.getRule_representation().toJSONString(), normalized_rule_severity, reconfiguration_details.getCurrent_slo_threshold(), targeted_prediction_time);
