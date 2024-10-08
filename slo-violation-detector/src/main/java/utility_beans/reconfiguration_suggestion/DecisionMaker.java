@@ -88,7 +88,7 @@ public class DecisionMaker {
                 }
             }
             if (slo_violation_to_process==null){
-                Logger.getGlobal().log(info_logging_level,"Possible issue as all slos seem to be processed but we have been required to process SLO Violations");
+                Logger.getGlobal().log(warning_logging_level,"Possible issue as all slos seem to be processed but we have been required to process SLO Violations");
                 return get_details_for_noop_reconfiguration();
             }
             Logger.getGlobal().log(info_logging_level, "Processing slo violation\n\t" + slo_violation_to_process+ "\nout of\n\t"+slo_violations_descr);
@@ -97,9 +97,9 @@ public class DecisionMaker {
             //slo_violations.add(slo_violation_to_process);
         }
 		if (reconfiguration_details.will_reconfigure()){
-	        Logger.getGlobal().log(info_logging_level,"The reconfiguration details which were gathered indicate that the maximum reconfiguration is the following:\n"+reconfiguration_details.toString());
+	        Logger.getGlobal().log(debug_logging_level,"The reconfiguration details which were gathered indicate that the maximum reconfiguration is the following:\n"+reconfiguration_details.toString());
 			
-	        Logger.getGlobal().log(info_logging_level,"Returning to publish the reconfiguration and save the reconfiguration action to the queue and the database");
+	        Logger.getGlobal().log(debug_logging_level,"Returning to publish the reconfiguration and save the reconfiguration action to the queue and the database");
             reconfiguration_queue.add(reconfiguration_details);
 		}
         

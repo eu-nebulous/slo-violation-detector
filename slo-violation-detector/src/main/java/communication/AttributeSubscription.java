@@ -51,10 +51,10 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                         Logger.getGlobal().log(info_logging_level,"RECEIVED message with value for "+metric+" equal to "+(((JSONObject)new JSONParser().parse(message)).get("metricValue")));
                     } catch (ParseException e) {
                         e.printStackTrace();
-                        Logger.getGlobal().log(info_logging_level,"A parsing exception was caught while parsing message: "+message);
+                        Logger.getGlobal().log(warning_logging_level,"A parsing exception was caught while parsing message: "+message);
                     } catch (Exception e){
                         e.printStackTrace();
-                        Logger.getGlobal().log(info_logging_level,"An unknown exception was caught while parsing message: "+message);
+                        Logger.getGlobal().log(warning_logging_level,"An unknown exception was caught while parsing message: "+message);
                     }
                 }
                 return message;
@@ -66,7 +66,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                         throw new InterruptedException();
                     }
                 }catch (Exception i){
-                    Logger.getGlobal().log(info_logging_level,"Possible interruption of realtime subscriber thread for "+realtime_metric_topic_name+" - if not stacktrace follows");
+                    Logger.getGlobal().log(warning_logging_level,"Possible interruption of realtime subscriber thread for "+realtime_metric_topic_name+" - if not stacktrace follows");
                     if (! (i instanceof InterruptedException)){
                         i.printStackTrace();
                     }
@@ -125,10 +125,10 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                                 }
                             }else {
                                 if (detector.getSubcomponent_state().adaptation_times.contains(targeted_prediction_time)) {
-                                    Logger.getGlobal().log(info_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + forecasted_metric_topic_name + " as it is already present");
+                                    Logger.getGlobal().log(warning_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + forecasted_metric_topic_name + " as it is already present");
                                 } else if (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(targeted_prediction_time)) {
                                     if (targeted_prediction_time * 1000 - time_horizon_seconds * 1000L - (Clock.systemUTC()).millis() <= 0) {
-                                    Logger.getGlobal().log(info_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + forecasted_metric_topic_name + " as it would expire in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()) + " milliseconds and the prediction horizon is " + time_horizon_seconds * 1000L + " milliseconds");
+                                    Logger.getGlobal().log(warning_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + forecasted_metric_topic_name + " as it would expire in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()) + " milliseconds and the prediction horizon is " + time_horizon_seconds * 1000L + " milliseconds");
                                     }else{
                                         Logger.getGlobal().log(info_logging_level,"Adding new prediction time "+targeted_prediction_time+" which expires in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()));
                                         detector.getSubcomponent_state().adaptation_times_pending_processing.add(targeted_prediction_time);
@@ -167,9 +167,9 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                 } catch (InterruptedException e) {
                     Logger.getGlobal().log(info_logging_level,"Monitoring attribute subscription thread for prediction attribute "+predicted_attribute_name+" is stopped");
                 } catch (ClassCastException | NumberFormatException n){
-                    Logger.getGlobal().log(info_logging_level,"Error while trying to parse message\n"+message);
+                    Logger.getGlobal().log(severe_logging_level,"Error while trying to parse message\n"+message);
                 } catch (Exception e){
-                    Logger.getGlobal().log(info_logging_level,"An unknown exception was caught\n"+message);
+                    Logger.getGlobal().log(severe_logging_level,"An unknown exception was caught\n"+message);
                     e.printStackTrace();
                 }
                 return message;
@@ -185,7 +185,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                         throw new InterruptedException();
                     }
                 }catch (Exception i){
-                    Logger.getGlobal().log(info_logging_level,"Possible interruption of forecasting subscriber thread for "+forecasted_metric_topic_name+" - if not stacktrace follows");
+                    Logger.getGlobal().log(warning_logging_level,"Possible interruption of forecasting subscriber thread for "+forecasted_metric_topic_name+" - if not stacktrace follows");
                     if (! (i instanceof InterruptedException)){
                         i.printStackTrace();
                     }

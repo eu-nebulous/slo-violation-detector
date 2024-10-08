@@ -50,7 +50,7 @@ public class Runnables {
                     throw new InterruptedException();
                 }
             } catch (Exception i) {
-                Logger.getGlobal().log(info_logging_level, "Possible interruption of debug data subscriber thread for " + debug_data_trigger_topic_name + " - if not stacktrace follows");
+                Logger.getGlobal().log(severe_logging_level, "Possible interruption of debug data subscriber thread for " + debug_data_trigger_topic_name + " - if not stacktrace follows");
                 if (!(i instanceof InterruptedException)) {
                     i.printStackTrace();
                 }
@@ -148,7 +148,7 @@ public class Runnables {
                                 Long adjusted_buffer_time = buffer_time;
                                 if (sleep_time <= 0) {
                                     if (sleep_time < -buffer_time) {
-                                        Logger.getGlobal().log(info_logging_level, "Prediction will not be used as targeted prediction time was " + targeted_prediction_time * 1000 + " current time is " + current_time + " and the time_horizon is " + time_horizon_seconds * 1000 + " (sleep time would be " + sleep_time + "ms )");
+                                        Logger.getGlobal().log(warning_logging_level, "Prediction will not be used as targeted prediction time was " + targeted_prediction_time * 1000 + " current time is " + current_time + " and the time_horizon is " + time_horizon_seconds * 1000 + " (sleep time would be " + sleep_time + "ms )");
                                         return; //The predictions are too near to the targeted reconfiguration time (or are even obsolete)
                                     } else {
                                         Logger.getGlobal().log(info_logging_level, "Diminishing buffer time to 0 to check prediction NOW!");
@@ -156,10 +156,10 @@ public class Runnables {
                                         sleep_time = 0L;
                                     }
                                 } else if (sleep_time > current_time + maximum_acceptable_forward_predictions * time_horizon_seconds * 1000L) {
-                                    Logger.getGlobal().log(info_logging_level, "Prediction cancelled as targeted prediction time was " + targeted_prediction_time * 1000 + " and the current time is " + current_time + ". The prediction is more than " + maximum_acceptable_forward_predictions + " time_horizon intervals into the future (the time_horizon is " + time_horizon_seconds * 1000 + " milliseconds)");
+                                    Logger.getGlobal().log(warning_logging_level, "Prediction cancelled as targeted prediction time was " + targeted_prediction_time * 1000 + " and the current time is " + current_time + ". The prediction is more than " + maximum_acceptable_forward_predictions + " time_horizon intervals into the future (the time_horizon is " + time_horizon_seconds * 1000 + " milliseconds)");
                                     return; //The predictions are too near to the targeted reconfiguration tim
                                 }
-                                Logger.getGlobal().log(info_logging_level, "Sleeping for " + sleep_time + " milliseconds");
+                                Logger.getGlobal().log(debug_logging_level, "Sleeping for " + sleep_time + " milliseconds");
 
 
                                 //double rule_severity = process_rule_value(rule, targeted_prediction_time);
@@ -224,7 +224,7 @@ public class Runnables {
                                     severity_json.put("predictionTime", targeted_prediction_time);
                                     finalPersistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()));
                                     
-                                    Logger.getGlobal().log(info_logging_level,"Adding violation record for violation "+current_slo_violation.getId()+" to database");
+                                    Logger.getGlobal().log(debug_logging_level,"Adding violation record for violation "+current_slo_violation.getId()+" to database");
                                     detector.getSubcomponent_state().add_violation_record(detector.get_application_name(), rule.getRule_representation().toJSONString(), normalized_rule_severity, reconfiguration_details.getCurrent_slo_threshold(), targeted_prediction_time);
                                     detector.getSubcomponent_state().reconfiguration_time_recording_queue.add(reconfiguration_details);
 

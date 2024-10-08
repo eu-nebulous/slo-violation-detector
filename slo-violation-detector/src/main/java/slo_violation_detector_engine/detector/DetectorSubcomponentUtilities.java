@@ -102,7 +102,7 @@ public class DetectorSubcomponentUtilities {
             Long possible_targeted_adaptation_time = possible_targeted_prediction_times.get(i);
             if (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(possible_targeted_adaptation_time)){
                 detector.getSubcomponent_state().adaptation_times.remove(possible_targeted_adaptation_time);
-                Logger.getGlobal().log(info_logging_level,"Removing targeted prediction time "+possible_targeted_adaptation_time+" as it is going to be used");
+                Logger.getGlobal().log(debug_logging_level,"Removing targeted prediction time "+possible_targeted_adaptation_time+" as it is going to be used");
                 detector.getSubcomponent_state().adaptation_times_pending_processing.add(possible_targeted_adaptation_time);
                 return possible_targeted_adaptation_time;
             }
@@ -148,10 +148,11 @@ public class DetectorSubcomponentUtilities {
         }
         if (json_object_version > detector.getCurrent_slo_rule_version()){
             Logger.getGlobal().log(info_logging_level,"An SLO with updated version ("+json_object_version+" vs older "+detector.getCurrent_slo_rule_version()+") has arrived");
+            Logger.getGlobal().log(info_logging_level,rule_representation);
             detector.setCurrent_slo_rule_version(json_object_version);
             return true;
         }else {
-            Logger.getGlobal().log(info_logging_level,"Taking no action for the received SLO message as the version number is not updated");
+            Logger.getGlobal().log(debug_logging_level,"Taking no action for the received SLO message as the version number is not updated");
             return false;
         }
     }

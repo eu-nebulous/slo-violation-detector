@@ -209,7 +209,7 @@ public class DetectorSubcomponentState{
             stmt.close();
             
             if (rowsAffected == 0) {
-                Logger.getGlobal().log(info_logging_level,"Inserting new record into the Q table.");
+                Logger.getGlobal().log(debug_logging_level,"Inserting new record into the Q table.");
                 stmt = conn.prepareStatement("" +
                         "INSERT INTO Q_TABLE (application_name,severity_value,current_threshold,action,q_value) VALUES (?,?,?,?,?)"
                 );

@@ -74,7 +74,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
                 while (did_not_finish_execution_gracefully) {
                     int exit_status = metric_list_subscriber.subscribe(metric_list_subscriber_function, EMPTY,this.stop_signal); //This subscriber should not be immune to stop signals
                     if (exit_status!=0) {
-                        Logger.getGlobal().log(info_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
+                        Logger.getGlobal().log(warning_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
                         try {
                             Thread.sleep(10000);
                         } catch (InterruptedException i) {
@@ -236,7 +236,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
             //slo_rule_arrived.set(true);
             can_modify_monitoring_metrics.notifyAll();
 
-            Logger.getGlobal().log(info_logging_level, "BrokerClientApp:  - Received text message: " + message + " at topic " + metric_list_topic);
+            Logger.getGlobal().log(debug_logging_level, "BrokerClientApp:  - Received text message: " + message + " at topic " + metric_list_topic);
 
         }
         return "Monitoring metrics message processed";
@@ -262,7 +262,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
             new_detector.slo_rule_arrived.set(true);
             new_detector.can_modify_slo_rules.notifyAll();
 
-            Logger.getGlobal().log(info_logging_level, "BrokerClientApp:  - Received text message: " + message + " at topic " + slo_rules_topic);
+            Logger.getGlobal().log(debug_logging_level, "BrokerClientApp:  - Received text message: " + message + " at topic " + slo_rules_topic);
 
         }
         return slo_rules_topic + ":MSG:" + message;
