@@ -27,7 +27,7 @@ public class SLOViolationCalculator {
 
             Logger.getGlobal().log(info_logging_level,"The all-metrics attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_greater_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_greater_than_rule() + ") is " + all_metrics_method_attribute_severity);
             if (severity_sum<0){
-                Logger.getGlobal().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
+                Logger.getGlobal().log(warning_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
             }
         }
         else if (rule_type.equals(SLOSubRule.RuleType.less_than_rule)){
@@ -36,7 +36,7 @@ public class SLOViolationCalculator {
 
             Logger.getGlobal().log(info_logging_level,"The all-metrics attribute severity for a less-than rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_less_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_less_than_rule() + ") is " + all_metrics_method_attribute_severity);
             if (severity_sum<0){
-                Logger.getGlobal().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
+                Logger.getGlobal().log(warning_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
             }
         }
         else if (rule_type.equals(SLOSubRule.RuleType.equal_rule)){
@@ -48,13 +48,13 @@ public class SLOViolationCalculator {
                 all_metrics_method_attribute_severity = Math.sqrt(less_than_severity_sum)/Math.sqrt(3);
                 Logger.getGlobal().log(info_logging_level,"The all-metrics attribute severity for an 'equals' rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_less_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_less_than_rule() + ") is " + all_metrics_method_attribute_severity);
                 if (less_than_severity_sum<0){
-                    Logger.getGlobal().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
+                    Logger.getGlobal().log(warning_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
                 }
             }else{
                 all_metrics_method_attribute_severity = Math.sqrt(greater_than_severity_sum)/Math.sqrt(3);
                 Logger.getGlobal().log(info_logging_level,"The all-metrics attribute severity for a greater-than rule related to attribute " + predictionAttribute.getName() + " based on a (roc,prconf,normalized_interval,delta) quadraplet of (" + predictionAttribute.getRate_of_change_for_greater_than_rule() + "," + predictionAttribute.getProbability_confidence()+ "," + predictionAttribute.getNormalizedConfidenceIntervalWidth()+","+predictionAttribute.getDelta_for_greater_than_rule() + ") is " + all_metrics_method_attribute_severity);
                 if (greater_than_severity_sum<0){
-                    Logger.getGlobal().log(info_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
+                    Logger.getGlobal().log(warning_logging_level,"The NaN severity value is produced due to the root of a negative severity sum");
                 }
             }
 

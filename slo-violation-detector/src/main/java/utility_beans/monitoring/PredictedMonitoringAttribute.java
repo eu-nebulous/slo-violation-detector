@@ -51,7 +51,7 @@ public class PredictedMonitoringAttribute {
         this.threshold = threshold;
         double current_value = detector.get_metric_value(name);
         if (Double.isNaN(current_value)){
-            Logger.getGlobal().log(info_logging_level,"Detected NaN value for metric "+name+". Thus we cannot compute severity although a predicted value of "+forecasted_value+" has arrived");
+            Logger.getGlobal().log(warning_logging_level,"Detected NaN value for metric "+name+". Thus we cannot compute severity although a predicted value of "+forecasted_value+" has arrived");
             this.initialized = false;
             return;
         }
@@ -168,11 +168,11 @@ public class PredictedMonitoringAttribute {
         attributes_minimum_rate_of_change.put(name,Math.max(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getLower_bound(),-roc_limit));
 
         if (Double.isNaN(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getUpper_bound())){
-            Logger.getGlobal().log(info_logging_level,"NaN value detected for maximum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
+            Logger.getGlobal().log(warning_logging_level,"NaN value detected for maximum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
         }
 
         if (Double.isNaN(detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).getLower_bound())){
-            Logger.getGlobal().log(info_logging_level,"NaN value detected for minimum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
+            Logger.getGlobal().log(warning_logging_level,"NaN value detected for minimum rate of change. The individual metric values are "+detector.getSubcomponent_state().getMonitoring_attributes_roc_statistics().get(name).toString());
         }
 
         return Math.max(Math.min(normalized_rate_of_change,100.0),-100.0);
@@ -185,7 +185,7 @@ public class PredictedMonitoringAttribute {
         double minimum_metric_value = detector.getSubcomponent_state().getMonitoring_attributes_statistics().get(name).getLower_bound();
 
         if (Double.isInfinite(this.confidence_interval_width)){
-            Logger.getGlobal().log(info_logging_level,"Since the confidence interval is deemed to be infinite, it will be set to 100 and the relevant probability confidence factor should be reduced to the lowest value");
+            Logger.getGlobal().log(warning_logging_level,"Since the confidence interval is deemed to be infinite, it will be set to 100 and the relevant probability confidence factor should be reduced to the lowest value");
             return 100;
         }
         if (isZero(maximum_metric_value-minimum_metric_value)){
@@ -195,7 +195,7 @@ public class PredictedMonitoringAttribute {
             double normalized_interval_sign = normalized_interval/Math.abs(normalized_interval);
             if (Math.abs(normalized_interval)>100){
                 normalized_interval = 100*normalized_interval_sign;
-                Logger.getGlobal().log(info_logging_level,"Due to the maximum and minimum metric values being estimated as "+maximum_metric_value+ " and "+minimum_metric_value+" respectively, and as the value of the confidence interval width is "+this.confidence_interval_width+" the absolute value of the normalized interval is limited to a value of "+normalized_interval);
+                Logger.getGlobal().log(warning_logging_level,"Due to the maximum and minimum metric values being estimated as "+maximum_metric_value+ " and "+minimum_metric_value+" respectively, and as the value of the confidence interval width is "+this.confidence_interval_width+" the absolute value of the normalized interval is limited to a value of "+normalized_interval);
             }
         }
         return normalized_interval;

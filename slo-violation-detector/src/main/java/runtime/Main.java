@@ -33,6 +33,9 @@ import static utility_beans.generic_component_functionality.CharacterizedThread.
 @SpringBootApplication
 public class Main {
     public static final Logger LOGGER = Logger.getGlobal();
+
+    Logger libLogger = Logger.getLogger("com.example.library MyClass");
+
     public static HashMap<String,DetectorSubcomponent> detectors = new HashMap<>();
     public static void main(String[] args) {
 
@@ -52,7 +55,7 @@ public class Main {
         for (int i = 0 ; i < handlers.length ; i++) {
             LOGGER.removeHandler(handlers[i]);
         }
-        Logger.getLogger("").setLevel(Level.ALL);
+        Logger.getLogger("").setLevel(INFO);
         //LOGGER.addHandler(new CustomFormatter());
         
         
@@ -120,10 +123,10 @@ public class Main {
                 Logger.getGlobal().log(INFO,"Execution completed");
             }
         }catch (IOException e){
-            Logger.getGlobal().log(info_logging_level,"Problem reading input file");
+            Logger.getGlobal().log(severe_logging_level,"Problem reading input file");
             e.printStackTrace();
         }catch (Exception e){
-            Logger.getGlobal().log(info_logging_level,"Miscellaneous issue during startup");
+            Logger.getGlobal().log(severe_logging_level,"Miscellaneous issue during startup");
             e.printStackTrace();
         }
     }

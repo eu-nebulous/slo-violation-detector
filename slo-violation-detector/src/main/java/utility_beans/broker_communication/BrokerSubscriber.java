@@ -30,7 +30,7 @@ public class BrokerSubscriber {
 
         @Override
         public void onMessage(String key, String address, Map body, Message message, Context context) {
-            Logger.getGlobal().log(INFO, "Handling message for address " + address);
+            Logger.getGlobal().log(debug_logging_level, "Handling message for address " + address);
             processing_function.apply(broker_details, JSONValue.toJSONString(body));
         }
 
@@ -154,7 +154,7 @@ public class BrokerSubscriber {
 
     public int subscribe(BiFunction function, String application_name, AtomicBoolean stop_signal) {
         int exit_status = -1;
-        Logger.getGlobal().log(INFO, "ESTABLISHING SUBSCRIPTION for " + topic);
+        Logger.getGlobal().log(debug_logging_level, "ESTABLISHING SUBSCRIPTION for " + topic);
         //First remove any leftover consumer
         if (active_consumers_per_topic_per_broker_ip.containsKey(broker_ip)) {
             active_consumers_per_topic_per_broker_ip.get(broker_ip).remove(topic);
@@ -174,7 +174,7 @@ public class BrokerSubscriber {
         active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic, new_consumer);
         add_topic_consumer_to_broker_connector(new_consumer);
 
-        Logger.getGlobal().log(INFO, "ESTABLISHED SUBSCRIPTION to topic " + topic);
+        Logger.getGlobal().log(debug_logging_level, "ESTABLISHED SUBSCRIPTION to topic " + topic);
         synchronized (stop_signal) {
             while (!stop_signal.get()) {
                 try {

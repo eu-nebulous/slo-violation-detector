@@ -6,8 +6,7 @@ import slo_violation_detector_engine.detector.DetectorSubcomponent;
 
 import java.util.logging.Logger;
 
-import static configuration.Constants.info_logging_level;
-import static configuration.Constants.time_horizon_seconds;
+import static configuration.Constants.*;
 
 public class ViolationHandlingAction {
     private ViolationHandlingActionName handling_action_name;
@@ -122,7 +121,7 @@ public class ViolationHandlingAction {
                     new_q_table_state_value
             );
 
-            Logger.getGlobal().log(info_logging_level,
+            Logger.getGlobal().log(debug_logging_level,
                     "Checking last decision...\n" +
                             "SLO Violation:\t\t\t\t\t" + slo_violation + ",\n" +
                             "Last reconfiguration timestamp:\t" + last_reconfiguration_timestamp + ",\n" +
