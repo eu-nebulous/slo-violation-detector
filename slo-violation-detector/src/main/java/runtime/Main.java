@@ -24,6 +24,7 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
 import static slo_violation_detector_engine.generic.ComponentState.*;
 import static utilities.OperationalModeUtils.getSLOViolationDetectionOperationalMode;
 import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
@@ -34,7 +35,7 @@ import static utility_beans.generic_component_functionality.CharacterizedThread.
 public class Main {
     public static final Logger LOGGER = Logger.getGlobal();
 
-    Logger libLogger = Logger.getLogger("com.example.library MyClass");
+    private static final Logger libLogger = Logger.getLogger("eu.nebulouscloud.exn.core.Manager");
 
     public static HashMap<String,DetectorSubcomponent> detectors = new HashMap<>();
     public static void main(String[] args) {
@@ -57,7 +58,7 @@ public class Main {
         }
         Logger.getLogger("").setLevel(INFO);
         //LOGGER.addHandler(new CustomFormatter());
-        
+        libLogger.setLevel(WARNING);
         
         try {
             {
