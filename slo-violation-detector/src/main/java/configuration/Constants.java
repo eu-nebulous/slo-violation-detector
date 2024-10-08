@@ -52,7 +52,7 @@ public class Constants {
     public static boolean assume_slo_rule_version_is_always_updated = false;
     public static double roc_limit = 1;
     public static double epsilon = 0.00000000001;
-    public static Level debug_logging_level = Level.OFF;
+    public static Level debug_logging_level = Level.FINE;
     public static Level info_logging_level = Level.INFO; //Default to be overriden from the configuration file
     public static Level warning_logging_level = Level.WARNING;//Default to be overriden from the configuration file
     public static Level severe_logging_level = Level.SEVERE;
