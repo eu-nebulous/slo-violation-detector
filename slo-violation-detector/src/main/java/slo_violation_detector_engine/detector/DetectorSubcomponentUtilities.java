@@ -60,7 +60,7 @@ public class DetectorSubcomponentUtilities {
     public static void initialize_slo_processing(ArrayList<SLORule> rules_list){
 
         for (SLORule rule:rules_list) {
-
+            Logger.getGlobal().log(Level.INFO,"Asking to initialize slo processing for the app "+rule.getAssociated_application_name());
             String severity_calculation_thread_name = "severity_calculation_thread_"+rule.toString();
             CharacterizedThread.create_new_thread(get_severity_calculation_runnable(rule,rule.getAssociated_detector()),severity_calculation_thread_name, true,rule.getAssociated_detector(), CharacterizedThread.CharacterizedThreadType.slo_bound_running_thread);
 

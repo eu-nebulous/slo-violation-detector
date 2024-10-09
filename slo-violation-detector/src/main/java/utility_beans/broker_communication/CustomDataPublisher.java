@@ -82,10 +82,10 @@ public class CustomDataPublisher {
         presetTexts.put("eu.nebulouscloud.monitoring.predicted.cpu_usage", "{\n" +
                 "    \"metricValue\": 92.34,\n" +
                 "    \"level\": 1,\n" +
-                "    \"timestamp\": "+(System.currentTimeMillis())+"\n" +
+                "    \"timestamp\": "+(System.currentTimeMillis()/1000)+"\n" +
                 "    \"probability\": 0.98,\n" +
                 "    \"confidence_interval\" : [8,15]\n" +
-                "    \"predictionTime\": "+(15000+System.currentTimeMillis())+"\n" +
+                "    \"predictionTime\": "+(15+System.currentTimeMillis()/1000)+"\n" +
                 "}");
         presetTexts.put("eu.nebulouscloud.monitoring.metric_list","{\n" +
                 "  \"name\": \"_Application1\",\n" +
@@ -110,6 +110,10 @@ public class CustomDataPublisher {
                 "    \"epoch_start\": 1705046500,\n" +
                 "    \"number_of_forward_predictions\": 5,\n" +
                 "    \"prediction_horizon\": 10\n" +
+                "}");
+        presetTexts.put("eu.nebulouscloud.forecasting.stop_forecasting.exponentialsmoothing","{\n" +
+                "  \"name\": \"_Application1\",\n" +
+                "  \"metrics\": [\"cpu_usage\",\"ram_usage\"]\n" +
                 "}");
         presetTexts.put(debug_data_trigger_topic_name,"{}");
         presetTexts.put("eu.nebulouscloud.monitoring.debug_dp","{}");

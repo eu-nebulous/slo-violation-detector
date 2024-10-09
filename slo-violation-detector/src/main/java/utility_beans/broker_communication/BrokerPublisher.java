@@ -58,7 +58,12 @@ public class BrokerPublisher {
 
         if (publisher_configuration_changed || hard_initialize_connector){
 //            for (String current_broker_ip : broker_and_topics_to_publish_to.keySet()){
-            Logger.getGlobal().log(Level.INFO,"Publisher configuration changed, creating new connector at  "+broker_ip+" for topic "+topic);
+            if(publisher_configuration_changed){
+                Logger.getGlobal().log(Level.INFO,"Publisher configuration changed, creating new connector at  "+broker_ip+" for topic "+topic);   
+            }else if (hard_initialize_connector){
+                                Logger.getGlobal().log(Level.INFO,"Hard initialization of the connector, creating a new connector at  "+broker_ip+" for topic "+topic);
+            }
+            
             if (active_connector!=null) {
                 active_connector.stop(new ArrayList<>(), publishers);
             }
