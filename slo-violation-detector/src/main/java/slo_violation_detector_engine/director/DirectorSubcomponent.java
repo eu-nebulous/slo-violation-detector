@@ -249,7 +249,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
         try{
             JSONObject object = (JSONObject) parser.parse(message);
             application = (String) object.get("name");
-            Logger.getGlobal().log(info_logging_level,"Parsed a new slo rule for application "+application);
+            Logger.getGlobal().log(debug_logging_level,"Received a new slo rule for application "+application);
         }catch (ParseException e) {
             Logger.getGlobal().log(severe_logging_level,"Could not understand the slo rule which was received, skipping...");
             return EMPTY;

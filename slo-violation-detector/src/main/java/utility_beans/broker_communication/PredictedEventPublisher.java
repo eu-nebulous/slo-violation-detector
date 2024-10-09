@@ -11,10 +11,10 @@ public class PredictedEventPublisher extends SingleEventPublisher {
         payload = "{\n" +
                 "    \"metricValue\": "+value+",\n" +
                 "    \"level\": 1,\n" +
-                "    \"timestamp\": " + (System.currentTimeMillis()) + "\n" +
+                "    \"timestamp\": " + (System.currentTimeMillis()/1000) + "\n" +
                 "    \"probability\": 0.98,\n" +
                 "    \"confidence_interval\" : [8,15]\n" +
-                "    \"predictionTime\": " + (15000 + System.currentTimeMillis()) + "\n" +
+                "    \"predictionTime\": " + (15 + System.currentTimeMillis()/1000) + "\n" +
                 "}";
         super.topic = topic;
         publisher = new CustomDataPublisher(topic.toString(), broker_ip.toString(), Integer.parseInt(broker_port), "admin", "admin", "", "predicted_event_test_publisher");

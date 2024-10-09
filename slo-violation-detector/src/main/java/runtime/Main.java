@@ -8,23 +8,22 @@
 
 package runtime;
 
+import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import slo_violation_detector_engine.detector.DetectorSubcomponent;
 import slo_violation_detector_engine.director.DirectorSubcomponent;
+import utility_beans.generic_component_functionality.CustomFormatter;
 import utility_beans.generic_component_functionality.OperationalMode;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 import static configuration.Constants.*;
 
-import static java.util.logging.Level.INFO;
-import static java.util.logging.Level.WARNING;
+import static java.util.logging.Level.*;
 import static slo_violation_detector_engine.generic.ComponentState.*;
 import static utilities.OperationalModeUtils.getSLOViolationDetectionOperationalMode;
 import static slo_violation_detector_engine.generic.SLOViolationDetectorStateUtils.*;
@@ -35,7 +34,7 @@ import static utility_beans.generic_component_functionality.CharacterizedThread.
 public class Main {
     public static final Logger LOGGER = Logger.getGlobal();
 
-    private static final Logger libLogger = Logger.getLogger("eu.nebulouscloud.exn.core.Manager");
+    private static Logger libLogger;
 
     public static HashMap<String,DetectorSubcomponent> detectors = new HashMap<>();
     public static void main(String[] args) {
@@ -58,7 +57,7 @@ public class Main {
         }
         Logger.getLogger("").setLevel(INFO);
         //LOGGER.addHandler(new CustomFormatter());
-        libLogger.setLevel(WARNING);
+        //libLogger.setLevel(WARNING);
         
         try {
             {

@@ -76,14 +76,16 @@ public class Runnables {
     public static Runnable get_severity_calculation_runnable(SLORule rule, DetectorSubcomponent detector) {
 
         Runnable severity_calculation_runnable = () -> {
+            Logger.getGlobal().log(info_logging_level,"Will now attempt to get the BrokerPublisher connector for application "+detector.get_application_name());
             BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip,broker_port,broker_username,broker_password, amq_library_configuration_location);
 
             int attempts = 1;
             while (persistent_publisher.is_publisher_null()){
                 if (attempts<=2) {
+                    Logger.getGlobal().log(info_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
                     persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
                 }else{
-                    Logger.getGlobal().log(Level.WARNING,"Will now attempt to reset the BrokerPublisher connector");
+                    Logger.getGlobal().log(info_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
                     persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location,true);
                 }
                 try {
