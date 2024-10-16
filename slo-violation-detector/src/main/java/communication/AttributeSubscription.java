@@ -102,7 +102,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                         confidence_interval = Double.NEGATIVE_INFINITY;
                     }
                     long timestamp = ((Number)json_message.get("timestamp")).longValue();
-                    long targeted_prediction_time = ((Number)json_message.get("predictionTime")).longValue()*1000; //Convert to millisecond accuracy
+                    long targeted_prediction_time = ((Number)json_message.get("predictionTime")).longValue(); //Convert to millisecond accuracy
                     Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
 
 
@@ -116,7 +116,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                                 }
                             }
                             detector.ADAPTATION_TIMES_MODIFY.setValue(false);
-                            if (!detector.getSubcomponent_state().adaptation_times.contains(targeted_prediction_time) && (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(targeted_prediction_time)) && ((targeted_prediction_time * 1000 - time_horizon_seconds * 1000L) > (Clock.systemUTC()).millis())) {
+                            if (!detector.getSubcomponent_state().adaptation_times.contains(targeted_prediction_time) && (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(targeted_prediction_time)) && ((targeted_prediction_time - time_horizon_seconds * 1000L) > (Clock.systemUTC()).millis())) {
                                 Logger.getGlobal().log(info_logging_level, "Adding a new targeted prediction time " + targeted_prediction_time + " expiring in "+(targeted_prediction_time*1000-System.currentTimeMillis())+"msec, from topic "+forecasted_metric_topic_name);
                                 detector.getSubcomponent_state().adaptation_times.add(targeted_prediction_time);
                                 synchronized (detector.PREDICTION_EXISTS) {
@@ -127,10 +127,10 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                                 if (detector.getSubcomponent_state().adaptation_times.contains(targeted_prediction_time)) {
                                     Logger.getGlobal().log(warning_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + forecasted_metric_topic_name + " as it is already present");
                                 } else if (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(targeted_prediction_time)) {
-                                    if (targeted_prediction_time * 1000 - time_horizon_seconds * 1000L - (Clock.systemUTC()).millis() <= 0) {
-                                    Logger.getGlobal().log(warning_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + forecasted_metric_topic_name + " as it would expire in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()) + " milliseconds and the prediction horizon is " + time_horizon_seconds * 1000L + " milliseconds");
+                                    if (targeted_prediction_time - time_horizon_seconds * 1000L - (Clock.systemUTC()).millis() <= 0) {
+                                    Logger.getGlobal().log(warning_logging_level, "Could not add the new targeted prediction time " + targeted_prediction_time + " from topic " + forecasted_metric_topic_name + " as it would expire in " + (targeted_prediction_time - System.currentTimeMillis()) + " milliseconds and the prediction horizon is " + time_horizon_seconds * 1000L + " milliseconds");
                                     }else{
-                                        Logger.getGlobal().log(info_logging_level,"Adding new prediction time "+targeted_prediction_time+" which expires in " + (targeted_prediction_time * 1000 - System.currentTimeMillis()));
+                                        Logger.getGlobal().log(info_logging_level,"Adding new prediction time "+targeted_prediction_time+" which expires in " + (targeted_prediction_time - System.currentTimeMillis())+" milliseconds");
                                         detector.getSubcomponent_state().adaptation_times_pending_processing.add(targeted_prediction_time);
                                     }
                                 }

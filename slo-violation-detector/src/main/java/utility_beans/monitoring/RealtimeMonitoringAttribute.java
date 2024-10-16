@@ -149,4 +149,8 @@ public class RealtimeMonitoringAttribute {
     public AttributeValuesType getType(){
         return type;
     }
+    
+    public void add_metric_value(Number value) {
+        actual_metric_values.add(value);
+    }
 }

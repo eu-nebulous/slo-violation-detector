@@ -81,7 +81,7 @@ public class BrokerPublisher {
             }
             //CustomConnectorHandler custom_handler = new CustomConnectorHandler();
 
-            active_connector = new ExtendedConnector("resource_manager"
+            active_connector = new ExtendedConnector("anyapplication","resource_manager"
                     , new CustomConnectorHandler() {}
                     , publishers
                     , List.of(),

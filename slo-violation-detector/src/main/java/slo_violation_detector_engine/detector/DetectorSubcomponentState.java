@@ -3,6 +3,7 @@ package slo_violation_detector_engine.detector;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import reinforcement_learning.QTable;
 import slo_rule_modelling.SLORule;
+import utility_beans.reconfiguration_suggestion.SLODeterminationMethod;
 import utility_beans.reconfiguration_suggestion.ViolationHandlingActionName;
 import utility_beans.monitoring.MonitoringAttributeStatistics;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
@@ -266,7 +267,16 @@ public class DetectorSubcomponentState{
 
     public void setLast_optimizer_adaptation_initiation_timestamp(long last_optimizer_adaptation_initiation_timestamp) {
         this.last_optimizer_adaptation_initiation_timestamp = last_optimizer_adaptation_initiation_timestamp;
-        this.last_slo_violation_triggering_optimizer = slo_violations.get((slo_violations.size()-1));
+        if (slo_violations.size()>1) {
+            this.last_slo_violation_triggering_optimizer = slo_violations.get((slo_violations.size() - 1));
+        }else{
+            this.last_slo_violation_triggering_optimizer = get_initial_deploymentSLOViolation();
+        }
+    }
+
+    private SLOViolation get_initial_deploymentSLOViolation() {
+        SLOViolation initial_deployment_slo_violation = new SLOViolation(0.0,0.0,0L,0L, SLODeterminationMethod.all_metrics,new HashMap<>());
+        return initial_deployment_slo_violation;
     }
 
     public SLOViolation getLast_slo_violation_triggering_optimizer() {

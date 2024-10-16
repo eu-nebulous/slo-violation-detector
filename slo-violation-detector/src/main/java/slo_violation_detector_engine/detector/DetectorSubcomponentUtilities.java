@@ -147,7 +147,7 @@ public class DetectorSubcomponentUtilities {
             return false;
         }
         if (json_object_version > detector.getCurrent_slo_rule_version()){
-            Logger.getGlobal().log(info_logging_level,"An SLO with updated version ("+json_object_version+" vs older "+detector.getCurrent_slo_rule_version()+") has arrived");
+            Logger.getGlobal().log(info_logging_level,"An SLO with updated version ("+json_object_version+" vs older "+detector.getCurrent_slo_rule_version()+") has arrived for app "+detector.get_application_name());
             Logger.getGlobal().log(info_logging_level,rule_representation);
             detector.setCurrent_slo_rule_version(json_object_version);
             return true;
@@ -273,6 +273,7 @@ public class DetectorSubcomponentUtilities {
 
     public static void run_slo_violation_detection_engine(DetectorSubcomponent associated_detector_subcomponent)  {
         while (true) {
+            boolean slo_rule_updated = false;
             synchronized (associated_detector_subcomponent.can_modify_slo_rules) {
                 while((!associated_detector_subcomponent.can_modify_slo_rules.getValue()) || (!associated_detector_subcomponent.slo_rule_arrived.get())){
                     try {
@@ -285,6 +286,7 @@ public class DetectorSubcomponentUtilities {
                 associated_detector_subcomponent.slo_rule_arrived.set(false);
                 String rule_representation = MESSAGE_CONTENTS.get_synchronized_contents(associated_detector_subcomponent.get_application_name(),slo_rules_topic);
                 if (slo_rule_arrived_has_updated_version(rule_representation,associated_detector_subcomponent,assume_slo_rule_version_is_always_updated)) {
+                    slo_rule_updated=true;
                     Logger.getGlobal().log(info_logging_level,"Initializing new slo violation detection engine for "+associated_detector_subcomponent.get_name());
                     if (single_slo_rule_active) {
                         associated_detector_subcomponent.getSubcomponent_state().slo_rules.clear();
@@ -298,10 +300,14 @@ public class DetectorSubcomponentUtilities {
                     associated_detector_subcomponent.can_modify_slo_rules.setValue(true);
                     associated_detector_subcomponent.can_modify_slo_rules.notifyAll();
                 }else{
+                    slo_rule_updated = false;
                     associated_detector_subcomponent.can_modify_slo_rules.setValue(true);
                     associated_detector_subcomponent.can_modify_slo_rules.notifyAll();
                     continue;
                 }
+            }
+            if (!slo_rule_updated) {
+                Logger.getGlobal().log(severe_logging_level,"STOPPING THREADS UNNECESSARILY");
             }
             stop_all_running_threads(associated_detector_subcomponent);
             Logger.getGlobal().log(info_logging_level,"Initializing debug instance for detector component "+associated_detector_subcomponent.get_name());
