@@ -102,7 +102,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                         confidence_interval = Double.NEGATIVE_INFINITY;
                     }
                     long timestamp = ((Number)json_message.get("timestamp")).longValue();
-                    long targeted_prediction_time = ((Number)json_message.get("predictionTime")).longValue(); //Convert to millisecond accuracy
+                    long targeted_prediction_time = 1000*((Number)json_message.get("predictionTime")).longValue(); //Convert to millisecond accuracy
                     Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
 
 
