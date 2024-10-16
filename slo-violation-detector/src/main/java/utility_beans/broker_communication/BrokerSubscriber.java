@@ -125,7 +125,7 @@ public class BrokerSubscriber {
         } else {
             ArrayList<Consumer> consumers = new ArrayList<>();
             consumers.add(new_consumer);
-            ExtendedConnector extended_connector = new ExtendedConnector("resource_manager",
+            ExtendedConnector extended_connector = new ExtendedConnector("anyapplication","resource_manager",
                     new CustomConnectorHandler() {
                     },
                     List.of(),

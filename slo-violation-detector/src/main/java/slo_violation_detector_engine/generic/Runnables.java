@@ -82,10 +82,10 @@ public class Runnables {
             int attempts = 1;
             while (persistent_publisher.is_publisher_null()){
                 if (attempts<=2) {
-                    Logger.getGlobal().log(info_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
+                    Logger.getGlobal().log(warning_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
                     persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
                 }else{
-                    Logger.getGlobal().log(info_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
+                    Logger.getGlobal().log(warning_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
                     persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location,true);
                 }
                 try {
@@ -146,11 +146,11 @@ public class Runnables {
                                     detector.PREDICTION_EXISTS.setValue(detector.getSubcomponent_state().adaptation_times.size() > 0);
                                 }
 
-                                Long sleep_time = targeted_prediction_time * 1000 - buffer_time - time_horizon_seconds * 1000L - current_time;
+                                Long sleep_time = targeted_prediction_time - buffer_time - time_horizon_seconds * 1000L - current_time;
                                 Long adjusted_buffer_time = buffer_time;
                                 if (sleep_time <= 0) {
                                     if (sleep_time < -buffer_time) {
-                                        Logger.getGlobal().log(warning_logging_level, "Prediction will not be used as targeted prediction time was " + targeted_prediction_time * 1000 + " current time is " + current_time + " and the time_horizon is " + time_horizon_seconds * 1000 + " (sleep time would be " + sleep_time + "ms )");
+                                        Logger.getGlobal().log(warning_logging_level, "Prediction will not be used as targeted prediction time was " + targeted_prediction_time + " current time is " + current_time + " and the time_horizon is " + time_horizon_seconds * 1000 + " (sleep time would be " + sleep_time + "ms )");
                                         return; //The predictions are too near to the targeted reconfiguration time (or are even obsolete)
                                     } else {
                                         Logger.getGlobal().log(info_logging_level, "Diminishing buffer time to 0 to check prediction NOW!");
@@ -158,7 +158,7 @@ public class Runnables {
                                         sleep_time = 0L;
                                     }
                                 } else if (sleep_time > current_time + maximum_acceptable_forward_predictions * time_horizon_seconds * 1000L) {
-                                    Logger.getGlobal().log(warning_logging_level, "Prediction cancelled as targeted prediction time was " + targeted_prediction_time * 1000 + " and the current time is " + current_time + ". The prediction is more than " + maximum_acceptable_forward_predictions + " time_horizon intervals into the future (the time_horizon is " + time_horizon_seconds * 1000 + " milliseconds)");
+                                    Logger.getGlobal().log(warning_logging_level, "Prediction cancelled as targeted prediction time was " + targeted_prediction_time + " and the current time is " + current_time + ". The prediction is more than " + maximum_acceptable_forward_predictions + " time_horizon intervals into the future (the time_horizon is " + time_horizon_seconds * 1000 + " milliseconds)");
                                     return; //The predictions are too near to the targeted reconfiguration tim
                                 }
                                 Logger.getGlobal().log(debug_logging_level, "Sleeping for " + sleep_time + " milliseconds");
@@ -196,7 +196,7 @@ public class Runnables {
                                     normalized_rule_severity = rule_severity / 100;
                                     slo_violation_probability = determine_slo_violation_probability(rule_severity);
                                     current_slo_violation = new SLOViolation(normalized_rule_severity);
-                                    Logger.getGlobal().log(info_logging_level, "The overall " + severity_calculation_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time * 1000)).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand");
+                                    Logger.getGlobal().log(info_logging_level, "The overall " + severity_calculation_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time )).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand");
                                     Logger.getGlobal().log(info_logging_level, "The probability of an SLO violation is " + ((int) (slo_violation_probability * 100)) + "%" + (slo_violation_probability < slo_violation_probability_threshold ? " so it will not be published" : " and it will be published"));
 
                                     

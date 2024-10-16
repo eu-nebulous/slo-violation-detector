@@ -85,7 +85,7 @@ public class CustomDataSubscriber {
     }
     public CustomDataSubscriber(String broker_topic, String broker_ip, int broker_port, String brokerUsername, String brokerPassword, String amqLibraryConfigurationLocation, String subscriber_key, String application_name) {
 
-        private_connector = new ExtendedConnector("slovid",
+        private_connector = new ExtendedConnector("anyapplication","slovid",
                 new SimpleConnectorHandler(broker_ip, broker_topic, application_name),
                 List.of()
                 , List.of(),
@@ -255,7 +255,7 @@ public class CustomDataSubscriber {
                 if (!subscriber_application.get().isEmpty()) {
                     Logger.getGlobal().log(info_logging_level, "Starting the connector for the consumption of messages with " + subscriber_key + " at " + broker_topic.get() + " for application " + subscriber_application.get());
                     consumer_has_started.set(true);
-                    private_connector = new ExtendedConnector("slovid",
+                    private_connector = new ExtendedConnector(subscriber_application.get(),"slovid",
                             new CustomConnectorHandler() {
                                 private Consumer current_consumer = null;
                                 AtomicBoolean consumer_has_started = new AtomicBoolean(false);
@@ -302,7 +302,7 @@ public class CustomDataSubscriber {
                     if (!subscriber_application.get().isEmpty()) {
                         Logger.getGlobal().log(info_logging_level, "Starting the connector for the consumption of messages with " + subscriber_key + " at " + broker_topic.get() + " for application "+subscriber_application.get());
                         consumer_has_started.set(true);
-                        private_connector = new ExtendedConnector("slovid",
+                        private_connector = new ExtendedConnector(subscriber_application.get(),"slovid",
                                 new CustomConnectorHandler() {
                                     private Consumer current_consumer = null;
                                     AtomicBoolean consumer_has_started = new AtomicBoolean(false);
@@ -348,7 +348,7 @@ public class CustomDataSubscriber {
                     }else{
                         Logger.getGlobal().log(info_logging_level, "Starting the connector for the consumption of messages with " + subscriber_key + " at " + broker_topic.get() + " for all applications");
                         consumer_has_started.set(true);
-                        private_connector = new ExtendedConnector("slovid",
+                        private_connector = new ExtendedConnector(subscriber_application.get(),"slovid",
                                 new CustomConnectorHandler() {
                                     private Consumer current_consumer = null;
                                     AtomicBoolean consumer_has_started = new AtomicBoolean(false);
