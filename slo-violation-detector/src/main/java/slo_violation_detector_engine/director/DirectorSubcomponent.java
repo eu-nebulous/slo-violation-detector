@@ -115,7 +115,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
             BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location,EMPTY);
             BiFunction<BrokerSubscriptionDetails, String, String> device_lost_subscriber_function = (broker_details, message) -> {
-                BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location, true);
+                BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
 
                 Clock clock = Clock.systemUTC();
                 Long current_time_seconds = (long) Math.floor(clock.millis()/1000.0);

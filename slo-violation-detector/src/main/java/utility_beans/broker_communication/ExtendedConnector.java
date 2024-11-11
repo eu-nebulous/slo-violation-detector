@@ -23,7 +23,7 @@ public class ExtendedConnector extends Connector {
     private Thread health_thread;
 
     private Connector connector;
-    public ExtendedConnector(String application_name, String component, ConnectorHandler handler, List<Publisher> publishers, List<Consumer> consumers, boolean enableState, boolean enableHealth, ExnConfig configuration) {
+    public ExtendedConnector(String component, ConnectorHandler handler, List<Publisher> publishers, List<Consumer> consumers, boolean enableState, boolean enableHealth, ExnConfig configuration) {
         super(component, handler, publishers, consumers, enableState, enableHealth, configuration);
         this.handler =(CustomConnectorHandler) handler;
         this.application_name = application_name;
@@ -114,7 +114,17 @@ public class ExtendedConnector extends Connector {
             stop_publishers(publishers);
         }
         health_thread.interrupt();
+        Context context = ((CustomConnectorHandler)handler).getContext();
+        try {
+            context.stop();
+            this.stop();
+            Logger.getAnonymousLogger().log(Level.INFO,"Successfully stopped the ExtendedConnector");
+        }catch (Exception e){
+            Logger.getAnonymousLogger().log(Level.WARNING,"There was an issue while trying to stop an ExtendedConnector");
+        }
     }
+
+
     public void stop_consumers(ArrayList<Consumer> consumers){
         for (Consumer consumer : consumers){
             remove_consumer_with_key(consumer.key());

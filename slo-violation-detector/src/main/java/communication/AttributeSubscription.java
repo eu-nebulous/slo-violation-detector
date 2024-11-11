@@ -117,7 +117,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                             }
                             detector.ADAPTATION_TIMES_MODIFY.setValue(false);
                             if (!detector.getSubcomponent_state().adaptation_times.contains(targeted_prediction_time) && (!detector.getSubcomponent_state().adaptation_times_pending_processing.contains(targeted_prediction_time)) && ((targeted_prediction_time - time_horizon_seconds * 1000L) > (Clock.systemUTC()).millis())) {
-                                Logger.getGlobal().log(info_logging_level, "Adding a new targeted prediction time " + targeted_prediction_time + " expiring in "+(targeted_prediction_time*1000-System.currentTimeMillis())+"msec, from topic "+forecasted_metric_topic_name);
+                                Logger.getGlobal().log(info_logging_level, "Adding a new targeted prediction time " + targeted_prediction_time + " expiring in "+(targeted_prediction_time-System.currentTimeMillis())+"msec, from topic "+forecasted_metric_topic_name);
                                 detector.getSubcomponent_state().adaptation_times.add(targeted_prediction_time);
                                 synchronized (detector.PREDICTION_EXISTS) {
                                     detector.PREDICTION_EXISTS.setValue(true);

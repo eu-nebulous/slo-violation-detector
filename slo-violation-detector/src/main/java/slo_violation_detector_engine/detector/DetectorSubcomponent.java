@@ -19,8 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static slo_violation_detector_engine.generic.ComponentState.prop;
-import static slo_violation_detector_engine.generic.ComponentState.unbounded_metric_strings;
+import static slo_violation_detector_engine.generic.ComponentState.*;
 import static utility_beans.generic_component_functionality.CharacterizedThread.CharacterizedThreadRunMode.attached;
 import static utility_beans.monitoring.RealtimeMonitoringAttribute.aggregate_metric_values;
 
@@ -147,7 +146,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     }
 
     public BrokerSubscriptionDetails getBrokerSubscriptionDetails(String topic) {
-        return new BrokerSubscriptionDetails(broker_ip,broker_username,broker_password,handled_application_name,topic);
+        return new BrokerSubscriptionDetails(broker_ip,broker_port,broker_username,broker_password,handled_application_name,topic);
     }
 
     public double get_metric_value(String metric_name){

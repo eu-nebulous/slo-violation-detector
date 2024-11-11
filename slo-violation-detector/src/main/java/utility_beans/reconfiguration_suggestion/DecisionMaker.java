@@ -142,6 +142,9 @@ public class DecisionMaker {
         ReconfigurationDetails reconfiguration_details;
         
         double severity_value_to_process = slo_violation.getSeverity_value();
+        if (severity_value_to_process < 0) {
+            Logger.getGlobal().log(severe_logging_level,"The severity value is negative ("+slo_violation.getSeverity_value()+"), this slo violation should not have been processed");
+        }
         SeverityClass severity_class = severity_class_model.get_severity_class(severity_value_to_process);
         double severity_class_threshold = severity_class.getAdaptation_threshold().getValue();
 //        if (! (severity_value_to_process > severity_class_threshold)){

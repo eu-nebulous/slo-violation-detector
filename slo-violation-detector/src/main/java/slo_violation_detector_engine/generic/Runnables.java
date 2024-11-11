@@ -86,7 +86,7 @@ public class Runnables {
                     persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
                 }else{
                     Logger.getGlobal().log(warning_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
-                    persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location,true);
+                    persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
                 }
                 try {
                     Thread.sleep(3000);
@@ -179,11 +179,15 @@ public class Runnables {
                                     current_slo_violation = new SLOViolation(normalized_rule_severity);
                                     CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue = detector.getSubcomponent_state().getReconfiguration_time_recording_queue();
                                     if (detector.getDm()!=null){
-                                        detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
+                                        if (current_slo_violation.getSeverity_value()>0) {
+                                            detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
+                                        }
                                     }else {
                                         SeverityClassModel scm = new SeverityClassModel(number_of_severity_classes, true);
                                         detector.setDm(new DecisionMaker(scm, reconfiguration_queue,detector.getSubcomponent_state()));
-                                        detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
+                                        if (current_slo_violation.getSeverity_value()>0) {
+                                            detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
+                                        }
                                     }
                                     
                                     sleep(adjusted_buffer_time); //Breaking sleep into two parts (sleep_time and adjusted_buffer_time) to allow possibly other slo violations to be gathered during adjusted_buffer_time and only use the highest one. Overdoing it (having large buffer times), may result in ignoring recent realtime/predicted metric data sent during adjusted_buffer_time
