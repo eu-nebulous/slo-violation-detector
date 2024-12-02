@@ -37,7 +37,7 @@ public class DirectorRequestMappings {
         } catch (ParseException e) {
             return "Error in parsing the input string, the exception message follows:\n"+e;
         }*/
-        BrokerSubscriptionDetails broker_details = new BrokerSubscriptionDetails(broker_ip,broker_username,broker_password,EMPTY,slo_rules_topic);
+        BrokerSubscriptionDetails broker_details = new BrokerSubscriptionDetails(broker_ip,broker_port,broker_username,broker_password,EMPTY,slo_rules_topic);
         DirectorSubcomponent.slo_rule_topic_subscriber_function.apply(broker_details,string_rule_representation);
         return ("New application was spawned");
     }

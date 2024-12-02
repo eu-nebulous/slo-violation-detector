@@ -3,6 +3,8 @@ package slo_violation_detector_engine.detector;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import slo_violation_detector_engine.generic.Runnables;
 import slo_violation_detector_engine.generic.SLOViolationDetectorSubcomponent;
+import slo_violation_detector_engine.generic.StoppableRunnable;
+import utility_beans.broker_communication.BrokerSubscriber;
 import utility_beans.broker_communication.BrokerSubscriptionDetails;
 import utility_beans.generic_component_functionality.CharacterizedThread;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
@@ -12,15 +14,16 @@ import utility_beans.synchronization.SynchronizedBooleanMap;
 import utility_beans.synchronization.SynchronizedInteger;
 
 
-import java.sql.SQLException;import java.util.Collections;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static slo_violation_detector_engine.generic.ComponentState.prop;
-import static slo_violation_detector_engine.generic.ComponentState.unbounded_metric_strings;
+import static slo_violation_detector_engine.generic.ComponentState.*;
 import static utility_beans.generic_component_functionality.CharacterizedThread.CharacterizedThreadRunMode.attached;
 import static utility_beans.monitoring.RealtimeMonitoringAttribute.aggregate_metric_values;
 
@@ -30,6 +33,8 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     private Double current_slo_rule_version = -1.0;
     public static Map<String,DetectorSubcomponent> detector_subcomponents = Collections.synchronizedMap(new HashMap<>()); //A HashMap containing all detector subcomponents
     private DetectorSubcomponentState subcomponent_state;
+    private ArrayList<BrokerSubscriber> broker_subscribers = new ArrayList<>();
+    private ArrayList<StoppableRunnable> runnables_to_stop = new ArrayList<>();
     private DecisionMaker slo_improvement_decision_maker;
     public final AtomicBoolean stop_signal = new AtomicBoolean(false);
     public final SynchronizedBoolean can_modify_slo_rules = new SynchronizedBoolean(false);
@@ -80,6 +85,19 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
         detector_subcomponents.put(application_name,this);
     }
 
+    public void stop(){
+        Logger.getGlobal().log(info_logging_level, "Just issued a stop command to the "+detector_name+" detector");
+        for (BrokerSubscriber subscriber : broker_subscribers){
+            subscriber.stop();
+        }
+        
+        for (StoppableRunnable runnable : runnables_to_stop){
+            runnable.stop();
+        }
+
+       
+    }
+    
     public void update_monitoring_attribute_value(String name,Number value){
         if(getSubcomponent_state().getMonitoring_attributes().get(name)==null){
 
@@ -121,10 +139,6 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
         return "Currently, the number of active detectors are "+detector_integer_id;
     }
 
-    public AtomicBoolean getStop_signal() {
-        return stop_signal;
-    }
-
     public DetectorSubcomponentState getSubcomponent_state() {
         return subcomponent_state;
     }
@@ -147,7 +161,7 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
     }
 
     public BrokerSubscriptionDetails getBrokerSubscriptionDetails(String topic) {
-        return new BrokerSubscriptionDetails(broker_ip,broker_username,broker_password,handled_application_name,topic);
+        return new BrokerSubscriptionDetails(broker_ip,broker_port,broker_username,broker_password,handled_application_name,topic);
     }
 
     public double get_metric_value(String metric_name){
@@ -190,5 +204,13 @@ public class DetectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
     public void setCurrent_slo_rule_version(Double current_slo_rule_version) {
         this.current_slo_rule_version = current_slo_rule_version;
+    }
+
+    public ArrayList<BrokerSubscriber> getBroker_subscribers() {
+        return broker_subscribers;
+    }
+
+    public ArrayList<StoppableRunnable> getRunnables_to_stop() {
+        return runnables_to_stop;
     }
 }

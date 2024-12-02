@@ -23,7 +23,7 @@ public class ReconfigurationEventSubscriber extends AbstractFullBrokerSubscriber
     public ReconfigurationEventSubscriber(String broker_ip_address, int broker_port, String broker_username, String broker_password, DetectorSubcomponent detector) {
         
         BrokerSubscriber subscriber = new BrokerSubscriber(reconfiguration_events_topic, broker_ip_address,broker_port,broker_username,broker_password, amq_library_configuration_location, detector.get_application_name());
-        
+        detector.getBroker_subscribers().add(subscriber);
         BiFunction<BrokerSubscriptionDetails,String,String> function = (broker_details, message) ->{
             JSONParser parser = new JSONParser();
             try {
@@ -51,9 +51,9 @@ public class ReconfigurationEventSubscriber extends AbstractFullBrokerSubscriber
         };
         Runnable reconfiguration_topic_runnable = () -> {
             try {
-                subscriber.subscribe(function, detector.get_application_name(), detector.stop_signal);
+                subscriber.subscribe(function, detector.get_application_name());
             } catch (Exception e) {
-                
+                e.printStackTrace();
             }finally{
                 Logger.getGlobal().log(info_logging_level,"Removing reconfiguration topic subscription thread for "+reconfiguration_events_topic);
                 detector.getSubcomponent_state().slo_bound_running_threads.remove("reconfiguration_topic_" + reconfiguration_events_topic);

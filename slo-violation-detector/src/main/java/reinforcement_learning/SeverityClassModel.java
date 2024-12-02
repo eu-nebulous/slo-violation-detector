@@ -5,8 +5,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
-import static configuration.Constants.info_logging_level;
-import static configuration.Constants.warning_logging_level;
+import static configuration.Constants.*;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static utility_beans.generic_component_functionality.OutputFormattingPhase.phase_end;
@@ -100,7 +99,13 @@ public class SeverityClassModel {
      * @return A boolean value indicating whether the midpoint value does not indicate the severity class enclosing the severity value or it does.
      */
     private boolean this_was_not_the_midpoint(int midpoint, double severity_value) {
-        return (severity_value < severity_classes.get(midpoint).getMinimum_severity_value()) || (severity_value >= severity_classes.get(midpoint).getMaximum_severity_value()); //This was the midpoint after all!
+        try {
+            return (severity_value < severity_classes.get(midpoint).getMinimum_severity_value()) || (severity_value >= severity_classes.get(midpoint).getMaximum_severity_value()); //This was the midpoint after all!
+        }catch (Exception e){
+            Logger.getGlobal().log(severe_logging_level,"There was an error in finding the midpoint - relevant values were "+midpoint+" and "+severity_value+" for midpoint and severity value respectively");
+            e.printStackTrace();
+            return false;
+        }
     }
 
     public ArrayList<SeverityClass> getSeverity_classes() {
