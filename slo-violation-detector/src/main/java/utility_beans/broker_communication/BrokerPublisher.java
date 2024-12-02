@@ -21,7 +21,7 @@ public class BrokerPublisher {
     private Publisher private_publisher_instance;
     private ArrayList<Publisher> publishers = new ArrayList<>();
 
-    private ExtendedConnector active_connector;
+    private Connector active_connector;
     private String topic;
     private String broker_ip;
     private int broker_port;
@@ -55,7 +55,8 @@ public class BrokerPublisher {
 //            for (String current_broker_ip : broker_and_topics_to_publish_to.keySet()){
             Logger.getAnonymousLogger().log(Level.INFO,"Publisher configuration changed, creating new connector at  "+broker_ip+" for topic "+topic);
             if (active_connector!=null) {
-                active_connector.stop(new ArrayList<>(), publishers);
+                //active_connector.stop(new ArrayList<>(), publishers);
+                active_connector.stop();
             }
             publishers.clear();
             //for (String broker_topic : broker_and_topics_to_publish_to.get(broker_ip)){
@@ -72,7 +73,7 @@ public class BrokerPublisher {
             //}
             //CustomConnectorHandler custom_handler = new CustomConnectorHandler();
 
-            active_connector = new ExtendedConnector("resource_manager"
+            active_connector = new Connector("resource_manager"
                     , new CustomConnectorHandler() {}
                     , publishers
                     , List.of(),

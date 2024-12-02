@@ -43,6 +43,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
             String realtime_metric_topic_name = topic_prefix_realtime_metrics+metric;
             Logger.getGlobal().log(info_logging_level,"Starting realtime subscription at "+realtime_metric_topic_name + " for application "+detector.get_application_name());
             BrokerSubscriber subscriber = new BrokerSubscriber(realtime_metric_topic_name, broker_ip_address,broker_port,broker_username,broker_password, amq_library_configuration_location,detector.get_application_name());
+            detector.getBroker_subscribers().add(subscriber);
             BiFunction<BrokerSubscriptionDetails,String,String> function = (broker_details, message) ->{
                 synchronized (detector.getSubcomponent_state().getMonitoring_attributes().get(metric)) {
                     try {
@@ -61,7 +62,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
             };
             Runnable realtime_subscription_runnable = () -> {
                 try {
-                    subscriber.subscribe(function, detector.get_application_name(),detector.stop_signal);
+                    subscriber.subscribe(function, detector.get_application_name());
                     if(Thread.interrupted()){
                         throw new InterruptedException();
                     }
@@ -82,7 +83,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
             String forecasted_metric_topic_name = topic_prefix_final_predicted_metrics+metric;
             Logger.getGlobal().log(info_logging_level,"Starting forecasted metric subscription at "+forecasted_metric_topic_name);
             BrokerSubscriber forecasted_subscriber = new BrokerSubscriber(forecasted_metric_topic_name, broker_ip_address,broker_port,broker_username,broker_password, amq_library_configuration_location,detector.get_application_name());
-
+            detector.getBroker_subscribers().add(forecasted_subscriber);
             BiFunction<BrokerSubscriptionDetails,String,String> forecasted_function = (broker_details, message) ->{
                 String predicted_attribute_name = forecasted_metric_topic_name.replaceFirst(topic_prefix_final_predicted_metrics,EMPTY);
                 HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_attributes = getPredicted_monitoring_attributes();
@@ -179,7 +180,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                 try {
                     synchronized (detector.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
                         //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name).getValue())
-                        forecasted_subscriber.subscribe(forecasted_function,detector.get_application_name(),detector.stop_signal);
+                        forecasted_subscriber.subscribe(forecasted_function,detector.get_application_name());
                     }
                     if (Thread.interrupted()) {
                         throw new InterruptedException();

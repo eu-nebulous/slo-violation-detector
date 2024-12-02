@@ -1,5 +1,6 @@
 package utility_beans.broker_communication;
 
+import eu.nebulouscloud.exn.Connector;
 import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;
 import eu.nebulouscloud.exn.core.Handler;
@@ -27,30 +28,39 @@ public class CustomDataSubscriber {
     private static final SynchronizedBoolean new_message_arrived = new SynchronizedBoolean();
     private static AtomicReference<String> message_payload = new AtomicReference<>(EMPTY);
 
-    static class SimpleConnectorHandler extends ConnectorHandler{
+    static class SimpleConnectorHandler extends CustomConnectorHandler{
         private String broker_topic;
         private String broker_ip;
 
         private String application_name;
 
         Handler on_message_handler;
-        SimpleConnectorHandler(String broker_ip,String broker_topic, String application_name){
+        SimpleConnectorHandler(String broker_ip,String broker_topic, String application_name,boolean log_and_notify_messages){
             this.broker_topic = broker_topic;
             this.broker_ip = broker_ip;
             this.application_name = application_name;
 
-            this.on_message_handler = new Handler() {
-                @Override
-                public void onMessage(String key, String address, Map body, Message message, Context context) {
-                    Logger.getGlobal().log(info_logging_level,"Received message with payload"+body.toString()+"\n");
-                    synchronized (new_message_arrived) {
-                        new_message_arrived.notify();
-                        new_message_arrived.setValue(true);
-                        message_payload = new AtomicReference<>(body.toString());
-                        //message_payload =  body.toString();
+            if(log_and_notify_messages) {
+                this.on_message_handler = new Handler() {
+                    @Override
+                    public void onMessage(String key, String address, Map body, Message message, Context context) {
+                        Logger.getGlobal().log(info_logging_level, "Received message with payload" + body.toString() + "\n");
+                        synchronized (new_message_arrived) {
+                            new_message_arrived.notify();
+                            new_message_arrived.setValue(true);
+                            message_payload = new AtomicReference<>(body.toString());
+                            //message_payload =  body.toString();
+                        }
                     }
-                }
-            };
+                };
+            }else{
+                this.on_message_handler = new Handler() {
+                    @Override
+                    public void onMessage(String key, String address, Map body, Message message, Context context) {
+                        
+                    }
+                };
+            }
 
         }
         @Override
@@ -73,7 +83,8 @@ public class CustomDataSubscriber {
     private static void update_event_data(){
         presetTexts.put(debug_data_trigger_topic_name,"{}");
     }
-    private static ExtendedConnector private_connector;
+    private static Connector private_connector;
+    private static CustomConnectorHandler private_connector_handler;
 
     private void stop_connector(){
         try {
@@ -85,8 +96,9 @@ public class CustomDataSubscriber {
     }
     public CustomDataSubscriber(String broker_topic, String broker_ip, int broker_port, String brokerUsername, String brokerPassword, String amqLibraryConfigurationLocation, String subscriber_key, String application_name) {
 
-        private_connector = new ExtendedConnector("slovid",
-                new SimpleConnectorHandler(broker_ip, broker_topic, application_name),
+        private_connector_handler = new SimpleConnectorHandler(broker_ip, broker_topic, application_name,true);
+        private_connector = new Connector("slovid",
+                private_connector_handler,
                 List.of()
                 , List.of(),
                 false,
@@ -214,7 +226,7 @@ public class CustomDataSubscriber {
 
             if (consumer_has_started.get()) {
                 Logger.getGlobal().log(info_logging_level,"Removing consumer");
-                private_connector.remove_consumer_with_key(subscriber_key.get());
+                private_connector_handler.remove_consumer_with_key(subscriber_key.get());
                 Logger.getGlobal().log(info_logging_level,"Consumer should be stopped now");
                 Consumer consumer;
                 if (subscriber_application.get()!=null && !subscriber_application.get().isEmpty()) {
@@ -223,13 +235,23 @@ public class CustomDataSubscriber {
                         @Override
                         public void onMessage(String key, String address, Map body, Message message, Context context) {
                             super.onMessage(key, address, body, message, context);
+                            String message_body,message_topic;
                             try {
-                                Logger.getGlobal().log(info_logging_level, "A message, " + body.toString() + " has arrived at address " + address + " for application " + message.subject());
-                            } catch (ClientException ex) {
+                                if (body!=null){
+                                    Logger.getGlobal().log(info_logging_level, "A message, " + body.toString() + " has arrived at address " + message.to() + " for application " + message.subject());
+                                    message_body = body.toString();
+                                    message_topic = message.to();
+                                }else{
+                                    Logger.getGlobal().log(info_logging_level, "A message with a null body has arrived at address " + message.to() + " for application " + message.subject());
+                                    message_body = "";
+                                    message_topic = message.to();
+                                }
+                            } catch (Exception ex) {
+                                Logger.getGlobal().log(warning_logging_level,"The failing address is "+address);
                                 throw new RuntimeException(ex);
                             }
                             String old_text = subscriptionTextArea.getText() + "\n";
-                            subscriptionTextArea.setText(old_text + body);
+                            subscriptionTextArea.setText(old_text + message_topic + ":" + message_body);
                         }
                     }, subscriber_application.get(), true, true);
                 }
@@ -239,51 +261,72 @@ public class CustomDataSubscriber {
                         @Override
                         public void onMessage(String key, String address, Map body, Message message, Context context) {
                             super.onMessage(key, address, body, message, context);
+                            String message_body,message_topic;
                             try {
-                                Logger.getGlobal().log(info_logging_level, "A message, " + body.toString() + " has arrived at address " + address + " for application " + message.subject());
-                            } catch (ClientException ex) {
+                                if (body!=null){
+                                    Logger.getGlobal().log(info_logging_level, "A message, " + body.toString() + " has arrived at address " + message.to() + " for application " + message.subject());
+                                    message_body = body.toString();
+                                    message_topic = message.to();
+                                }else{
+                                    Logger.getGlobal().log(info_logging_level, "A message with a null body has arrived at address " + message.to() + " for application " + message.subject());
+                                    message_body = "";
+                                    message_topic = message.to();
+                                }
+                            } catch (Exception ex) {
+                                Logger.getGlobal().log(warning_logging_level,"The failing address is "+address);
                                 throw new RuntimeException(ex);
                             }
                             String old_text = subscriptionTextArea.getText() + "\n";
-                            subscriptionTextArea.setText(old_text + body);
+                            subscriptionTextArea.setText(old_text + message_topic + ":" + message_body);
                         }
                     }, true, true);
                 }
-                private_connector.add_consumer(consumer);
+                private_connector_handler.add_consumer(consumer);
             }
             else {
                 if (!subscriber_application.get().isEmpty()) {
                     Logger.getGlobal().log(info_logging_level, "Starting the connector for the consumption of messages with " + subscriber_key + " at " + broker_topic.get() + " for application " + subscriber_application.get());
                     consumer_has_started.set(true);
-                    private_connector = new ExtendedConnector("slovid",
-                            new CustomConnectorHandler() {
-                                private Consumer current_consumer = null;
-                                AtomicBoolean consumer_has_started = new AtomicBoolean(false);
+                    private_connector_handler = new CustomConnectorHandler() {
+                        private Consumer current_consumer = null;
+                        AtomicBoolean consumer_has_started = new AtomicBoolean(false);
 
+                        @Override
+                        public void onReady(Context context) {
+                            super.onReady(context);
+                            Logger.getGlobal().log(info_logging_level, "On ready activated");
+                            if (current_consumer != null) {
+                                context.unregisterConsumer(current_consumer.key());
+                                Logger.getGlobal().log(info_logging_level, "Unregistering consumer");
+                            }
+                            Consumer consumer = new Consumer(subscriber_key.get(), broker_topic.get(), new Handler() {
                                 @Override
-                                public void onReady(Context context) {
-                                    super.onReady(context);
-                                    Logger.getGlobal().log(info_logging_level, "On ready activated");
-                                    if (current_consumer != null) {
-                                        context.unregisterConsumer(current_consumer.key());
-                                        Logger.getGlobal().log(info_logging_level, "Unregistering consumer");
-                                    }
-                                    Consumer consumer = new Consumer(subscriber_key.get(), broker_topic.get(), new Handler() {
-                                        @Override
-                                        public void onMessage(String key, String address, Map body, Message message, Context context) {
-                                            super.onMessage(key, address, body, message, context);
-                                            try {
-                                                Logger.getGlobal().log(info_logging_level, "A message, " + body.toString() + " has arrived at address " + address + " for application " + message.subject());
-                                            } catch (ClientException ex) {
-                                                throw new RuntimeException(ex);
-                                            }
-                                            String old_text = subscriptionTextArea.getText() + "\n";
-                                            subscriptionTextArea.setText(old_text + body);
+                                public void onMessage(String key, String address, Map body, Message message, Context context) {
+                                    super.onMessage(key, address, body, message, context);
+                                    String message_body,message_topic;
+                                    try {
+                                        if (body!=null){
+                                            Logger.getGlobal().log(info_logging_level, "A message, " + body.toString() + " has arrived at address " + message.to() + " for application " + message.subject());
+                                            message_body = body.toString();
+                                            message_topic = message.to();
+                                        }else{
+                                            Logger.getGlobal().log(info_logging_level, "A message with a null body has arrived at address " + message.to() + " for application " + message.subject());
+                                            message_body = "";
+                                            message_topic = message.to();
                                         }
-                                    }, subscriber_application.get(), true, true);
-                                    context.registerConsumer(consumer);
+                                    } catch (Exception ex) {
+                                        Logger.getGlobal().log(warning_logging_level,"The failing address is "+address);
+                                        throw new RuntimeException(ex);
+                                    }
+                                    String old_text = subscriptionTextArea.getText() + "\n";
+                                    subscriptionTextArea.setText(old_text + message_topic + ":" + message_body);
                                 }
-                            }, List.of(),
+                            }, subscriber_application.get(), true, true);
+                            context.registerConsumer(consumer);
+                        }
+                    };
+                    private_connector = new Connector("slovid",private_connector_handler
+                            , List.of(),
                             List.of(
                             )
                             ,
@@ -302,35 +345,47 @@ public class CustomDataSubscriber {
                     if (!subscriber_application.get().isEmpty()) {
                         Logger.getGlobal().log(info_logging_level, "Starting the connector for the consumption of messages with " + subscriber_key + " at " + broker_topic.get() + " for application "+subscriber_application.get());
                         consumer_has_started.set(true);
-                        private_connector = new ExtendedConnector("slovid",
-                                new CustomConnectorHandler() {
-                                    private Consumer current_consumer = null;
-                                    AtomicBoolean consumer_has_started = new AtomicBoolean(false);
+                        private_connector_handler = new SimpleConnectorHandler(broker_ip.get(),broker_topic.get(),subscriber_application.get(),true) {
+                            private Consumer current_consumer = null;
+                            AtomicBoolean consumer_has_started = new AtomicBoolean(false);
 
+                            @Override
+                            public void onReady(Context context) {
+                                super.onReady(context);
+                                Logger.getGlobal().log(info_logging_level, "On ready activated");
+                                if (current_consumer != null) {
+                                    context.unregisterConsumer(current_consumer.key());
+                                    Logger.getGlobal().log(info_logging_level, "Unregistering consumer");
+                                }
+                                Consumer consumer = new Consumer(subscriber_key.get(), broker_topic.get(), new Handler() {
                                     @Override
-                                    public void onReady(Context context) {
-                                        super.onReady(context);
-                                        Logger.getGlobal().log(info_logging_level, "On ready activated");
-                                        if (current_consumer != null) {
-                                            context.unregisterConsumer(current_consumer.key());
-                                            Logger.getGlobal().log(info_logging_level, "Unregistering consumer");
-                                        }
-                                        Consumer consumer = new Consumer(subscriber_key.get(), broker_topic.get(), new Handler() {
-                                            @Override
-                                            public void onMessage(String key, String address, Map body, Message message, Context context) {
-                                                super.onMessage(key, address, body, message, context);
-                                                try {
-                                                    Logger.getGlobal().log(info_logging_level, "A message, " + body.toString() + " has arrived at address " + address + " for application " + message.subject());
-                                                } catch (ClientException ex) {
-                                                    throw new RuntimeException(ex);
-                                                }
-                                                String old_text = subscriptionTextArea.getText() + "\n";
-                                                subscriptionTextArea.setText(old_text + body);
+                                    public void onMessage(String key, String address, Map body, Message message, Context context) {
+                                        super.onMessage(key, address, body, message, context);
+                                        String message_topic,message_body;
+
+                                        try {
+                                            if (body!=null){
+                                                Logger.getGlobal().log(info_logging_level, "A message, " + body.toString() + " has arrived at address " + message.to() + " for application " + message.subject());
+                                                message_body = body.toString();
+                                                message_topic = message.to();
+                                            }else{
+                                                Logger.getGlobal().log(info_logging_level, "A message with a null body has arrived at address " + message.to() + " for application " + message.subject());
+                                                message_body = "";
+                                                message_topic = message.to();
                                             }
-                                        }, subscriber_application.get(), true, true);
-                                        context.registerConsumer(consumer);
+                                        } catch (Exception ex) {
+                                            Logger.getGlobal().log(warning_logging_level,"The failing address is "+address);
+                                            throw new RuntimeException(ex);
+                                        }
+                                        String old_text = subscriptionTextArea.getText() + "\n";
+                                        subscriptionTextArea.setText(old_text + message_topic + ":" + message_body);
                                     }
-                                }, List.of(),
+                                }, subscriber_application.get(), true, true);
+                                context.registerConsumer(consumer);
+                            }
+                        };
+                        private_connector = new Connector("slovid",private_connector_handler
+                                , List.of(),
                                 List.of(
                                 )
                                 ,
@@ -348,35 +403,52 @@ public class CustomDataSubscriber {
                     }else{
                         Logger.getGlobal().log(info_logging_level, "Starting the connector for the consumption of messages with " + subscriber_key + " at " + broker_topic.get() + " for all applications");
                         consumer_has_started.set(true);
-                        private_connector = new ExtendedConnector("slovid",
-                                new CustomConnectorHandler() {
-                                    private Consumer current_consumer = null;
-                                    AtomicBoolean consumer_has_started = new AtomicBoolean(false);
+                        private_connector_handler = new CustomConnectorHandler() {
+                            private Consumer current_consumer = null;
+                            AtomicBoolean consumer_has_started = new AtomicBoolean(false);
 
+                            @Override
+                            public void onReady(Context context) {
+                                super.onReady(context);
+                                Logger.getGlobal().log(info_logging_level, "On ready activated");
+                                if (current_consumer != null) {
+                                    context.unregisterConsumer(current_consumer.key());
+                                    Logger.getGlobal().log(info_logging_level, "Unregistering consumer");
+                                }
+                                Consumer consumer = new Consumer(subscriber_key.get(), broker_topic.get(), new Handler() {
                                     @Override
-                                    public void onReady(Context context) {
-                                        super.onReady(context);
-                                        Logger.getGlobal().log(info_logging_level, "On ready activated");
-                                        if (current_consumer != null) {
-                                            context.unregisterConsumer(current_consumer.key());
-                                            Logger.getGlobal().log(info_logging_level, "Unregistering consumer");
-                                        }
-                                        Consumer consumer = new Consumer(subscriber_key.get(), broker_topic.get(), new Handler() {
-                                            @Override
-                                            public void onMessage(String key, String address, Map body, Message message, Context context) {
-                                                super.onMessage(key, address, body, message, context);
-                                                try {
-                                                    Logger.getGlobal().log(info_logging_level, "A message, " + body.toString() + " has arrived at address " + address + " for application " + message.subject());
-                                                } catch (ClientException ex) {
-                                                    throw new RuntimeException(ex);
-                                                }
-                                                String old_text = subscriptionTextArea.getText() + "\n";
-                                                subscriptionTextArea.setText(old_text + body);
+                                    public void onMessage(String key, String address, Map body, Message message, Context context) {
+                                        super.onMessage(key, address, body, message, context);
+                                        String message_body;
+                                        String message_topic;
+                                        try {
+                                            if (body!=null){
+                                                Logger.getGlobal().log(info_logging_level, "A message, " + body + " has arrived at address " + message.to() + " for application " + message.subject());
+                                                message_body = body.toString();
+                                                message_topic = message.to();
+                                            }else{
+                                                Logger.getGlobal().log(info_logging_level, "A message with a null body has arrived at address " + message.to() + " for application " + message.subject());
+                                                message_body = "";
+                                                message_topic = message.to();
                                             }
-                                        }, true, true);
-                                        context.registerConsumer(consumer);
+  
+                                        } catch (Exception ex) {
+                                            try {
+                                                Logger.getGlobal().log(warning_logging_level,"The failing address is "+message.to());
+                                            } catch (ClientException exc) {
+                                                throw new RuntimeException(exc);
+                                            }
+                                            throw new RuntimeException(ex);
+                                        }
+                                        String old_text = subscriptionTextArea.getText() + "\n";
+                                        subscriptionTextArea.setText(old_text + message_topic + ":" + message_body);
                                     }
-                                }, List.of(),
+                                }, true, true);
+                                context.registerConsumer(consumer);
+                            }
+                        };
+                        private_connector = new Connector("slovid",private_connector_handler
+                                , List.of(),
                                 List.of(
                                 )
                                 ,

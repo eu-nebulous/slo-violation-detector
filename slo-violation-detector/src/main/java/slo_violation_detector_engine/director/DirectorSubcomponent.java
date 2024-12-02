@@ -15,8 +15,10 @@ import utility_beans.monitoring.RealtimeMonitoringAttribute;
 import utility_beans.synchronization.SynchronizedBoolean;
 import utility_beans.synchronization.SynchronizedStringMap;
 
+import java.lang.reflect.Array;
 import java.text.NumberFormat;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,12 +34,11 @@ import static utilities.OperationalModeUtils.get_director_subscription_topics;
 
 public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
     public HashMap<String,Thread> persistent_running_director_threads = new HashMap<>();
-    public Connector subscribing_connector;
     private Integer id = 1;
     public static HashMap<String,DirectorSubcomponent> director_subcomponents = new HashMap<>();
     private static DirectorSubcomponent master_director;
     public static boolean first_run = true;
-    public final AtomicBoolean stop_signal = new AtomicBoolean(false);
+    private ArrayList<BrokerSubscriber> broker_subscribers = new ArrayList<>(); 
     public static SynchronizedStringMap MESSAGE_CONTENTS = new SynchronizedStringMap();
     public final SynchronizedBoolean can_modify_monitoring_metrics = new SynchronizedBoolean(false);
 
@@ -60,6 +61,12 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
         id++;
     }
 
+    public void stop(){
+        for (BrokerSubscriber broker_subscriber : broker_subscribers) {
+            broker_subscriber.stop();
+        }
+    }
+    
     private void create_director_topic_subscribers(){
         if (first_run){
             //Creation of threads that should always run and are independent of the monitored application.
@@ -69,10 +76,12 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
             //Metric list subscription thread
             BrokerSubscriber metric_list_subscriber = new BrokerSubscriber(metric_list_topic, prop.getProperty("broker_ip_url"),  Integer.parseInt(prop.getProperty("broker_port")),prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location,EMPTY);
+            broker_subscribers.add(metric_list_subscriber);
+            
             Runnable metric_list_topic_subscriber_runnable = () -> {
                 boolean did_not_finish_execution_gracefully = true;
                 while (did_not_finish_execution_gracefully) {
-                    int exit_status = metric_list_subscriber.subscribe(metric_list_subscriber_function, EMPTY,this.stop_signal); //This subscriber should not be immune to stop signals
+                    int exit_status = metric_list_subscriber.subscribe(metric_list_subscriber_function, EMPTY); //This subscriber should not be immune to stop signals
                     if (exit_status!=0) {
                         Logger.getGlobal().log(warning_logging_level,"Broker unavailable, will try to reconnect after 10 seconds");
                         try {
@@ -92,10 +101,11 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
             //SLO rule subscription thread
             BrokerSubscriber slo_rule_topic_subscriber = new BrokerSubscriber(slo_rules_topic, prop.getProperty("broker_ip_url"),  Integer.parseInt(prop.getProperty("broker_port")),prop.getProperty("broker_username"), prop.getProperty("broker_password"), amq_library_configuration_location,EMPTY);
+            broker_subscribers.add(slo_rule_topic_subscriber);
             Runnable slo_rules_topic_subscriber_runnable = () -> {
                 boolean did_not_finish_execution_gracefully = true;
                 while (did_not_finish_execution_gracefully) {
-                    int exit_status = slo_rule_topic_subscriber.subscribe(slo_rule_topic_subscriber_function, EMPTY,stop_signal); //This subscriber should not be immune to stop signals
+                    int exit_status = slo_rule_topic_subscriber.subscribe(slo_rule_topic_subscriber_function, EMPTY); //This subscriber should not be immune to stop signals
                     if (exit_status!=0) {
                         Logger.getGlobal().log(info_logging_level, "Broker unavailable, will try to reconnect after 10 seconds");
                         try {
@@ -114,6 +124,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
 
 
             BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location,EMPTY);
+            broker_subscribers.add(device_lost_subscriber);
             BiFunction<BrokerSubscriptionDetails, String, String> device_lost_subscriber_function = (broker_details, message) -> {
                 BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
 
@@ -138,7 +149,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
             Runnable device_lost_topic_subscriber_runnable = () -> {
                 boolean did_not_finish_execution_gracefully = true;
                 while (did_not_finish_execution_gracefully) {
-                    int exit_status = device_lost_subscriber.subscribe(device_lost_subscriber_function, EMPTY,stop_signal); //This subscriber should not be immune to stop signals, else there would be new AtomicBoolean(false)
+                    int exit_status = device_lost_subscriber.subscribe(device_lost_subscriber_function, EMPTY); //This subscriber should not be immune to stop signals, else there would be new AtomicBoolean(false)
                     if (exit_status!=0) {
                         Logger.getGlobal().log(info_logging_level, "A device used by the platform was lost, will therefore trigger a reconfiguration");
                         try {

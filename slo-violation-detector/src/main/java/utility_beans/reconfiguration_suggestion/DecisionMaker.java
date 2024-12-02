@@ -142,6 +142,7 @@ public class DecisionMaker {
         ReconfigurationDetails reconfiguration_details;
         
         double severity_value_to_process = slo_violation.getSeverity_value();
+        double normalized_severity_value_to_process = 100*severity_value_to_process;
         if (severity_value_to_process < 0) {
             Logger.getGlobal().log(severe_logging_level,"The severity value is negative ("+slo_violation.getSeverity_value()+"), this slo violation should not have been processed");
         }
@@ -245,7 +246,7 @@ public class DecisionMaker {
         get_results.start();
 
         if (was_adaptation_suggested) {
-            reconfiguration_details = new ReconfigurationDetails(determine_slo_violation_probability(severity_value_to_process), severity_value_to_process, true, severity_class_threshold, slo_violation.getProposed_reconfiguration_timestamp());
+            reconfiguration_details = new ReconfigurationDetails(determine_slo_violation_probability(normalized_severity_value_to_process), severity_value_to_process, true, severity_class_threshold, slo_violation.getProposed_reconfiguration_timestamp());
         }else{
             reconfiguration_details = get_details_for_noop_reconfiguration();
         }

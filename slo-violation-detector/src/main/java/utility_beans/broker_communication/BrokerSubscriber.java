@@ -1,8 +1,10 @@
 package utility_beans.broker_communication;
 
+import eu.nebulouscloud.exn.Connector;
 import eu.nebulouscloud.exn.core.Consumer;
 import eu.nebulouscloud.exn.core.Context;
 import eu.nebulouscloud.exn.core.Handler;
+import eu.nebulouscloud.exn.handlers.ConnectorHandler;
 import eu.nebulouscloud.exn.settings.StaticExnConfig;
 import org.apache.qpid.protonj2.client.Message;
 import org.json.simple.JSONValue;
@@ -19,7 +21,8 @@ import static java.util.logging.Level.WARNING;
 
 public class BrokerSubscriber {
 
-    private AtomicBoolean stop_signal = new AtomicBoolean();
+    private Connector connector;
+    private final AtomicBoolean stop_signal = new AtomicBoolean(false);
     
     private class MessageProcessingHandler extends Handler {
         private BrokerSubscriptionDetails broker_details;
@@ -57,10 +60,11 @@ public class BrokerSubscriber {
 
     private static HashMap<String, HashSet<String>> broker_and_topics_to_subscribe_to = new HashMap<>();
     private static HashMap<String, HashMap<String, Consumer>> active_consumers_per_topic_per_broker_ip = new HashMap<>();
-    private static HashMap<String, ExtendedConnector> current_connectors = new HashMap<>();
+    private static final HashMap<String, CustomConnectorHandler> current_connector_handlers = new HashMap<>();
     ArrayList<Consumer> consumers = new ArrayList<>();
     private String topic;
     private String broker_ip;
+
     private int broker_port;
     private String brokerUsername;
     private String brokerPassword;
@@ -102,30 +106,73 @@ public class BrokerSubscriber {
             }
         }
         if (subscriber_configuration_changed) {
-            Consumer current_consumer;
-            if (application_name != null && !application_name.equals(EMPTY)) { //Create a consumer for one application
-                Logger.getAnonymousLogger().log(INFO,"APP level subscriber " + topic);
-                current_consumer = new Consumer(topic, topic, new MessageProcessingHandler(broker_details), application_name, true, true);
-            } else { //Allow the consumer to get information from any publisher
-                current_consumer = new Consumer(topic, topic, new MessageProcessingHandler(broker_details), true, true);
-                Logger.getAnonymousLogger().log(INFO,"HIGH level subscriber " + topic);
-            }
-            active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic, current_consumer);
-
+            
             this.topic = topic;
             this.broker_ip = broker_ip;
             this.broker_port = broker_port;
             this.brokerUsername = brokerUsername;
             this.brokerPassword = brokerPassword;
-            add_topic_consumer_to_broker_connector(current_consumer);
+            
         }
     }
 
+    
+    public void stop(){
+        synchronized (stop_signal) {
+            stop_signal.set(true);
+        }
+    }
+    
     /**
      * This method updates the global connector of Resource manager to the AMQP server, by adding support for one more component
      */
     private void add_topic_consumer_to_broker_connector(Consumer new_consumer) {
-        if (current_connectors.get(broker_ip) != null) {
+/*        Consumer current_consumer;
+        if (application_name != null && !application_name.equals(EMPTY)) { //Create a consumer for one application
+            Logger.getAnonymousLogger().log(INFO,"APP level subscriber " + topic);
+            current_consumer = new Consumer(topic, topic, new MessageProcessingHandler(broker_details), application_name, true, true);
+        } else { //Allow the consumer to get information from any publisher
+            current_consumer = new Consumer(topic, topic, new MessageProcessingHandler(broker_details), true, true);
+            Logger.getAnonymousLogger().log(INFO,"HIGH level subscriber " + topic);
+        }        
+        current_consumer.setProperty("topic",topic);*/
+        
+        active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic, new_consumer);
+
+        CustomConnectorHandler current_connector_handler = current_connector_handlers.get(broker_ip);
+        if (current_connector_handler==null){
+            current_connector_handler = new CustomConnectorHandler() {};
+            this.connector = new Connector("slo_violation_detector_consumer",
+                    current_connector_handler,
+                    List.of(),
+                    List.of(new_consumer),
+                    false,
+                    false,
+                    new StaticExnConfig(
+                            broker_ip,
+                            broker_port,
+                            brokerUsername,
+                            brokerPassword,
+                            60,
+                            EMPTY
+                    )
+            );
+            connector.start();
+        }else{
+            current_connector_handler.remove_consumer_with_key(topic);
+        }
+        synchronized (current_connector_handler.getReadiness()){
+            while (!current_connector_handler.getReadiness().get()){
+                try {
+                    current_connector_handler.getReadiness().wait();
+                    Logger.getGlobal().log(info_logging_level,"Unable to register connector handler as the connector is unexpectedly not ready");
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        
+        /*if (current_connectors.get(broker_ip) != null) {
             current_connectors.get(broker_ip).stop(consumers,new ArrayList<>());
         } 
         if (consumers.isEmpty()){
@@ -140,7 +187,7 @@ public class BrokerSubscriber {
         if(!do_not_add_new_consumer) {
             consumers.add(new_consumer);
         }
-            ExtendedConnector extended_connector = new ExtendedConnector("resource_manager",
+            Connector extended_connector = new Connector("resource_manager",
                     new CustomConnectorHandler() {
                     },
                     List.of(),
@@ -157,29 +204,32 @@ public class BrokerSubscriber {
                     )
             );
             extended_connector.start();
-            current_connectors.put(broker_ip, extended_connector);
+            current_connectors.put(broker_ip, extended_connector);*/
     }
 
     private void remove_topic_from_broker_connector(String topic_key) {
-        if (current_connectors.get(broker_ip) != null) {
-            current_connectors.get(broker_ip).remove_consumer_with_key(topic_key);
-        }
+        //if (current_connectors.get(broker_ip) != null) {
+            //current_connectors.get(broker_ip).remove_consumer_with_key(topic_key);
+        //}
     }
     
     public int subscribe (BiFunction function, String application_name) {
-        return subscribe(function,application_name,stop_signal);
-    }
-    
-    public int subscribe(BiFunction function, String application_name, AtomicBoolean stop_signal) {
+//        return subscribe(function,application_name,stop_signal);
+//    }
+//    
+//    public int subscribe(BiFunction function, String application_name, AtomicBoolean stop_signal) {
         int exit_status = -1;
         Logger.getAnonymousLogger().log(INFO,"ESTABLISHING SUBSCRIPTION for " + topic);
         //First remove any leftover consumer
+        /*
         if (active_consumers_per_topic_per_broker_ip.containsKey(broker_ip)) {
             active_consumers_per_topic_per_broker_ip.get(broker_ip).remove(topic);
             remove_topic_from_broker_connector(topic);
         } else {
             active_consumers_per_topic_per_broker_ip.put(broker_ip, new HashMap<>());
         }
+        
+         */
         //Then add the new consumer
         Consumer new_consumer;
         if (application_name != null && !application_name.equals(EMPTY)) {
@@ -189,6 +239,7 @@ public class BrokerSubscriber {
             new_consumer = new Consumer(topic, topic, new MessageProcessingHandler(function, broker_details), true, true);
         }
         new_consumer.setProperty("topic", topic);
+        
         active_consumers_per_topic_per_broker_ip.get(broker_ip).put(topic, new_consumer);
         add_topic_consumer_to_broker_connector(new_consumer);
 
@@ -206,8 +257,9 @@ public class BrokerSubscriber {
             stop_signal.set(false);
         }
         active_consumers_per_topic_per_broker_ip.get(broker_ip).remove(topic);
-        remove_topic_from_broker_connector(topic);
+        //remove_topic_from_broker_connector(topic);
         exit_status = 0;
         return exit_status;
     }
+    
 }

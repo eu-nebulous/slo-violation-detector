@@ -161,10 +161,11 @@ public class DetectorSubcomponentUtilities {
         Logger.getGlobal().log(info_logging_level,"Asking previously existing threads to terminate");
         int initial_number_of_running_threads = associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size();
         while (associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size()>0) {
-            synchronized (associated_detector_subcomponent.stop_signal) {
-                associated_detector_subcomponent.stop_signal.set(true);
-                associated_detector_subcomponent.stop_signal.notifyAll();
-            }
+            //synchronized (associated_detector_subcomponent.stop_signal) {
+              //  associated_detector_subcomponent.stop_signal.set(true);
+              //  associated_detector_subcomponent.stop_signal.notifyAll();
+            //}
+            associated_detector_subcomponent.stop();
             try {
                 Thread.sleep(3000);
                 for (Thread thread : associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.values()) {
@@ -179,17 +180,14 @@ public class DetectorSubcomponentUtilities {
             Logger.getGlobal().log(info_logging_level,"Stopped "+(initial_number_of_running_threads- associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size())+"/"+initial_number_of_running_threads+" already running threads");
             if (associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size()>1){
                 Logger.getGlobal().log(info_logging_level,"The threads which are still running are the following: "+ associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads);
-                synchronized (associated_detector_subcomponent.stop_signal) {
-                    Logger.getGlobal().log(info_logging_level, "The value of detector stop signal is " + associated_detector_subcomponent.stop_signal);
-                }
             }else if (associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads.size()>0){
                 Logger.getGlobal().log(info_logging_level,"The thread which is still running is the following: "+ associated_detector_subcomponent.getSubcomponent_state().slo_bound_running_threads);
             }
         }
         Logger.getGlobal().log(info_logging_level,"All threads have terminated");
-        synchronized (associated_detector_subcomponent.stop_signal) {
-            associated_detector_subcomponent.stop_signal.set(false);
-        }
+        //synchronized (associated_detector_subcomponent.stop_signal) {
+            //associated_detector_subcomponent.stop_signal.set(false);
+        //}
         synchronized (associated_detector_subcomponent.PREDICTION_EXISTS){
             associated_detector_subcomponent.PREDICTION_EXISTS.setValue(false);
         }
@@ -239,27 +237,27 @@ public class DetectorSubcomponentUtilities {
 
     /**
      * This function determines the probability of an SLO violation
-     * @param rule_severity The severity of the rule which has been determined
+     * @param normalized_rule_severity The severity of the rule which has been determined
      * @return The probability of the rule being violated. The minimum value of this probability is 0, and increases as the severity increases
      */
-    public static double determine_slo_violation_probability(double rule_severity) {
+    public static double determine_slo_violation_probability(double normalized_rule_severity) {
         if (severity_calculation_method.equals("all-metrics")) {
             //39.64 is the mean severity value when examining all integer severity values for roc x probability x confidence_interval x delta_value in (-100,100)x(0,100)x(0,100)x(-100,100)
             /*
-            if (rule_severity >= 40) {
-                return Math.min((50 + 50*(rule_severity - 40) / 60)/100,1); // in case we desire the probability to start from 50%
-               // return Math.min((100*(rule_severity - 40) / 60)/100,1); // in case we desire the probability to start from 0%
+            if (normalized_rule_severity >= 40) {
+                return Math.min((50 + 50*(normalized_rule_severity - 40) / 60)/100,1); // in case we desire the probability to start from 50%
+               // return Math.min((100*(normalized_rule_severity - 40) / 60)/100,1); // in case we desire the probability to start from 0%
             } else {
                 return 0;
             }
 
              */
-            return Math.min(rule_severity/100,100);
+            return Math.min(normalized_rule_severity/100,100);
         }else if (severity_calculation_method.equals("prconf-delta")){
             //Logger.getGlobal().log(warning_logging_level,"The calculation of probability for the prconf-delta method needs to be implemented");
             //return 0;
-            if (rule_severity >= 6.52){
-                return Math.min((50+50*(rule_severity-6.52)/93.48)/100,1);
+            if (normalized_rule_severity >= 6.52){
+                return Math.min((50+50*(normalized_rule_severity-6.52)/93.48)/100,1);
             }else{
                 return 0;
             }

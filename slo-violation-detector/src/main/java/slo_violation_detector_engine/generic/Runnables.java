@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,7 +44,8 @@ public class Runnables {
                     //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(debug_data_topic_name).getValue())
                     BrokerSubscriptionDetails broker_details = detector.getBrokerSubscriptionDetails(debug_data_trigger_topic_name);
                     debug_data_subscriber = new BrokerSubscriber(debug_data_trigger_topic_name, broker_details.getBroker_ip(),broker_details.getBroker_port(),broker_details.getBroker_username(),broker_details.getBroker_password(), amq_library_configuration_location,detector.get_application_name());
-                    debug_data_subscriber.subscribe(debug_data_generation, EMPTY,detector.stop_signal);
+                    detector.getBroker_subscribers().add(debug_data_subscriber);
+                    debug_data_subscriber.subscribe(debug_data_generation, EMPTY);
                     Logger.getGlobal().log(info_logging_level,"Debug data subscriber initiated");
                 }
                 if (Thread.interrupted()) {
@@ -72,48 +74,58 @@ public class Runnables {
             run_slo_violation_detection_engine(detector);
         }
     }
-
+    
     public static Runnable get_severity_calculation_runnable(SLORule rule, DetectorSubcomponent detector) {
+        
+        StoppableRunnable severity_calculation_runnable = new StoppableRunnable() {
+            @Override
+            public void run() {
+                detector.getRunnables_to_stop().add(this);
+                Logger.getGlobal().log(info_logging_level,"Will now attempt to get the BrokerPublisher connector for application "+detector.get_application_name());
+                BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip,broker_port,broker_username,broker_password, amq_library_configuration_location);
 
-        Runnable severity_calculation_runnable = () -> {
-            Logger.getGlobal().log(info_logging_level,"Will now attempt to get the BrokerPublisher connector for application "+detector.get_application_name());
-            BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip,broker_port,broker_username,broker_password, amq_library_configuration_location);
-
-            int attempts = 1;
-            while (persistent_publisher.is_publisher_null()){
-                if (attempts<=2) {
-                    Logger.getGlobal().log(warning_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
-                    persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
-                }else{
-                    Logger.getGlobal().log(warning_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
-                    persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
+                int attempts = 1;
+                while (persistent_publisher.is_publisher_null()){
+                    if (attempts<=2) {
+                        Logger.getGlobal().log(warning_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
+                        persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
+                    }else{
+                        Logger.getGlobal().log(warning_logging_level,"Will now attempt to reset the BrokerPublisher connector for application "+detector.get_application_name());
+                        persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
+                    }
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    attempts++;
                 }
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                attempts++;
-            }
 
             while (true) {
                 synchronized (detector.PREDICTION_EXISTS) {
-                    while (!detector.PREDICTION_EXISTS.getValue()) {
-                        try {
-                            detector.PREDICTION_EXISTS.wait();
-                        } catch (InterruptedException e) {
-                            synchronized (detector.stop_signal) {
-                                if (detector.stop_signal.get()) {
-                                    detector.getSubcomponent_state().slo_bound_running_threads.remove("severity_calculation_thread_" + rule.toString());
-                                    detector.PREDICTION_EXISTS.setValue(false);
-                                    detector.getSubcomponent_state().slo_bound_running_threads.remove("severity_calculation_thread_" + rule.toString());
-                                    return;
-                                }
+//                    while (!detector.PREDICTION_EXISTS.getValue()) {
+//                        try {
+//                            detector.PREDICTION_EXISTS.wait();
+//                        } catch (InterruptedException e) {
+//                            synchronized (detector.stop_signal) {
+//                                if (detector.stop_signal.get()) {
+//                                    detector.getSubcomponent_state().slo_bound_running_threads.remove("severity_calculation_thread_" + rule.toString());
+//                                    detector.PREDICTION_EXISTS.setValue(false);
+//                                    detector.getSubcomponent_state().slo_bound_running_threads.remove("severity_calculation_thread_" + rule.toString());
+//                                    return;
+//                                }
+//                            }
+//                            e.printStackTrace();
+//                        }
+//                    }
+                        while (!detector.PREDICTION_EXISTS.getValue()) {
+                            try {
+                                detector.PREDICTION_EXISTS.wait();
+                            } catch (InterruptedException e) {
+                                detector.PREDICTION_EXISTS.setValue(false);
+                                return;
                             }
-                            e.printStackTrace();
                         }
-                    }
-
                     }
                     try {
                         Clock clock = Clock.systemUTC();
@@ -171,7 +183,7 @@ public class Runnables {
                                 double slo_violation_probability;
                                 SLOViolation current_slo_violation;
                                 double normalized_rule_severity;
-                                
+
                                 if (slo_violation_feedback_method.equals("using_q_learning_severity_threshold")) {
                                     sleep(sleep_time);
                                     rule_severity = process_rule_value(rule, targeted_prediction_time);
@@ -189,21 +201,21 @@ public class Runnables {
                                             detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
                                         }
                                     }
-                                    
+
                                     sleep(adjusted_buffer_time); //Breaking sleep into two parts (sleep_time and adjusted_buffer_time) to allow possibly other slo violations to be gathered during adjusted_buffer_time and only use the highest one. Overdoing it (having large buffer times), may result in ignoring recent realtime/predicted metric data sent during adjusted_buffer_time
                                     reconfiguration_details = detector.getDm().processSLOViolations(Optional.empty());
                                     slo_violation_probability = reconfiguration_details.getReconfiguration_probability();
-                                    
+
                                 } else if (slo_violation_feedback_method.equals("none")) {
                                     sleep(sleep_time + adjusted_buffer_time); //Not interested in other SLO Violations, directly processing any SLOs
                                     rule_severity = process_rule_value(rule, targeted_prediction_time);
                                     normalized_rule_severity = rule_severity / 100;
-                                    slo_violation_probability = determine_slo_violation_probability(rule_severity);
+                                    slo_violation_probability = determine_slo_violation_probability(normalized_rule_severity);
                                     current_slo_violation = new SLOViolation(normalized_rule_severity);
                                     Logger.getGlobal().log(info_logging_level, "The overall " + severity_calculation_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time )).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand");
                                     Logger.getGlobal().log(info_logging_level, "The probability of an SLO violation is " + ((int) (slo_violation_probability * 100)) + "%" + (slo_violation_probability < slo_violation_probability_threshold ? " so it will not be published" : " and it will be published"));
 
-                                    
+
                                     if (slo_violation_probability >= slo_violation_probability_threshold) {
                                         reconfiguration_details = new ReconfigurationDetails(slo_violation_probability,rule_severity,true,-1,targeted_prediction_time);
                                     }else{
@@ -229,7 +241,7 @@ public class Runnables {
                                     severity_json.put("probability", slo_violation_probability);
                                     severity_json.put("predictionTime", targeted_prediction_time);
                                     finalPersistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()));
-                                    
+
                                     Logger.getGlobal().log(debug_logging_level,"Adding violation record for violation "+current_slo_violation.getId()+" to database");
                                     detector.getSubcomponent_state().add_violation_record(detector.get_application_name(), rule.getRule_representation().toJSONString(), normalized_rule_severity, reconfiguration_details.getCurrent_slo_threshold(), targeted_prediction_time);
                                     detector.getSubcomponent_state().reconfiguration_time_recording_queue.add(reconfiguration_details);
@@ -259,6 +271,12 @@ public class Runnables {
                         Logger.getGlobal().log(warning_logging_level, "Could not calculate severity as a value was missing...");
                     }
                 }
+            }
+
+            @Override
+            public void stop() {
+                detector.getSubcomponent_state().slo_bound_running_threads.remove("severity_calculation_thread_" + rule.toString());
+            }
         };
         return severity_calculation_runnable;
     }
