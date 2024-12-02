@@ -171,7 +171,8 @@ public class BrokerSubscriber {
                 }
             }
         }
-        
+        Logger.getGlobal().log(info_logging_level,"Adding new consumer "+new_consumer.key());
+        current_connector_handler.add_consumer(new_consumer);
         /*if (current_connectors.get(broker_ip) != null) {
             current_connectors.get(broker_ip).stop(consumers,new ArrayList<>());
         } 
