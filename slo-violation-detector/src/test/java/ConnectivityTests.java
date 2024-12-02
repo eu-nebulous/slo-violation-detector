@@ -74,7 +74,7 @@ public class ConnectivityTests {
             };
 
             Thread subscription_thread = new Thread(() -> {
-                subscriber.subscribe(slo_function,default_application_name,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
+                subscriber.subscribe(slo_function,default_application_name); //will be a short-lived test, so setting stop signal to false
             });
             subscription_thread.start();
             Logger.getAnonymousLogger().log(Level.INFO,"Waiting 2 seconds before publishing message to broker");
