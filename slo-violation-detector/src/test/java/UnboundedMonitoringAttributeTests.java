@@ -131,7 +131,7 @@ public class UnboundedMonitoringAttributeTests {
                 return message;
             };
             Thread realtime_subscription_thread = new Thread(() -> {
-                subscriber.subscribe(function,default_application_name,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
+                subscriber.subscribe(function,default_application_name); //will be a short-lived test, so setting stop signal to false
                 // Insert some method call here.
             });
             realtime_subscription_thread.start();
@@ -193,7 +193,7 @@ public class UnboundedMonitoringAttributeTests {
             Thread forecasted_subscription_thread = new Thread(() -> {
                 synchronized (detector.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name)) {
                     //if (Main.HAS_MESSAGE_ARRIVED.get_synchronized_boolean(forecasted_metric_topic_name).getValue())
-                    forecasted_subscriber.subscribe(forecasted_function,default_application_name,new AtomicBoolean(false)); //will be a short-lived test, so setting stop signal to false
+                    forecasted_subscriber.subscribe(forecasted_function,default_application_name); //will be a short-lived test, so setting stop signal to false
                 }
             });
             running.add(forecasted_subscription_thread);

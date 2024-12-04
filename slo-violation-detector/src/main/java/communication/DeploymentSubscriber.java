@@ -9,6 +9,7 @@ import static slo_violation_detector_engine.detector.DetectorSubcomponentState.d
 public class DeploymentSubscriber  extends AbstractFullBrokerSubscriber{
     public DeploymentSubscriber(String broker_ip_address, int broker_port, String broker_username, String broker_password, DetectorSubcomponent detector){
 		BrokerSubscriber subscriber = new BrokerSubscriber("eu.nebulouscloud.ui.dsl.generic", broker_ip_address,broker_port,broker_username,broker_password, amq_library_configuration_location,detector.get_application_name());
+        detector.getBroker_subscribers().add(subscriber);
         BiFunction<BrokerSubscriptionDetails,String,Long> function = (broker_details, message) ->{
             Long deployment_timestamp = 0L;
             synchronized (deploymentTimeRecordingQueueLock) {
@@ -26,7 +27,7 @@ public class DeploymentSubscriber  extends AbstractFullBrokerSubscriber{
 		Runnable realtime_subscription_runnable = () -> {
              try {
                  Logger.getGlobal().log(info_logging_level,"Starting subscription to new application deployments");
-                 subscriber.subscribe(function, detector.get_application_name(),detector.stop_signal);
+                 subscriber.subscribe(function, detector.get_application_name());
                             if(Thread.interrupted()){
                                 throw new InterruptedException();
                             }
