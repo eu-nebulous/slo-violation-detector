@@ -231,6 +231,9 @@ public class BrokerSubscriber {
         }
         
          */
+        if (!active_consumers_per_topic_per_broker_ip.containsKey(broker_ip)) {
+            active_consumers_per_topic_per_broker_ip.put(broker_ip, new HashMap<>());
+        }
         //Then add the new consumer
         Consumer new_consumer;
         if (application_name != null && !application_name.equals(EMPTY)) {

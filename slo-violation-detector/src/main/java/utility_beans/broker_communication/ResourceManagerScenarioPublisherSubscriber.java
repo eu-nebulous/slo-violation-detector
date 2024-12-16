@@ -14,7 +14,7 @@ import java.util.*;
 import static configuration.Constants.EMPTY;
 import static java.lang.Thread.sleep;
 
-public class ScenarioPublisherSubscriber {
+public class ResourceManagerScenarioPublisherSubscriber {
 
     private static class MyConsumerHandler extends Handler{
             @Override
@@ -36,7 +36,7 @@ public class ScenarioPublisherSubscriber {
             System.out.println("Received an ALTERNATIVE message on topic "+address+" with the following body\n"+body.toString());
         }
     }
-    private final static String nonce = "0911415AFDD15"; 
+    private final static String nonce = "01313343343"; 
     public static int flag = 0;
     public static Consumer first_message_consumer = new Consumer("testkey_message1", "eu.nebulouscloud.ui.user.get", new MyConsumerHandler() , true,true);
     public static Consumer second_message_consumer = new Consumer("testkey_message2", "eu.nebulouscloud.ui.user.get."+nonce, new MyConsumerHandler(), true,true);
