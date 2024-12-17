@@ -77,7 +77,7 @@ public class SeverityClassModel {
                 return severity_classes.get(midpoint);
             }
         }
-        if (!this_was_not_the_midpoint(midpoint,severity_value_searched_for)) {
+        if ((midpoint<severity_classes.size()) && (!this_was_not_the_midpoint(midpoint,severity_value_searched_for))) {
             String message = String.format("Found the class that %s belongs to, it is %d",severity_value_searched_for,midpoint);
             Logger.getGlobal().log(warning_logging_level,message);
             return severity_classes.get(midpoint);

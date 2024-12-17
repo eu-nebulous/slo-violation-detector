@@ -246,7 +246,7 @@ public class DecisionMaker {
         get_results.start();
 
         if (was_adaptation_suggested) {
-            reconfiguration_details = new ReconfigurationDetails(determine_slo_violation_probability(normalized_severity_value_to_process), severity_value_to_process, true, severity_class_threshold, slo_violation.getProposed_reconfiguration_timestamp());
+            reconfiguration_details = new ReconfigurationDetails(determine_slo_violation_probability(normalized_severity_value_to_process,proactive_severity_calculation_method), severity_value_to_process, true, severity_class_threshold, slo_violation.getProposed_reconfiguration_timestamp());
         }else{
             reconfiguration_details = get_details_for_noop_reconfiguration();
         }

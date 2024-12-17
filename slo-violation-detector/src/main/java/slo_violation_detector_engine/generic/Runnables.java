@@ -10,7 +10,9 @@ import org.json.simple.JSONObject;
 import slo_rule_modelling.SLORule;
 import utility_beans.broker_communication.BrokerSubscriber;
 import utility_beans.broker_communication.BrokerSubscriptionDetails;
-import utility_beans.generic_component_functionality.CharacterizedThread;import utility_beans.reconfiguration_suggestion.DecisionMaker;import utility_beans.reconfiguration_suggestion.ReconfigurationDetails;import utility_beans.reconfiguration_suggestion.SLOViolation;
+import utility_beans.generic_component_functionality.CharacterizedThread;
+import utility_beans.monitoring.PredictedMonitoringAttribute;
+import utility_beans.reconfiguration_suggestion.DecisionMaker;import utility_beans.reconfiguration_suggestion.ReconfigurationDetails;import utility_beans.reconfiguration_suggestion.SLOViolation;
 
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -25,9 +27,11 @@ import java.util.logging.Logger;
 import static configuration.Constants.*;
 import static java.lang.Thread.sleep;
 import static slo_rule_modelling.SLORule.process_rule_value;
+import static slo_rule_modelling.SLORule.process_rule_value_reactively_proactively;
 import static slo_violation_detector_engine.generic.ComponentState.*;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.*;
 import static utilities.DebugDataSubscription.*;
+import static utility_beans.monitoring.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
 
 public class Runnables {
 
@@ -186,7 +190,7 @@ public class Runnables {
 
                                 if (slo_violation_feedback_method.equals("using_q_learning_severity_threshold")) {
                                     sleep(sleep_time);
-                                    rule_severity = process_rule_value(rule, targeted_prediction_time);
+                                    rule_severity = process_rule_value_reactively_proactively(rule, targeted_prediction_time,proactive_severity_calculation_method,detector.getSubcomponent_state().getMonitoring_attributes(), getPredicted_monitoring_attributes());
                                     normalized_rule_severity = rule_severity / 100;
                                     current_slo_violation = new SLOViolation(normalized_rule_severity);
                                     CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue = detector.getSubcomponent_state().getReconfiguration_time_recording_queue();
@@ -208,11 +212,11 @@ public class Runnables {
 
                                 } else if (slo_violation_feedback_method.equals("none")) {
                                     sleep(sleep_time + adjusted_buffer_time); //Not interested in other SLO Violations, directly processing any SLOs
-                                    rule_severity = process_rule_value(rule, targeted_prediction_time);
+                                    rule_severity = process_rule_value_reactively_proactively(rule, targeted_prediction_time,proactive_severity_calculation_method,detector.getSubcomponent_state().getMonitoring_attributes(),getPredicted_monitoring_attributes());
                                     normalized_rule_severity = rule_severity / 100;
-                                    slo_violation_probability = determine_slo_violation_probability(normalized_rule_severity);
+                                    slo_violation_probability = determine_slo_violation_probability(normalized_rule_severity,proactive_severity_calculation_method);
                                     current_slo_violation = new SLOViolation(normalized_rule_severity);
-                                    Logger.getGlobal().log(info_logging_level, "The overall " + severity_calculation_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time )).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand");
+                                    Logger.getGlobal().log(info_logging_level, "The overall " + proactive_severity_calculation_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time )).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand");
                                     Logger.getGlobal().log(info_logging_level, "The probability of an SLO violation is " + ((int) (slo_violation_probability * 100)) + "%" + (slo_violation_probability < slo_violation_probability_threshold ? " so it will not be published" : " and it will be published"));
 
 

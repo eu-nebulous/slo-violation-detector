@@ -158,8 +158,21 @@ public class SLORule {
             return attribute_ids.put(attribute, id++);
         }
     }
+    public static double process_rule_value_reactively_proactively(SLORule rule, Long targeted_prediction_time, String proactive_severity_calculation_method,HashMap<String,RealtimeMonitoringAttribute> realtime_monitoring_attributes, HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_monitoring_attributes){
+        double proactive_severity_result = 0d;
+        double reactive_severity_result = 0d;
+         if (proactive_severity_calculation_method!= null &&!proactive_severity_calculation_method.isEmpty()) {
+            proactive_severity_result = process_rule_value(rule,targeted_prediction_time,proactive_severity_calculation_method,realtime_monitoring_attributes,predicted_monitoring_attributes);
+        }else {
+             Logger.getGlobal().log(severe_logging_level, "There was an error in getting an appropriate proactive severity calculation method (it was null/empty)");
+        }
+        reactive_severity_result = process_rule_value(rule,targeted_prediction_time,reactive_severity_calculation_method,realtime_monitoring_attributes,predicted_monitoring_attributes);
+        double severity_value = Math.max(proactive_severity_result,reactive_severity_result);
+        Logger.getGlobal().log(info_logging_level, "Returning overall severity maximum "+severity_value);
+        return severity_value;
+    }
 
-    public static double process_rule_value(SLORule rule,Long targeted_prediction_time) {
+    public static double process_rule_value(SLORule rule,Long targeted_prediction_time, String severity_calculation_method, HashMap<String,RealtimeMonitoringAttribute> realtime_monitoring_attributes, HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_monitoring_attributes) {
 
         JSONObject rule_json = rule.rule_representation;
         SLOFormatVersion rule_format = rule.rule_format;
@@ -208,7 +221,7 @@ public class SLORule {
                 JSONObject json_subrule = (JSONObject) subrule;
                 //String json_subrule_id = (String) json_subrule.get("id");
                 SLORule internal_slo_rule = new SLORule(rule.getAssociated_detector(),json_subrule.toJSONString());
-                double subrule_result = process_rule_value(internal_slo_rule,targeted_prediction_time);
+                double subrule_result = process_rule_value(internal_slo_rule,targeted_prediction_time,severity_calculation_method,realtime_monitoring_attributes,predicted_monitoring_attributes);
                 calculation_logging_string.append("\nThe severity calculation for subrule ").append(json_subrule).append(" is ").append(subrule_result).append("\n");
                 String logical_operator = EMPTY;
                 if (rule_format.equals(SLOFormatVersion.older)){
@@ -237,14 +250,17 @@ public class SLORule {
                     calculation_logging_string.append("Calculating maximum of individual severity contributions - current is  ").append(rule_result_value).append(" prospective higher severity is ").append(subrule_result).append("\n");
                 }
             }
-
+            //The rule result value calculation below is only made when and-rules are being evaluated. Or-rules do not need averaging or other mathematical operations to be carried out
             if (severity_calculation_method.equals("all-metrics")&& individual_severity_contributions.size()>0) {
                 rule_result_value = MathUtils.get_average(individual_severity_contributions);
                 calculation_logging_string.append("Calculating average of individual severity contributions: ").append(individual_severity_contributions).append(" equals ").append(rule_result_value).append("\n");
             }else if (severity_calculation_method.equals("prconf-delta") && individual_severity_contributions.size()>0){
                 rule_result_value = Math.sqrt(MathUtils.sum(individual_severity_contributions.stream().map(x->x.doubleValue()*x.doubleValue()).collect(Collectors.toList())))/Math.sqrt(individual_severity_contributions.size());
                 calculation_logging_string.append("Calculating square root of sum of individual severity contributions: ").append(individual_severity_contributions).append(" - the result is ").append(rule_result_value).append("\n");
-
+            }else if (severity_calculation_method.equals("over_threshold") && individual_severity_contributions.size()>0){
+                //rule_result_value = Math.sqrt(MathUtils.sum(individual_severity_contributions.stream().map(x->x.doubleValue()*x.doubleValue()).collect(Collectors.toList())))/Math.sqrt(individual_severity_contributions.size());
+                rule_result_value = MathUtils.get_average(individual_severity_contributions);
+                calculation_logging_string.append("Calculating the reactive severity by averaging individual contributions ").append(individual_severity_contributions).append(" - the result is ").append(rule_result_value).append("\n");
             }
 
             //Debugging information logging
@@ -273,6 +289,7 @@ public class SLORule {
                 return rule_result_value;
             }
             PredictedMonitoringAttribute new_prediction_attribute = getPredicted_monitoring_attributes().get(subrule_id).get(targeted_prediction_time);
+            RealtimeMonitoringAttribute new_realtime_attribute = realtime_monitoring_attributes.get(rule_metric);
 
             if (new_prediction_attribute==null || !new_prediction_attribute.isInitialized() || new_prediction_attribute.getDelta_for_less_than_rule()<LOWER_LIMIT_DELTA || new_prediction_attribute.getDelta_for_greater_than_rule() < LOWER_LIMIT_DELTA){ //delta is normalized so only this case is examined here
                 rule_result_value = -1;
@@ -282,9 +299,12 @@ public class SLORule {
                     rule_result_value = SLOViolationCalculator.get_Severity_all_metrics_method(new_prediction_attribute,rule_type);
                 }else if (severity_calculation_method.equals("prconf-delta")){
                     rule_result_value = SLOViolationCalculator.get_Severity_prconf_delta_method(new_prediction_attribute,rule_type);
+                }else if (severity_calculation_method.equals("over_threshold")){
+                    rule_result_value = SLOViolationCalculator.get_Severity_over_threshold_method(new_realtime_attribute,rule.slo_subrules.get(0)); //Choosing the first subrule - it must also be the only since we are not in a composite rule
                 }
             }
             calculation_logging_string.append(dashed_line).append("\nThe severity calculation for simple subrule ").append(rule_metric).append(rule_operator).append(rule_threshold).append(" is ").append(rule_result_value).append(dashed_line);
+            rule.getAssociated_detector().getSubcomponent_state().severity_calculation_event_recording_queue.add(calculation_logging_string.toString());
             return rule_result_value;
         }
     }
