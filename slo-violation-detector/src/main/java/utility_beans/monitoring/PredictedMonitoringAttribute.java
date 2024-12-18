@@ -33,6 +33,7 @@ public class PredictedMonitoringAttribute {
     private double rate_of_change_for_less_than_rule; // the rate of change for the metric
     private double probability_confidence; //the probability confidence for the prediction
     private double confidence_interval_width;
+    private double forecasted_value;
     private long timestamp;
 
     private DetectorSubcomponent detector;
@@ -45,6 +46,7 @@ public class PredictedMonitoringAttribute {
     public PredictedMonitoringAttribute(DetectorSubcomponent detector, String name, double threshold, int associated_subrule_id, Double forecasted_value, double probability_confidence, double confidence_interval_width,long timestamp, long targeted_prediction_time){
 
         //Below, it is assumed that the maximum of an attribute is 100, and the minimum of an attribute is 0
+        this.forecasted_value = forecasted_value;
         this.detector = detector;
         this.initialized = true;
         this.name = name;
@@ -292,6 +294,26 @@ public class PredictedMonitoringAttribute {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public long getTargeted_prediction_time() {
+        return targeted_prediction_time;
+    }
+
+    public void setTargeted_prediction_time(long targeted_prediction_time) {
+        this.targeted_prediction_time = targeted_prediction_time;
+    }
+
+    public double getForecasted_value() {
+        return forecasted_value;
+    }
+
+    public void setForecasted_value(double forecasted_value) {
+        this.forecasted_value = forecasted_value;
+    }
+    
+    public boolean getEquality_to_threshold(){
+        return ((forecasted_value-threshold)>epsilon);
     }
 
     @Override

@@ -18,7 +18,8 @@ public class Constants {
     public static Double LOWER_LIMIT_DELTA = - 100.0;
     public static String NAME_SEPARATOR = "#";
     //Operational constants
-    public static String severity_calculation_method;
+    public static String proactive_severity_calculation_method;
+    public static String reactive_severity_calculation_method = "over_threshold";
     public static int time_horizon_seconds;
     public static Long buffer_time = 500L ; //This is a time interval in milliseconds allowing for many SLO violations to be gathered
     public static int maximum_acceptable_forward_predictions;

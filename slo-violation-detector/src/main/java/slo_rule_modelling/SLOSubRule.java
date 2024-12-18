@@ -23,14 +23,14 @@ public class SLOSubRule {
     private SLORuleJoin rule_join_type;
     private Double threshold;
     private Integer id;
-    private PredictedMonitoringAttribute associated_predicted_monitoring_attribute;
+    //private PredictedMonitoringAttribute associated_predicted_monitoring_attribute;
 
     public SLOSubRule(DetectorSubcomponent detector,String metric, String operator, Double threshold, Integer id){
         this.metric = metric;
         this.operator = operator;
         this.threshold = threshold;
         this.id = id;
-        this.associated_predicted_monitoring_attribute = new PredictedMonitoringAttribute(detector, metric);
+        //this.associated_predicted_monitoring_attribute = new PredictedMonitoringAttribute(detector, metric);
         this.rule_type = find_rule_type(operator);
     }
     public static RuleType find_rule_type(String operator){
@@ -67,13 +67,13 @@ public class SLOSubRule {
         return slo_subrules_per_monitoring_attribute;
     }
 
-    public PredictedMonitoringAttribute getAssociated_predicted_monitoring_attribute() {
-        return associated_predicted_monitoring_attribute;
-    }
-
-    public void setAssociated_predicted_monitoring_attribute(PredictedMonitoringAttribute associated_predicted_monitoring_attribute) {
-        this.associated_predicted_monitoring_attribute = associated_predicted_monitoring_attribute;
-    }
+//    public PredictedMonitoringAttribute getAssociated_predicted_monitoring_attribute() {
+//        return associated_predicted_monitoring_attribute;
+//    }
+//
+//    public void setAssociated_predicted_monitoring_attribute(PredictedMonitoringAttribute associated_predicted_monitoring_attribute) {
+//        this.associated_predicted_monitoring_attribute = associated_predicted_monitoring_attribute;
+//    }
 
     public RuleType getRule_type() {
         return rule_type;
@@ -85,6 +85,7 @@ public class SLOSubRule {
 
     @Override
     public String toString(){
-        return ("The rule is "+metric+operator+threshold+"\n+ The associated Predicted Monitoring Attribute is "+associated_predicted_monitoring_attribute.toString());
+        //return ("The rule is "+metric+operator+threshold+"\n+ The associated Predicted Monitoring Attribute is "+associated_predicted_monitoring_attribute.toString());
+        return ("The rule is "+metric+operator+threshold);
     }
 }

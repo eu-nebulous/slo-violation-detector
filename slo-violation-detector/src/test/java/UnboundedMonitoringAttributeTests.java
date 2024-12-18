@@ -34,13 +34,13 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
 import static slo_rule_modelling.SLORule.process_rule_value;
+import static slo_rule_modelling.SLORule.process_rule_value_reactively_proactively;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.initialize_subrule_and_attribute_associations;
 import static utility_beans.generic_component_functionality.CharacterizedThread.CharacterizedThreadRunMode.detached;
 import static utility_beans.monitoring.PredictedMonitoringAttribute.getPredicted_monitoring_attributes;
@@ -101,7 +101,7 @@ public class UnboundedMonitoringAttributeTests {
         detector.getSubcomponent_state().getMonitoring_attributes_bounds_representation().put(metric_string.split(";")[0], metric_string.split(";",2)[1]);
 
 
-        severity_calculation_method = "all-metrics";
+        proactive_severity_calculation_method = "all-metrics";
         JSONObject rule_json = (JSONObject) new JSONParser().parse(String.join(EMPTY, Files.readAllLines(Paths.get(new File(json_file_name).getAbsolutePath()))));
 
         ArrayList<SLORule> slo_rules = new ArrayList<>();
@@ -175,7 +175,7 @@ public class UnboundedMonitoringAttributeTests {
                                 PredictedMonitoringAttribute prediction_attribute = new PredictedMonitoringAttribute(detector, metric_name, subrule.getThreshold(), subrule.getId(), forecasted_value, probability_confidence, confidence_interval, timestamp,targeted_prediction_time);
 
                                 //predicted_attributes.get(predicted_attribute_name).add(prediction_attribute);
-                                subrule.setAssociated_predicted_monitoring_attribute(prediction_attribute);
+                                //subrule.setAssociated_predicted_monitoring_attribute(prediction_attribute);
 
                                 getPredicted_monitoring_attributes().get(subrule.getId()).put(targeted_prediction_time, prediction_attribute);
                             }
@@ -216,7 +216,7 @@ public class UnboundedMonitoringAttributeTests {
 
         assert (upper_bound<metric_upper_bound_range[1] && upper_bound>metric_upper_bound_range[0] && lower_bound>metric_lower_bound_range[0] && lower_bound <metric_lower_bound_range[1]);
 
-        double rule_severity = process_rule_value(rule,targeted_prediction_time);
+        double rule_severity = process_rule_value_reactively_proactively(rule,targeted_prediction_time,proactive_severity_calculation_method,detector.getSubcomponent_state().getMonitoring_attributes(),getPredicted_monitoring_attributes());
         Logger.getGlobal().log(Level.INFO,"The severity calculated is\nSeverity: "+rule_severity);
         assert (rule_severity>severity_lower_bound);
     }

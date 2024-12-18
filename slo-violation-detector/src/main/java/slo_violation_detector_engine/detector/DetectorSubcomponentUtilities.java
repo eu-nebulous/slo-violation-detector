@@ -240,7 +240,7 @@ public class DetectorSubcomponentUtilities {
      * @param normalized_rule_severity The severity of the rule which has been determined
      * @return The probability of the rule being violated. The minimum value of this probability is 0, and increases as the severity increases
      */
-    public static double determine_slo_violation_probability(double normalized_rule_severity) {
+    public static double determine_slo_violation_probability(double normalized_rule_severity, String severity_calculation_method) {
         if (severity_calculation_method.equals("all-metrics")) {
             //39.64 is the mean severity value when examining all integer severity values for roc x probability x confidence_interval x delta_value in (-100,100)x(0,100)x(0,100)x(-100,100)
             /*

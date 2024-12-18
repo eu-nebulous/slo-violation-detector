@@ -25,7 +25,7 @@ public class SLOViolationTests {
     public void test_threshold_modification() throws InterruptedException {
         //The scenario method
         time_horizon_seconds = 3;
-        severity_calculation_method = "all-metrics";
+        proactive_severity_calculation_method = "all-metrics";
         ViolationHandlingActionName handling_action_name = ViolationHandlingActionName.consult_threshold_and_change;
         int reconfiguration_period = time_horizon_seconds*1000;
         int longer_than_reconfiguration_period = (time_horizon_seconds+1)*1000;
