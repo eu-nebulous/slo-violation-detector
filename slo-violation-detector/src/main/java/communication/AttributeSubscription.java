@@ -104,7 +104,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                     }
                     long timestamp = ((Number)json_message.get("timestamp")).longValue();
                     long targeted_prediction_time = 1000*((Number)json_message.get("predictionTime")).longValue(); //Convert to millisecond accuracy
-                    Logger.getGlobal().log(info_logging_level,"RECEIVED message with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
+                    Logger.getGlobal().log(info_logging_level,"RECEIVED message targeting time point "+targeted_prediction_time+" with predicted value for "+predicted_attribute_name+" equal to "+ forecasted_value);
 
 
                         synchronized (detector.ADAPTATION_TIMES_MODIFY) {
@@ -153,7 +153,7 @@ public class AttributeSubscription extends AbstractFullBrokerSubscriber {
                             }else {
                                 PredictedMonitoringAttribute prediction_attribute = new PredictedMonitoringAttribute(detector,predicted_attribute_name, subrule.getThreshold(), subrule.getId(), forecasted_value, probability_confidence, confidence_interval,timestamp, targeted_prediction_time);
 
-                                subrule.setAssociated_predicted_monitoring_attribute(prediction_attribute);
+                                //subrule.setAssociated_predicted_monitoring_attribute(prediction_attribute);
 
                                 getPredicted_monitoring_attributes().get(subrule.getId()).put(targeted_prediction_time, prediction_attribute);
                             }

@@ -84,7 +84,7 @@ public class Main {
                 time_horizon_seconds = Integer.parseInt(prop.getProperty("time_horizon_seconds"));
 
                 slo_violation_probability_threshold = Double.parseDouble(prop.getProperty("slo_violation_probability_threshold"));
-                severity_calculation_method = prop.getProperty("slo_violation_determination_method");
+                proactive_severity_calculation_method = prop.getProperty("slo_violation_determination_method");
                 maximum_acceptable_forward_predictions = Integer.parseInt(prop.getProperty("maximum_acceptable_forward_predictions"));
                 
                 broker_ip = prop.getProperty("broker_ip_url");
@@ -98,7 +98,10 @@ public class Main {
                 q_learning_discounting_factor = Double.parseDouble(prop.getProperty("q_learning_discounting_factor"));
                 q_learning_learning_rate = Double.parseDouble(prop.getProperty("q_learning_learning_rate"));
                 q_learning_initial_value = Double.parseDouble(prop.getProperty("q_learning_initial_value"));
-                slo_violations_database_url = prop.getProperty("slo_violations_database_url");
+                String overriding_slo_violations_database_url = prop.getProperty("slo_violations_database_url");
+                if (overriding_slo_violations_database_url!= null && !overriding_slo_violations_database_url.isEmpty()) {
+                    slo_violations_database_url=overriding_slo_violations_database_url;
+                }
                 database_username = prop.getProperty("database_username");
                 database_password = prop.getProperty("database_password");maximum_adaptation_threshold_for_reconfigurations = Double.parseDouble(prop.getProperty("maximum_adaptation_threshold_for_reconfigurations"));
                 //TODO Delete below two lines

@@ -13,7 +13,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-<!-- Uncomment to allow the creation of a Java Sender
+<!-- Uncomment to allow the creation of a Java Sender/Receiver. Also, comment the dependency exclusion statements below
              <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
