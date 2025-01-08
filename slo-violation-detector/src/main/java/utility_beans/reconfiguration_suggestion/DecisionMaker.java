@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
@@ -57,6 +58,9 @@ public class DecisionMaker {
             
             SLOViolation slo_violation_to_process = null;
             String slo_violations_descr = "";
+            if (slo_violations.isEmpty()) {
+                Logger.getGlobal().log(warning_logging_level, "SLO violation list is empty");
+            }
             for (SLOViolation slo_violation : slo_violations){
                 if (!slo_violations_descr.isEmpty()){
                     slo_violations_descr = slo_violations_descr+"\n\t";
@@ -88,7 +92,6 @@ public class DecisionMaker {
                 }
             }
             if (slo_violation_to_process==null){
-                Logger.getGlobal().log(warning_logging_level,"Possible issue as all slos seem to be processed but we have been required to process SLO Violations");
                 return get_details_for_noop_reconfiguration();
             }
             Logger.getGlobal().log(info_logging_level, "Processing slo violation\n\t" + slo_violation_to_process+ "\nout of\n\t"+slo_violations_descr);

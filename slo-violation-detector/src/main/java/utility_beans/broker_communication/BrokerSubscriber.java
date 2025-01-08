@@ -141,23 +141,27 @@ public class BrokerSubscriber {
 
         CustomConnectorHandler current_connector_handler = current_connector_handlers.get(broker_ip);
         if (current_connector_handler==null){
-            current_connector_handler = new CustomConnectorHandler() {};
-            this.connector = new Connector("slo_violation_detector_consumer",
-                    current_connector_handler,
-                    List.of(),
-                    List.of(new_consumer),
-                    false,
-                    false,
-                    new StaticExnConfig(
-                            broker_ip,
-                            broker_port,
-                            brokerUsername,
-                            brokerPassword,
-                            60,
-                            EMPTY
-                    )
-            );
-            connector.start();
+            try {
+                current_connector_handler = new CustomConnectorHandler() {};
+                this.connector = new Connector("slo_violation_detector_consumer",
+                        current_connector_handler,
+                        List.of(),
+                        List.of(new_consumer),
+                        false,
+                        false,
+                        new StaticExnConfig(
+                                broker_ip,
+                                broker_port,
+                                brokerUsername,
+                                brokerPassword,
+                                60,
+                                EMPTY
+                        )
+                );
+                connector.start();
+            }catch (Exception e){
+                Logger.getAnonymousLogger().log(severe_logging_level,"Exception in starting connector for broker " + broker_ip+ " broker port "+broker_port+" consumer list "+List.of(new_consumer),e);
+            }
         }else{
             current_connector_handler.remove_consumer_with_key(topic);
         }

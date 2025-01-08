@@ -62,12 +62,13 @@ public class SeverityClassModel {
     public SeverityClass get_severity_class(double severity_value_searched_for) {
 
         int maximum_containing_severity_class_index = severity_classes.size()-1;
+        double severity_class_width = 1.0/maximum_containing_severity_class_index;
         int minimum_containing_severity_class_index = 0;
         int previous_midpoint=0;
         int midpoint = maximum_containing_severity_class_index/2;
         while (midpoint-(severity_classes.size()-1)<=0 && midpoint>=0 && this_was_not_the_midpoint(midpoint,severity_value_searched_for)){
             previous_midpoint = midpoint;
-            if (greater_than_midpoint(midpoint,severity_value_searched_for)>0){
+            if (greater_than_midpoint(midpoint,severity_value_searched_for)-severity_class_width>epsilon){
                 midpoint = max(midpoint+1,midpoint+(maximum_containing_severity_class_index-midpoint)/2);
                 minimum_containing_severity_class_index = previous_midpoint;
             }else if (greater_than_midpoint(midpoint,severity_value_searched_for)<0){

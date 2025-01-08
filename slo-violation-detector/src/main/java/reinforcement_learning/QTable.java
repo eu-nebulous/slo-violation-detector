@@ -44,8 +44,8 @@ public class QTable {
 
 
             while (rs.next()) {
-                double severity_value = rs.getDouble("severity_value");
-                double current_threshold = rs.getDouble("current_threshold");
+                int severity_value = rs.getInt("severity_value");
+                int current_threshold = rs.getInt("current_threshold");
                 String action = rs.getString("action");
                 double q_value = rs.getDouble("q_value");
 
