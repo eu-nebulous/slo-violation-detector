@@ -168,7 +168,7 @@ public class SLORule {
         }
         reactive_severity_result = process_rule_value(rule,targeted_prediction_time,reactive_severity_calculation_method,realtime_monitoring_attributes,predicted_monitoring_attributes);
         double severity_value = Math.max(proactive_severity_result,reactive_severity_result);
-        Logger.getGlobal().log(info_logging_level, "Returning overall severity maximum "+severity_value);
+        Logger.getGlobal().log(info_logging_level, "Returning overall severity maximum "+severity_value+ " coming from the "+ (proactive_severity_result>reactive_severity_result?" proactive calculation ":" reactive calculation ")+" part of severity");
         return severity_value;
     }
 
