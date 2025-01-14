@@ -17,7 +17,9 @@ public class QTableEntry {
         q_table_value = q_learning_initial_value;
         associated_q_table = q_table;
     }
-    public QTableEntry update(double severity_value, double severity_threshold, double seconds_from_last_adaptation){
+    public QTableEntry update(double unquantized_severity_value, double unquantized_severity_threshold, double seconds_from_last_adaptation){
+        int severity_value = (int)Math.round(unquantized_severity_value*100);
+        int severity_threshold = (int)Math.round(unquantized_severity_threshold*100);
         double old_q_table_value = q_table_value;
         double new_q_table_value = q_table_value + q_learning_learning_rate * (
                 (100*Math.min(time_horizon_seconds,seconds_from_last_adaptation)/time_horizon_seconds)
@@ -37,7 +39,7 @@ public class QTableEntry {
         return this;
     }
     
-    private double get_q_value_for_other_table_entry(double severity_value, double severity_threshold, ViolationHandlingActionName action){
+    private double get_q_value_for_other_table_entry(int severity_value, int severity_threshold, ViolationHandlingActionName action){
         return associated_q_table.get_entry(severity_value,severity_threshold,action).getQ_table_value();
     }
 

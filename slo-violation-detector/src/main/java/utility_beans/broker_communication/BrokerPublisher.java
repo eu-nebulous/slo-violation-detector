@@ -94,7 +94,7 @@ public class BrokerPublisher {
     }
 
     //TODO The methods below assume that the only content to be sent is json-like
-    public void publish (String json_string_content, Collection<String> application_names){
+    public void publish (String json_string_content, Collection<String> application_names, boolean stop_connector){
 
         for (String application_name : application_names) {
             JSONParser parser = new JSONParser();
@@ -110,6 +110,9 @@ public class BrokerPublisher {
             } else {
                 Logger.getAnonymousLogger().log(Level.SEVERE, "Could not send message to AMQP broker, as the publisher instance is null");
             }
+        }
+        if (stop_connector) {
+            active_connector.stop();
         }
     }
     public boolean is_publisher_null(){

@@ -142,7 +142,7 @@ public class DebugDataSubscription {
                 !broker_subscription_details.getBroker_username().equals(EMPTY)){
 
             BrokerPublisher publisher = new BrokerPublisher(debug_data_output_topic_name, broker_subscription_details.getBroker_ip(),broker_subscription_details.getBroker_port(),broker_subscription_details.getBroker_username(),broker_subscription_details.getBroker_password(), amq_library_configuration_location);
-            publisher.publish(output_debug_data, Collections.singleton(EMPTY));
+            publisher.publish(output_debug_data, Collections.singleton(EMPTY), true);
         }
 
         return output_debug_data;

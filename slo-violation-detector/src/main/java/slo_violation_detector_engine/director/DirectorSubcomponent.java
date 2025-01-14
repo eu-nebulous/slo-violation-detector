@@ -126,7 +126,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
             BrokerSubscriber device_lost_subscriber = new BrokerSubscriber(topic_for_lost_device_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location,EMPTY);
             broker_subscribers.add(device_lost_subscriber);
             BiFunction<BrokerSubscriptionDetails, String, String> device_lost_subscriber_function = (broker_details, message) -> {
-                BrokerPublisher persistent_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
+                BrokerPublisher oneoff_publisher = new BrokerPublisher(topic_for_severity_announcement, broker_ip, broker_port, broker_username, broker_password, amq_library_configuration_location);
 
                 Clock clock = Clock.systemUTC();
                 Long current_time_seconds = (long) Math.floor(clock.millis()/1000.0);
@@ -138,7 +138,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
                 }
                 severity_json.put("probability", 100.0);
                 severity_json.put("predictionTime", current_time_seconds);
-                persistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(EMPTY));
+                oneoff_publisher.publish(severity_json.toJSONString(), Collections.singleton(EMPTY),true);
 
                 return topic_for_lost_device_announcement + ":MSG:" + message;
             };
