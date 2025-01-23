@@ -8,6 +8,7 @@
 
 package slo_rule_modelling;
 
+import configuration.Constants;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -17,6 +18,7 @@ import utilities.MathUtils;
 import utilities.SLOViolationCalculator;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
 import utility_beans.monitoring.PredictedMonitoringAttribute;
+import utility_beans.reconfiguration_suggestion.SeverityResult;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -158,18 +160,25 @@ public class SLORule {
             return attribute_ids.put(attribute, id++);
         }
     }
-    public static double process_rule_value_reactively_proactively(SLORule rule, Long targeted_prediction_time, String proactive_severity_calculation_method,HashMap<String,RealtimeMonitoringAttribute> realtime_monitoring_attributes, HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_monitoring_attributes){
-        double proactive_severity_result = 0d;
-        double reactive_severity_result = 0d;
+    public static SeverityResult process_rule_value_reactively_proactively(SLORule rule, Long targeted_prediction_time, String proactive_severity_calculation_method,HashMap<String,RealtimeMonitoringAttribute> realtime_monitoring_attributes, HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_monitoring_attributes){
+        double proactive_severity_result_value =0d;
+        double reactive_severity_result_value=0d;
+        SeverityResult proactive_severity_result;
+        SeverityResult reactive_severity_result;
          if (proactive_severity_calculation_method!= null &&!proactive_severity_calculation_method.isEmpty()) {
-            proactive_severity_result = process_rule_value(rule,targeted_prediction_time,proactive_severity_calculation_method,realtime_monitoring_attributes,predicted_monitoring_attributes);
+            proactive_severity_result_value = process_rule_value(rule,targeted_prediction_time,proactive_severity_calculation_method,realtime_monitoring_attributes,predicted_monitoring_attributes);
         }else {
              Logger.getGlobal().log(severe_logging_level, "There was an error in getting an appropriate proactive severity calculation method (it was null/empty)");
         }
-        reactive_severity_result = process_rule_value(rule,targeted_prediction_time,reactive_severity_calculation_method,realtime_monitoring_attributes,predicted_monitoring_attributes);
-        double severity_value = Math.max(proactive_severity_result,reactive_severity_result);
-        Logger.getGlobal().log(info_logging_level, "Returning overall severity maximum "+severity_value+ " coming from the "+ (proactive_severity_result>reactive_severity_result?" proactive calculation ":" reactive calculation ")+" part of severity");
-        return severity_value;
+        reactive_severity_result_value = process_rule_value(rule,targeted_prediction_time,reactive_severity_calculation_method,realtime_monitoring_attributes,predicted_monitoring_attributes);
+        SeverityResult severity_result;
+        if (proactive_severity_result_value>reactive_severity_result_value){
+            severity_result = new SeverityResult(proactive_severity_result_value, reconfiguration_triggering_reason.proactive_slo_violation);
+        }else{
+            severity_result = new SeverityResult(reactive_severity_result_value,reconfiguration_triggering_reason.reactive_slo_violation);
+        }
+        Logger.getGlobal().log(info_logging_level, "Returning overall severity maximum "+severity_result.getSeverityValue()+ " coming from the "+ (proactive_severity_result_value>reactive_severity_result_value?" proactive calculation ":" reactive calculation ")+" part of severity");
+        return severity_result;
     }
 
     public static double process_rule_value(SLORule rule,Long targeted_prediction_time, String severity_calculation_method, HashMap<String,RealtimeMonitoringAttribute> realtime_monitoring_attributes, HashMap<Integer, HashMap<Long, PredictedMonitoringAttribute>> predicted_monitoring_attributes) {

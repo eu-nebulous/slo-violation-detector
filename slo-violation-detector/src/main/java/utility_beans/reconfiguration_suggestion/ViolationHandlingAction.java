@@ -107,16 +107,17 @@ public class ViolationHandlingAction {
                 seconds_from_last_slo_violation = Long.MAX_VALUE;
             }
             long reward_seconds = Math.min(seconds_from_last_adaptation,seconds_from_last_slo_violation);
-
-            QTableEntry old_q_table_state = associated_detector.getSubcomponent_state().getQ_table().get_entry(slo_violation.getSeverity_value(),associated_detector.getDm().getSeverity_class_model().get_severity_class(slo_violation.getSeverity_value()).getAdaptation_threshold().getValue(), action_name);
+        
+            double severity_value = slo_violation.getSeverity_result().getSeverityValue();
+            QTableEntry old_q_table_state = associated_detector.getSubcomponent_state().getQ_table().get_entry(severity_value,associated_detector.getDm().getSeverity_class_model().get_severity_class(severity_value).getAdaptation_threshold().getValue(), action_name);
             double old_q_table_state_value = old_q_table_state.getQ_table_value();
-            QTableEntry new_q_table_state = old_q_table_state.update(slo_violation.getSeverity_value(),associated_detector.getDm().getSeverity_class_model().get_severity_class(slo_violation.getSeverity_value()).getAdaptation_threshold().getValue(),reward_seconds);
+            QTableEntry new_q_table_state = old_q_table_state.update(severity_value,associated_detector.getDm().getSeverity_class_model().get_severity_class(severity_value).getAdaptation_threshold().getValue(),reward_seconds);
             double new_q_table_state_value = new_q_table_state.getQ_table_value();
             //Updating Q-table database entries 
             associated_detector.getSubcomponent_state().add_q_table_database_entry(
                     associated_detector.get_application_name(),
-                    slo_violation.getSeverity_value(),
-                    associated_detector.getDm().getSeverity_class_model().get_severity_class(slo_violation.getSeverity_value()).getAdaptation_threshold().getValue(),
+                    severity_value,
+                    associated_detector.getDm().getSeverity_class_model().get_severity_class(severity_value).getAdaptation_threshold().getValue(),
                     action_name,
                     new_q_table_state_value
             );

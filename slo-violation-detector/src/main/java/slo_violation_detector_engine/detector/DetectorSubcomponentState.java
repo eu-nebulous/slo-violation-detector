@@ -3,12 +3,9 @@ package slo_violation_detector_engine.detector;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import reinforcement_learning.QTable;
 import slo_rule_modelling.SLORule;
-import utility_beans.reconfiguration_suggestion.SLODeterminationMethod;
-import utility_beans.reconfiguration_suggestion.ViolationHandlingActionName;
+import utility_beans.reconfiguration_suggestion.*;
 import utility_beans.monitoring.MonitoringAttributeStatistics;
 import utility_beans.monitoring.RealtimeMonitoringAttribute;
-import utility_beans.reconfiguration_suggestion.ReconfigurationDetails;
-import utility_beans.reconfiguration_suggestion.SLOViolation;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -275,7 +272,7 @@ public class DetectorSubcomponentState{
     }
 
     private SLOViolation get_initial_deploymentSLOViolation() {
-        SLOViolation initial_deployment_slo_violation = new SLOViolation(0.0,0.0,0L,0L, SLODeterminationMethod.all_metrics,new HashMap<>());
+        SLOViolation initial_deployment_slo_violation = new SLOViolation(new SeverityResult(0.0,reconfiguration_triggering_reason.reactive_slo_violation),0.0,0L,0L, SLODeterminationMethod.all_metrics,new HashMap<>());
         return initial_deployment_slo_violation;
     }
 

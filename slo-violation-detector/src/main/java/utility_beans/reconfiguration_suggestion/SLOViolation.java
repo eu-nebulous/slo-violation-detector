@@ -11,7 +11,8 @@ public class SLOViolation {
 
     private String id;
     private Long default_reconfiguration_interval = 3000L;
-    private Double severity_value;
+    private SeverityResult severity_result;
+    //private Double severity_value;
     private Double reconf_probability;
     private Long time_calculated; //System.currentTimeMillis() is used to assign values here
     private Long timepoint_of_implementation_of_reconfiguration;
@@ -25,9 +26,9 @@ public class SLOViolation {
     private boolean reconfiguration_is_completed = false;
 
 
-    public SLOViolation(Double severity_value, Double reconf_probability, Long time_calculated, Long proposed_reconfiguration_timestamp, SLODeterminationMethod slo_determination_method, HashMap<SLOViolationMetaMetric, Double> slo_metametric_values) {
+    public SLOViolation(SeverityResult severity_result, Double reconf_probability, Long time_calculated, Long proposed_reconfiguration_timestamp, SLODeterminationMethod slo_determination_method, HashMap<SLOViolationMetaMetric, Double> slo_metametric_values) {
         try {
-            this.severity_value = severity_value;
+            this.severity_result = severity_result;
             this.reconf_probability = reconf_probability;
             this.time_calculated = time_calculated;
             this.proposed_reconfiguration_timestamp = proposed_reconfiguration_timestamp;
@@ -39,10 +40,10 @@ public class SLOViolation {
         }
     }
 
-    public SLOViolation(Double severity_value) {
+    public SLOViolation(SeverityResult severity_result) {
         try {
-            this.severity_value = severity_value;
-            this.reconf_probability = Math.min(severity_value, 1.0);
+            this.severity_result = severity_result;
+            this.reconf_probability = Math.min(severity_result.getSeverityValue(), 1.0);
             this.time_calculated = System.currentTimeMillis();
             this.proposed_reconfiguration_timestamp = time_calculated + default_reconfiguration_interval;
             this.slo_determination_method = SLODeterminationMethod.all_metrics;
@@ -53,12 +54,12 @@ public class SLOViolation {
         }
     }
 
-    public Double getSeverity_value() {
-        return severity_value;
+    public SeverityResult getSeverity_result() {
+        return severity_result;
     }
 
-    public void setSeverity_value(Double severity_value) {
-        this.severity_value = severity_value;
+    public void setSeverity_result(SeverityResult severity_result) {
+        this.severity_result = severity_result;
     }
 
     public Double getReconf_probability() {
@@ -154,6 +155,6 @@ public class SLOViolation {
     }
     @Override
     public String toString(){
-        return "SLOv "+id+" - timestamp: "+time_calculated+", severity: "+severity_value+" ("+(processing_status.toString())+")";
+        return "SLOv "+id+" - timestamp: "+time_calculated+", severity: "+severity_result.getSeverityValue()+" reason: "+severity_result.getReason()+" ("+(processing_status.toString())+")";
     }
 }

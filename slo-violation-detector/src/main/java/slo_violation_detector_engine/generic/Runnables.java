@@ -13,6 +13,7 @@ import utility_beans.broker_communication.BrokerSubscriptionDetails;
 import utility_beans.generic_component_functionality.CharacterizedThread;
 import utility_beans.monitoring.PredictedMonitoringAttribute;
 import utility_beans.reconfiguration_suggestion.DecisionMaker;import utility_beans.reconfiguration_suggestion.ReconfigurationDetails;import utility_beans.reconfiguration_suggestion.SLOViolation;
+import utility_beans.reconfiguration_suggestion.SeverityResult;
 
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -190,20 +191,22 @@ public class Runnables {
 
                                 if (slo_violation_feedback_method.equals("using_q_learning_severity_threshold")) {
                                     sleep(sleep_time);
-                                    rule_severity = process_rule_value_reactively_proactively(rule, targeted_prediction_time,proactive_severity_calculation_method,detector.getSubcomponent_state().getMonitoring_attributes(), getPredicted_monitoring_attributes());
+                                    SeverityResult severity_result = process_rule_value_reactively_proactively(rule, targeted_prediction_time,proactive_severity_calculation_method,detector.getSubcomponent_state().getMonitoring_attributes(), getPredicted_monitoring_attributes());
+                                    rule_severity = severity_result.getSeverityValue();
                                     normalized_rule_severity = rule_severity / 100;
+                                    severity_result.setSeverityValue(normalized_rule_severity);
                                     boolean slo_violation_submitted = false;
-                                    current_slo_violation = new SLOViolation(normalized_rule_severity);
+                                    current_slo_violation = new SLOViolation(severity_result);
                                     CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue = detector.getSubcomponent_state().getReconfiguration_time_recording_queue();
                                     if (detector.getDm()!=null){
-                                        if (current_slo_violation.getSeverity_value()>0) {
+                                        if (current_slo_violation.getSeverity_result().getSeverityValue()>0) {
                                             detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
                                             slo_violation_submitted = true;
                                         }
                                     }else {
                                         SeverityClassModel scm = new SeverityClassModel(number_of_severity_classes, true);
                                         detector.setDm(new DecisionMaker(scm, reconfiguration_queue,detector.getSubcomponent_state()));
-                                        if (current_slo_violation.getSeverity_value()>0) {
+                                        if (current_slo_violation.getSeverity_result().getSeverityValue()>0) {
                                             detector.getSubcomponent_state().submitSLOViolation(current_slo_violation);
                                             slo_violation_submitted = true;
                                         }
@@ -217,21 +220,23 @@ public class Runnables {
                                         reconfiguration_details = ReconfigurationDetails.get_details_for_noop_reconfiguration();
                                         normalized_rule_severity = -1;
                                         slo_violation_probability = 0;
-                                        current_slo_violation=new SLOViolation(-1.0);
+                                        current_slo_violation=new SLOViolation(new SeverityResult(-1.0,reconfiguration_triggering_reason.not_applicable));
                                     }
 
                                 } else if (slo_violation_feedback_method.equals("none")) {
                                     sleep(sleep_time + adjusted_buffer_time); //Not interested in other SLO Violations, directly processing any SLOs
-                                    rule_severity = process_rule_value_reactively_proactively(rule, targeted_prediction_time,proactive_severity_calculation_method,detector.getSubcomponent_state().getMonitoring_attributes(),getPredicted_monitoring_attributes());
+                                    SeverityResult severity_result = process_rule_value_reactively_proactively(rule, targeted_prediction_time,proactive_severity_calculation_method,detector.getSubcomponent_state().getMonitoring_attributes(),getPredicted_monitoring_attributes());
+                                    rule_severity = severity_result.getSeverityValue();
                                     normalized_rule_severity = rule_severity / 100;
+                                    severity_result.setSeverityValue(normalized_rule_severity);
                                     slo_violation_probability = determine_slo_violation_probability(normalized_rule_severity,proactive_severity_calculation_method);
-                                    current_slo_violation = new SLOViolation(normalized_rule_severity);
+                                    current_slo_violation = new SLOViolation(severity_result);
                                     Logger.getGlobal().log(info_logging_level, "The overall " + proactive_severity_calculation_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time )).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand");
                                     Logger.getGlobal().log(info_logging_level, "The probability of an SLO violation is " + ((int) (slo_violation_probability * 100)) + "%" + (slo_violation_probability < slo_violation_probability_threshold ? " so it will not be published" : " and it will be published"));
 
 
                                     if (slo_violation_probability >= slo_violation_probability_threshold) {
-                                        reconfiguration_details = new ReconfigurationDetails(slo_violation_probability,rule_severity,true,-1,targeted_prediction_time);
+                                        reconfiguration_details = new ReconfigurationDetails(slo_violation_probability,severity_result,true,-1,targeted_prediction_time);
                                     }else{
                                         reconfiguration_details = ReconfigurationDetails.get_details_for_noop_reconfiguration();
                                     }
@@ -242,7 +247,7 @@ public class Runnables {
                                     rule_severity = -100;
                                     normalized_rule_severity = -1;
                                     slo_violation_probability = 0;
-                                    current_slo_violation=new SLOViolation(-1.0);
+                                    current_slo_violation=new SLOViolation(new SeverityResult(-1.0,reconfiguration_triggering_reason.not_applicable));
                                 }
 
                                 if (reconfiguration_details.will_reconfigure()) {
@@ -255,6 +260,7 @@ public class Runnables {
 
                                     severity_json.put("probability", slo_violation_probability);
                                     severity_json.put("predictionTime", targeted_prediction_time);
+                                    severity_json.put("reason",reconfiguration_details.getSeverity_result().getReason());
                                     finalPersistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()),false);
 
                                     Logger.getGlobal().log(debug_logging_level,"Adding violation record for violation "+current_slo_violation.getId()+" to database");
