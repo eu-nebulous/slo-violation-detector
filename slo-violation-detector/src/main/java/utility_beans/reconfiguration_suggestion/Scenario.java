@@ -51,7 +51,7 @@ public class Scenario {
         LOGGER.log(info_logging_level, "Starting experiment");
 
         LOGGER.log(info_logging_level, "Creating an SLO Violation with a severity value of 0.8");
-        SLOViolation a = new SLOViolation(0.8);
+        SLOViolation a = new SLOViolation(new SeverityResult(0.8,reconfiguration_triggering_reason.reactive_slo_violation));
         detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations(Optional.of(handling_action_name));
         Thread.sleep(reconfiguration_period+1000);
@@ -59,7 +59,7 @@ public class Scenario {
         adaptation_timestamps.add(new ReconfigurationDetails(a,dm));
         LOGGER.log(info_logging_level,"Reconfiguration completed at "+adaptation_timestamps.get(adaptation_timestamps.size()-1));
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.9");
-        SLOViolation b = new SLOViolation(0.9);
+        SLOViolation b = new SLOViolation(new SeverityResult(0.9,reconfiguration_triggering_reason.reactive_slo_violation));
         detector.getSubcomponent_state().submitSLOViolation(a);
         dm.processSLOViolations(Optional.of(handling_action_name));
         Thread.sleep(reconfiguration_period+1000);
@@ -71,19 +71,19 @@ public class Scenario {
         //severity_class_model.get_severity_class_status();
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.8");
-        SLOViolation c = new SLOViolation(0.8);
+        SLOViolation c = new SLOViolation(new SeverityResult(0.8,reconfiguration_triggering_reason.reactive_slo_violation));
         detector.getSubcomponent_state().submitSLOViolation(a);
         Thread.sleep(reconfiguration_period/3);
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.7");
-        SLOViolation d = new SLOViolation(0.7);
+        SLOViolation d = new SLOViolation(new SeverityResult(0.7,reconfiguration_triggering_reason.reactive_slo_violation));
         detector.getSubcomponent_state().submitSLOViolation(a);
         Thread.sleep(reconfiguration_period/3);
 
         dm.processSLOViolations(Optional.of(handling_action_name));
 
         Logger.getGlobal().log(info_logging_level, "Creating an SLO Violation with a severity value of 0.85");
-        SLOViolation e = new SLOViolation(0.85);
+        SLOViolation e = new SLOViolation(new SeverityResult(0.85,reconfiguration_triggering_reason.reactive_slo_violation));
         detector.getSubcomponent_state().submitSLOViolation(a);
         
         adaptation_timestamps.add(new ReconfigurationDetails(e,dm));
