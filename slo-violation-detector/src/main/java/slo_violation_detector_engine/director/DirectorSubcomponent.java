@@ -1,5 +1,6 @@
 package slo_violation_detector_engine.director;
 
+import configuration.Constants;
 import eu.nebulouscloud.exn.Connector;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -137,6 +138,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
                     severity_json.put("severity", 100.0);
                 }
                 severity_json.put("probability", 100.0);
+                severity_json.put("reason", reconfiguration_triggering_reason.device_lost);
                 severity_json.put("predictionTime", current_time_seconds);
                 oneoff_publisher.publish(severity_json.toJSONString(), Collections.singleton(EMPTY),true);
 

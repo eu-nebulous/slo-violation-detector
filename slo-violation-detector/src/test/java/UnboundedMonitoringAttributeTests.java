@@ -39,7 +39,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
-import static slo_rule_modelling.SLORule.process_rule_value;
 import static slo_rule_modelling.SLORule.process_rule_value_reactively_proactively;
 import static slo_violation_detector_engine.detector.DetectorSubcomponentUtilities.initialize_subrule_and_attribute_associations;
 import static utility_beans.generic_component_functionality.CharacterizedThread.CharacterizedThreadRunMode.detached;
@@ -216,7 +215,7 @@ public class UnboundedMonitoringAttributeTests {
 
         assert (upper_bound<metric_upper_bound_range[1] && upper_bound>metric_upper_bound_range[0] && lower_bound>metric_lower_bound_range[0] && lower_bound <metric_lower_bound_range[1]);
 
-        double rule_severity = process_rule_value_reactively_proactively(rule,targeted_prediction_time,proactive_severity_calculation_method,detector.getSubcomponent_state().getMonitoring_attributes(),getPredicted_monitoring_attributes());
+        double rule_severity = process_rule_value_reactively_proactively(rule,targeted_prediction_time,proactive_severity_calculation_method,detector.getSubcomponent_state().getMonitoring_attributes(),getPredicted_monitoring_attributes()).getSeverityValue();
         Logger.getGlobal().log(Level.INFO,"The severity calculated is\nSeverity: "+rule_severity);
         assert (rule_severity>severity_lower_bound);
     }

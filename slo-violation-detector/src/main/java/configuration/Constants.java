@@ -60,4 +60,5 @@ public class Constants {
 
     //Formatting constants
     public static String dashed_line = "\n----------------------\n";
+    public enum reconfiguration_triggering_reason {reactive_slo_violation, proactive_slo_violation, device_lost,not_applicable}; 
 }

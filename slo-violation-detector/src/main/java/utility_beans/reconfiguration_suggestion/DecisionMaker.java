@@ -75,7 +75,7 @@ public class DecisionMaker {
                     continue;
                 }
                 if (slo_violation_to_process!=null){
-                    if (slo_violation.getSeverity_value()>slo_violation_to_process.getSeverity_value()){
+                    if (slo_violation.getSeverity_result().getSeverityValue()>slo_violation_to_process.getSeverity_result().getSeverityValue()){
                         slo_violation_to_process.setProcessing_status(ProcessingStatus.finished); //the old maximum will not be processed at all, so from started it gets directly to the finished stage   
                         slo_violation_to_process = slo_violation;
                     }else {
@@ -144,10 +144,11 @@ public class DecisionMaker {
         boolean was_adaptation_suggested = false;
         ReconfigurationDetails reconfiguration_details;
         
-        double severity_value_to_process = slo_violation.getSeverity_value();
+        SeverityResult severity_result = slo_violation.getSeverity_result();
+        double severity_value_to_process = slo_violation.getSeverity_result().getSeverityValue();
         double normalized_severity_value_to_process = 100*severity_value_to_process;
         if (severity_value_to_process < 0) {
-            Logger.getGlobal().log(severe_logging_level,"The severity value is negative ("+slo_violation.getSeverity_value()+"), this slo violation should not have been processed");
+            Logger.getGlobal().log(severe_logging_level,"The severity value is negative ("+slo_violation.getSeverity_result().getSeverityValue()+"), this slo violation should not have been processed");
         }
         SeverityClass severity_class = severity_class_model.get_severity_class(severity_value_to_process);
         double severity_class_threshold = severity_class.getAdaptation_threshold().getValue();
@@ -249,7 +250,7 @@ public class DecisionMaker {
         get_results.start();
 
         if (was_adaptation_suggested) {
-            reconfiguration_details = new ReconfigurationDetails(determine_slo_violation_probability(normalized_severity_value_to_process,proactive_severity_calculation_method), severity_value_to_process, true, severity_class_threshold, slo_violation.getProposed_reconfiguration_timestamp());
+            reconfiguration_details = new ReconfigurationDetails(determine_slo_violation_probability(normalized_severity_value_to_process,proactive_severity_calculation_method), severity_result, true, severity_class_threshold, slo_violation.getProposed_reconfiguration_timestamp());
         }else{
             reconfiguration_details = get_details_for_noop_reconfiguration();
         }
