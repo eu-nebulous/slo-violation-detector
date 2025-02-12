@@ -253,7 +253,7 @@ public class UnboundedMonitoringAttributeTests {
                 double random_value = ThreadLocalRandom.current().nextDouble();
                 realtime_metric_json_object.put("metricValue", base_metric_value+random_value*(metric_max_value-base_metric_value));
                 realtime_metric_json_object.put("timestamp",System.currentTimeMillis());
-                realtime_data_publisher.publish(realtime_metric_json_object.toJSONString(), Collections.singleton(default_application_name),false);
+                realtime_data_publisher.publish(realtime_metric_json_object.toJSONString(), Collections.singleton(default_application_name));
 
                 JSONObject forecasted_metric_json_object = new JSONObject();
                 forecasted_metric_json_object.put("metricValue", forecasted_metric_value);
@@ -265,7 +265,7 @@ public class UnboundedMonitoringAttributeTests {
                 confidence_interval_list.add((forecasted_metric_value-confidence_interval/2));
                 confidence_interval_list.add((forecasted_metric_value+confidence_interval/2));
                 forecasted_metric_json_object.put("confidence_interval",confidence_interval_list);
-                forecasted_data_publisher.publish(forecasted_metric_json_object.toJSONString(), Collections.singleton(default_application_name),false);
+                forecasted_data_publisher.publish(forecasted_metric_json_object.toJSONString(), Collections.singleton(default_application_name));
                 Thread.sleep(publish_interval_in_milliseconds);
 
             }catch (InterruptedException i){

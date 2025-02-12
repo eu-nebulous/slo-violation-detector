@@ -140,7 +140,7 @@ public class DirectorSubcomponent extends SLOViolationDetectorSubcomponent {
                 severity_json.put("probability", 100.0);
                 severity_json.put("reason", reconfiguration_triggering_reason.device_lost);
                 severity_json.put("predictionTime", current_time_seconds);
-                oneoff_publisher.publish(severity_json.toJSONString(), Collections.singleton(EMPTY),true);
+                oneoff_publisher.publish(severity_json.toJSONString(), Collections.singleton(EMPTY));
 
                 return topic_for_lost_device_announcement + ":MSG:" + message;
             };

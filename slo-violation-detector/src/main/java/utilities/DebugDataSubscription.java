@@ -29,6 +29,7 @@ public class DebugDataSubscription {
 
     public static String debug_data_trigger_topic_name = "sloviolationdetector.debug";
     public static String debug_data_output_topic_name = "sloviolationdetector.debug_output";
+    public static BrokerPublisher publisher;
     public static BiFunction <BrokerSubscriptionDetails,String,String> debug_data_generation = (broker_subscription_details, message) ->{
 
         String output_debug_data = "";
@@ -139,10 +140,14 @@ public class DebugDataSubscription {
         //Only try to publish data if details of the broker subscription are known
         if (!broker_subscription_details.getBroker_ip().equals(EMPTY)&&
                 !broker_subscription_details.getBroker_password().equals(EMPTY)&&
-                !broker_subscription_details.getBroker_username().equals(EMPTY)){
+                !broker_subscription_details.getBroker_username().equals(EMPTY)&&
+                publisher == null
+        ){
 
-            BrokerPublisher publisher = new BrokerPublisher(debug_data_output_topic_name, broker_subscription_details.getBroker_ip(),broker_subscription_details.getBroker_port(),broker_subscription_details.getBroker_username(),broker_subscription_details.getBroker_password(), amq_library_configuration_location);
-            publisher.publish(output_debug_data, Collections.singleton(EMPTY), true);
+            publisher = new BrokerPublisher(debug_data_output_topic_name, broker_subscription_details.getBroker_ip(),broker_subscription_details.getBroker_port(),broker_subscription_details.getBroker_username(),broker_subscription_details.getBroker_password(), amq_library_configuration_location);
+            publisher.publish(output_debug_data, Collections.singleton(EMPTY));
+        }else if (publisher!=null){
+            publisher.publish(output_debug_data, Collections.singleton(EMPTY));
         }
 
         return output_debug_data;
