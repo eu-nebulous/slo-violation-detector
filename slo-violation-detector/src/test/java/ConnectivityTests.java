@@ -83,7 +83,7 @@ public class ConnectivityTests {
             }catch (InterruptedException i){
                 i.printStackTrace();
             }
-            publisher.publish(object_to_publish.toJSONString(), Collections.singleton(default_application_name),true);
+            publisher.publish(object_to_publish.toJSONString(), Collections.singleton(default_application_name));
             Logger.getAnonymousLogger().log(Level.INFO,"Published message "+object_to_publish.toJSONString());
             try {
                 Thread.sleep(2000);
