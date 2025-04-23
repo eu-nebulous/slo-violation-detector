@@ -76,6 +76,13 @@ public class Main {
 
                 }
                 prop.load(inputStream);
+                for (String key : prop.stringPropertyNames()) {
+                    String envValue = System.getenv(key.toUpperCase());
+                    if (envValue != null && !envValue.isEmpty()) {
+                        Logger.getGlobal().log(info_logging_level, "Overriding property '"+key+"' with env variable '"+key.toUpperCase()+"' value");
+                        prop.setProperty(key, envValue);
+                    }
+                }
                 slo_rules_topic = prop.getProperty("slo_rules_topic");
                 kept_values_per_metric = Integer.parseInt(prop.getProperty("stored_values_per_metric", "5"));
                 
@@ -110,6 +117,7 @@ public class Main {
 
 
             } //initialization
+            
             if (operational_mode.equals(OperationalMode.DETECTOR)) {
                 if (args.length>2){
                     Logger.getGlobal().log(info_logging_level,"Creating new SLO Violation Detector subcomponent within the main class");
