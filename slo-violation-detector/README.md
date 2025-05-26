@@ -17,8 +17,8 @@ Operational phases
    - Initialization of the internal structures representing the SLO rules and the monitoring metrics
    - Subscription to metric_list topic and initialization of new subscribers based on initial message
    - Subscription to topic_for_lost_device_announcement
-   - Continuous calculation of Severity based on incoming realtime and predicted metrics, and creation of severity output messages when relevant input has been received
-   - Continuous monitoring of reconfiguration statistics and adaptation of the behaviour of the component as appropriate
+   - Continuous calculation of Severity based on incoming realtime and predicted metrics, and creation of severity output messages when relevant input has been received. These messages may reflect a need for adaptation due to the values of realtime metrics (reactive reconfiguration) or the values fo predicted and realtime metrics (proactive reconfiguration)
+   - Continuous monitoring of reconfiguration statistics and adaptation of the behaviour of the component as appropriate. This happens, by identifying for the last reconfiguration whether the proposed action was successful or not. The evaluate_correctness method is being used inside the process_slo_violation method, which is in turn used by the process_slo_violations method.
 
 
 ## Configuration
@@ -136,7 +136,7 @@ In the above command, jar_name is the file name of the executable jar of the slo
 
 When the component starts correctly it will not display any error logs, and it may also display that it listens for events on the topic in which SLO rules are to be specified (by default **eu.nebulouscloud.monitoring.slo.new**).
 
-It is not mandatory to specify the <configuration_file_location> or the <role_type> but the defaults will be assumed (the location of the configuration file will be based on the Constants.java class and the role will be OperationalMode.DIRECTOR )
+It is not mandatory to specify the <configuration_file_location> or the <role_type> but the defaults will be assumed (the location of the configuration file will be based on the `Constants` class and the role will be `OperationalMode.DIRECTOR` )
 
 When debugging/developing, the component can be started from the Java main method which is located inside the src/runtime/Main.java file.
 
@@ -156,21 +156,22 @@ To test the functionality of the component - provided that a working ActiveMQ Br
    {
      "severity": 0.9064,
      "predictionTime": 1626181860,
-     "probability": 0.92246521
+     "probability": 0.92246521,
+     "reason": "proactive_slo_violation"
    }
    ```
 
-The structure which is used for realtime and forecasted settings can be changed as required. However, the code is required to be adapted to parse the related topics (see the values of the topic_prefix_realtime_metrics and topic_prefix_final_predicted_metrics in the Constants class)
+The structure which is used for realtime and forecasted settings can be changed as required. However, the code is required to be adapted to parse the related topics (see the values of the `topic_prefix_realtime_metrics` and `topic_prefix_final_predicted_metrics` in the `Constants` class)
 
 ### Development
 
 #### General Remarks
 
-Starting new threads in the SLO Violation Detection component should only be done using the CharacterizedThread class, as opposed to using plain Threads - to reassure that Threads are being defined in a way which permits their appropriate management (registration/removal).
+Starting new threads in the SLO Violation Detection component should only be done using the `CharacterizedThread` class, as opposed to using plain Threads - to reassure that Threads are being defined in a way which permits their appropriate management (registration/removal).
 
 #### Internal structure
 
-Execution in the SLO Violation Detector component begins at the Main class, part of the `runtime` package inside the src/main/java folder. Immediately, following some basic initializations the character of the program is determined - either Director-Detector or simple Detector - and then the relevant subcomponents are initialized. If the component is initialized as a Director-Detector, it will also have some active Spring Boot endpoints using which, it will be able to listen to incoming requests and provide information. The way this information is provided, is detailed in the Director and the Detector RequestMapping classes inside the `runtime` package.
+Execution in the SLO Violation Detector component begins at the Main class, part of the `runtime` package inside the src/main/java folder. Immediately, following some basic initializations the character of the program is determined - either Director-Detector or simple Detector - and then the relevant subcomponents are initialized. If the component is initialized as a Director-Detector, it will also have some active Spring Boot endpoints using which, it will be able to listen to incoming requests and provide information. The way this information is provided, is detailed in the Director and the Detector `RequestMapping` classes inside the `runtime` package.
 
 Generic constants which should be available throughout the program, are included in the `Constants` class inside the `configuration` package.
 

@@ -7,8 +7,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.logging.Logger;
 
-import static configuration.Constants.info_logging_level;
-import static configuration.Constants.slo_violations_database_url;
+import static configuration.Constants.*;
 
 public class QTable {
     private final QTableEntry[][][] q_table = new QTableEntry[101][101][ViolationHandlingActionName.values().length];
@@ -44,8 +43,8 @@ public class QTable {
 
 
             while (rs.next()) {
-                int severity_value = rs.getInt("severity_value");
-                int current_threshold = rs.getInt("current_threshold");
+                double severity_value = rs.getInt("severity_value")/100.0; //dividing by 100 since these numbers are multiplied by 100 before they enter the database
+                double current_threshold = rs.getInt("current_threshold")/100.0;
                 String action = rs.getString("action");
                 double q_value = rs.getDouble("q_value");
 
@@ -60,7 +59,8 @@ public class QTable {
             statement.close();
             conn.commit();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            Logger.getGlobal().log(warning_logging_level,"Tried to load the q table from the database but an error occurred, so its values will be ignored");
+            e.printStackTrace();
         }
     }
 
@@ -70,7 +70,7 @@ public class QTable {
             return false; // Database file does not exist
         }
 
-        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbFile)) {
+        try (Connection conn = DriverManager.getConnection("jdbc:h2:" + dbFile)) {
             return conn.isValid(0); // Check if the connection is valid (i.e., database exists)
         } catch (SQLException e) {
             return false; // Error occurred, assume database does not exist

@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static configuration.Constants.*;
@@ -141,7 +140,7 @@ public class DecisionMaker {
   
     public ReconfigurationDetails processSLOViolation(SLOViolation slo_violation, CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue, Optional<ViolationHandlingActionName> action){
 
-        boolean was_adaptation_suggested = false;
+        boolean was_adaptation_suggested;
         ReconfigurationDetails reconfiguration_details;
         
         SeverityResult severity_result = slo_violation.getSeverity_result();
@@ -199,6 +198,8 @@ public class DecisionMaker {
         ){
             //need_to_evaluate_decision = handling_action_name.equals(ViolationHandlingActionNames.drop_reconfiguration_and_change);
             was_adaptation_suggested = false;
+        } else { //catch-all
+            was_adaptation_suggested = false;
         }
         ViolationHandlingAction violation_handling_action = new ViolationHandlingAction(handling_action_name,slo_violation,was_adaptation_suggested,associated_detector);
         slo_violation.setViolation_handling_action(violation_handling_action);
@@ -206,10 +207,10 @@ public class DecisionMaker {
         Thread get_results = new Thread(() -> {
 
             try {
-                String message = String.format(slo_violation.getId() + " - Starting a new learning thread at %d - waiting for %d seconds", System.currentTimeMillis(), average_reconfiguration_interval_seconds);
+                String message = String.format(slo_violation.getId() + " - Starting a new learning thread at %d - waiting for %f seconds", System.currentTimeMillis(), average_reconfiguration_interval_seconds*1.1);
                 Logger.getGlobal().log(info_logging_level, message);
 
-                Thread.sleep(average_reconfiguration_interval_seconds * 1000L);
+                Thread.sleep(average_reconfiguration_interval_seconds * 1000L+(average_reconfiguration_interval_seconds/10)*1000L);
                 Long last_reconfiguration_timestamp;
                 if (!reconfiguration_queue.isEmpty()) {
                     last_reconfiguration_timestamp = get_last_reconfiguration_timestamp(reconfiguration_queue,slo_violation);
@@ -221,24 +222,9 @@ public class DecisionMaker {
                     boolean was_correct_decision;
                     //If the last slo violation was the one examined now, the only way to have proposed something suboptimal would be for a reconfiguration to have occurred
                     if (slo_violations.get(slo_violations.size() - 1).equals(slo_violation)) {
-                        was_correct_decision = violation_handling_action.evaluate_correctness(handling_action_name, last_reconfiguration_timestamp, 0L);
+                        was_correct_decision = violation_handling_action.evaluate_correctness(was_adaptation_suggested,handling_action_name, last_reconfiguration_timestamp, slo_violation,severity_class);
                     } else {
-                        was_correct_decision = violation_handling_action.evaluate_correctness(handling_action_name, last_reconfiguration_timestamp, get_last_slo_violation_timestamp());
-                    }
-                    if (
-                        handling_action_name.equals(ViolationHandlingActionName.consult_threshold_and_change) ||
-                        handling_action_name.equals(ViolationHandlingActionName.drop_reconfiguration_and_change) ||
-                        handling_action_name.equals(ViolationHandlingActionName.send_reconfiguration_and_change)
-                    ) {
-                        if (was_correct_decision) {
-                            Logger.getGlobal().log(info_logging_level, "Made a correct violation_handling_action not to reconfigure, increasing the threshold");
-                            severity_class.increase_threshold();
-                        } else {
-                            Logger.getGlobal().log(info_logging_level, "Made a wrong violation_handling_action not to reconfigure, decreasing the threshold");
-                            severity_class.decrease_threshold();
-                        }
-                    }else{
-                        Logger.getGlobal().log(info_logging_level, "Not modifying the threshold for the related severity class due to a "+handling_action_name+" handling action");
+                        was_correct_decision = violation_handling_action.evaluate_correctness(was_adaptation_suggested,handling_action_name, last_reconfiguration_timestamp, get_last_slo_violation(),severity_class);
                     }
                 }
                 //TODO evaluate whether this is appropriate or waiting is also required in synchronization
@@ -257,6 +243,12 @@ public class DecisionMaker {
         return reconfiguration_details;
     }
 
+    /**
+     * This method tries to retrieve the last reconfiguration timestamp unrelated to the slo violation passed to it. If the last two reconfiguration objects refer to the same adaptation timestamp as the slo violation passed to it, the timestamp in the last third (if it exists) object is chosen or else timestamp 0 is returned
+     * @param reconfiguration_queue
+     * @param slo_violation
+     * @return
+     */
     private static Long get_last_reconfiguration_timestamp(CircularFifoQueue<ReconfigurationDetails> reconfiguration_queue, SLOViolation slo_violation) {
         ReconfigurationDetails last_reconfiguration_details = reconfiguration_queue.get(reconfiguration_queue.size() - 1);
         if (
@@ -289,8 +281,8 @@ public class DecisionMaker {
         }
     }
 
-    private Long get_last_slo_violation_timestamp() {
-        return slo_violations.get(slo_violations.size() - 1).getTime_calculated();
+    private SLOViolation get_last_slo_violation() {
+        return slo_violations.get(slo_violations.size() - 1);
     }
 
     private ViolationHandlingActionName decide_best_slo_violation_handling_action(double severity_value_to_process, double severity_class_threshold) {

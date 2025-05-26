@@ -231,8 +231,7 @@ public class Runnables {
                                     severity_result.setSeverityValue(normalized_rule_severity);
                                     slo_violation_probability = determine_slo_violation_probability(normalized_rule_severity,proactive_severity_calculation_method);
                                     current_slo_violation = new SLOViolation(severity_result);
-                                    Logger.getGlobal().log(info_logging_level, "The overall " + proactive_severity_calculation_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time )).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand");
-                                    Logger.getGlobal().log(info_logging_level, "The probability of an SLO violation is " + ((int) (slo_violation_probability * 100)) + "%" + (slo_violation_probability < slo_violation_probability_threshold ? " so it will not be published" : " and it will be published"));
+                                    Logger.getGlobal().log(info_logging_level, "The overall " + proactive_severity_calculation_method + " severity - calculated from real data - for adaptation time " + targeted_prediction_time + " ( " + (new Date((new Timestamp(targeted_prediction_time )).getTime())) + " ) is " + rule_severity + " and is calculated " + time_horizon_seconds + " seconds beforehand \nThe probability of an SLO violation for the severity value of "+rule_severity+" is " + ((int) (slo_violation_probability * 100)) + "%" + (slo_violation_probability < slo_violation_probability_threshold ? " so it will not be published" : " and it will be published"));
 
 
                                     if (slo_violation_probability >= slo_violation_probability_threshold) {
@@ -257,10 +256,10 @@ public class Runnables {
                                     }
                                     Logger.getGlobal().log(info_logging_level,"SENDING slo violation message for SLO "+current_slo_violation.getId());
                                     severity_json.put("severity", rule_severity);
-
+                                    severity_json.put("slo_violation_id", current_slo_violation.getId());
                                     severity_json.put("probability", slo_violation_probability);
                                     severity_json.put("predictionTime", targeted_prediction_time);
-                                    severity_json.put("reason",reconfiguration_details.getSeverity_result().getReason());
+                                    severity_json.put("reason",reconfiguration_details.getSeverity_result().getReason().toString());
                                     finalPersistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()));
 
                                     Logger.getGlobal().log(debug_logging_level,"Adding violation record for violation "+current_slo_violation.getId()+" to database");

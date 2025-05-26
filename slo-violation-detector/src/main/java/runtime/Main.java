@@ -76,6 +76,13 @@ public class Main {
 
                 }
                 prop.load(inputStream);
+                for (String key : prop.stringPropertyNames()) {
+                    String envValue = System.getenv(key.toUpperCase());
+                    if (envValue != null && !envValue.isEmpty()) {
+                        Logger.getGlobal().log(info_logging_level, "Overriding property '"+key+"' with env variable '"+key.toUpperCase()+"' value");
+                        prop.setProperty(key, envValue);
+                    }
+                }
                 slo_rules_topic = prop.getProperty("slo_rules_topic");
                 kept_values_per_metric = Integer.parseInt(prop.getProperty("stored_values_per_metric", "5"));
                 
@@ -98,6 +105,8 @@ public class Main {
                 q_learning_discounting_factor = Double.parseDouble(prop.getProperty("q_learning_discounting_factor"));
                 q_learning_learning_rate = Double.parseDouble(prop.getProperty("q_learning_learning_rate"));
                 q_learning_initial_value = Double.parseDouble(prop.getProperty("q_learning_initial_value"));
+                q_learning_severity_quantization_buckets = Integer.parseInt(prop.getProperty("q_learning_severity_quantization_buckets"));
+
                 String overriding_slo_violations_database_url = prop.getProperty("slo_violations_database_url");
                 if (overriding_slo_violations_database_url!= null && !overriding_slo_violations_database_url.isEmpty()) {
                     slo_violations_database_url=overriding_slo_violations_database_url;
@@ -110,6 +119,7 @@ public class Main {
 
 
             } //initialization
+            
             if (operational_mode.equals(OperationalMode.DETECTOR)) {
                 if (args.length>2){
                     Logger.getGlobal().log(info_logging_level,"Creating new SLO Violation Detector subcomponent within the main class");
