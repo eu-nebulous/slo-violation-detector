@@ -237,7 +237,7 @@ public class DetectorSubcomponentUtilities {
 
     /**
      * This function determines the probability of an SLO violation
-     * @param normalized_rule_severity The severity of the rule which has been determined
+     * @param normalized_rule_severity The severity of the rule which has been determined, having values from 0 to 1
      * @return The probability of the rule being violated. The minimum value of this probability is 0, and increases as the severity increases
      */
     public static double determine_slo_violation_probability(double normalized_rule_severity, String severity_calculation_method) {
@@ -250,16 +250,22 @@ public class DetectorSubcomponentUtilities {
             } else {
                 return 0;
             }
-
+            
              */
-            return Math.min(normalized_rule_severity/100,100);
+            double probability_value = Math.min(normalized_rule_severity,1);
+            Logger.getGlobal().log(warning_logging_level,"The value to be returned as a probability for the normalized rule severity of "+normalized_rule_severity+" using all-metrics is "+probability_value);
+            return probability_value;
         }else if (severity_calculation_method.equals("prconf-delta")){
             //Logger.getGlobal().log(warning_logging_level,"The calculation of probability for the prconf-delta method needs to be implemented");
             //return 0;
-            if (normalized_rule_severity >= 6.52){
-                return Math.min((50+50*(normalized_rule_severity-6.52)/93.48)/100,1);
+            double probability_value=0;
+            if (normalized_rule_severity >= 0.0652){
+                probability_value = Math.min((50+50*(normalized_rule_severity-0.0652)/0.9348)/100,1);
+                Logger.getGlobal().log(warning_logging_level,"The value to be returned as a probability for the normalized rule severity of "+normalized_rule_severity+" using prconf-delta is "+probability_value);
+                return probability_value;
             }else{
-                return 0;
+                Logger.getGlobal().log(warning_logging_level,"The value to be returned as a probability for the normalized rule severity of "+normalized_rule_severity+" using prconf-delta is "+probability_value);
+                return probability_value;
             }
 
         }else{
