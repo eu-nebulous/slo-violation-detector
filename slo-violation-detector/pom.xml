@@ -71,9 +71,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>eu.nebulouscloud</groupId>
+            <groupId>io.github.eu-nebulous</groupId>
             <artifactId>exn-connector-java</artifactId>
-            <version>1.0-SNAPSHOT</version>
+             <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <!--- Exclusions for logging start here -->
@@ -228,6 +228,14 @@
             <id>nexus-nebulous</id>
             <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
         </repository>
+        <repository>
+            <id>sonatype-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    
     </repositories>
 
 </project>

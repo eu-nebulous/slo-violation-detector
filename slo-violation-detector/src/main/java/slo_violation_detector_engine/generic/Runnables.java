@@ -259,7 +259,7 @@ public class Runnables {
                                     severity_json.put("slo_violation_id", current_slo_violation.getId());
                                     severity_json.put("probability", slo_violation_probability);
                                     severity_json.put("predictionTime", targeted_prediction_time);
-                                    severity_json.put("reason",reconfiguration_details.getSeverity_result().getReason().toString());
+                                    severity_json.put("reason",(String)reconfiguration_details.getSeverity_result().getReason().toString());
                                     finalPersistent_publisher.publish(severity_json.toJSONString(), Collections.singleton(detector.get_application_name()));
 
                                     Logger.getGlobal().log(debug_logging_level,"Adding violation record for violation "+current_slo_violation.getId()+" to database");
