@@ -266,7 +266,7 @@ public class DecisionMaker {
                         Logger.getGlobal().log(warning_logging_level, "Warning: The same reconfiguration timestamp " + slo_violation.getProposed_reconfiguration_timestamp() + " has been found for SLO " + slo_violation.getId() + " and the last two reconfiguration detail objects - setting last reconfiguration timestamp to the reconfiguration timestamp of the third from the end reconfiguration object " + reconfiguration_queue.get(reconfiguration_queue.size() - 3) + "in good faith that it will be different (no checking)");
                         return reconfiguration_queue.get(reconfiguration_queue.size() - 3).getTargeted_reconfiguration_timestamp();
                     }else{
-                        Logger.getGlobal().log(info_logging_level, "Setting last reconfiguration timestamp to 0 as the two last reconfigurations have been provoked by the SLO violation trigerring them (and comparing these with the SLO violation creation timestamp two is not useful to gauge the suitability of selecting an SLO violation handling action)");
+                        Logger.getGlobal().log(info_logging_level, "Setting last reconfiguration timestamp to 0 as the two last reconfigurations have been provoked by the SLO violation trigerring them (and comparing these with the SLO violation creation timestamp is not useful to gauge the suitability of selecting an SLO violation handling action)");
                         return 0L;
                     }
                 }else{

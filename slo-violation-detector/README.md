@@ -157,7 +157,8 @@ To test the functionality of the component - provided that a working ActiveMQ Br
      "severity": 0.9064,
      "predictionTime": 1626181860,
      "probability": 0.92246521,
-     "reason": "proactive_slo_violation"
+     "reason": "proactive_slo_violation",
+     "slo_violation_id": "b2c85585"
    }
    ```
 
