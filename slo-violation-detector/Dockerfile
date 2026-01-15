@@ -14,6 +14,7 @@ RUN mvn -f /home/app/pom.xml -DfailIfNoTests=false -Dtest=!UnboundedMonitoringAt
 
 FROM docker.io/library/eclipse-temurin:17
 RUN mkdir -p /home/src/main/resources/
+RUN mkdir -p /home/database
 COPY src/main/resources/config/eu.nebulous.slo_violation_detector.properties /home/slo-violation-detector/src/main/resources/config/eu.nebulous.slo_violation_detector.properties
 COPY src/main/resources/config/eu.melodic.event.brokerclient.properties /home/slo-violation-detector/src/main/resources/config/eu.melodic.event.brokerclient.properties
 COPY --from=build /home/app/target/SLO-Violation-Detector-4.0-SNAPSHOT.jar /home/SLOSeverityCalculator-4.0-SNAPSHOT.jar

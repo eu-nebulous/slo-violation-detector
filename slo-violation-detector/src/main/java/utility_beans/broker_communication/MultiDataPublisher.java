@@ -11,6 +11,10 @@ import org.json.simple.parser.ParseException;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -73,16 +77,20 @@ public class MultiDataPublisher {
         int min_bound=0;
         int max_bound=100;
         AtomicInteger interval_between_events=new AtomicInteger(1);
-        AtomicReference<Double> random_value = new AtomicReference<>();
+        AtomicReference<Double> metric_value_to_publish = new AtomicReference<>();
         AtomicReference<Double> upper_bound = new AtomicReference<>();
         AtomicReference<Double> lower_bound = new AtomicReference<>();
 
         AtomicReference<String> application_name = new AtomicReference<>("");
         AtomicReference<String> broker_topic = new AtomicReference<>("eu.nebulouscloud.monitoring.realtime.cpu_usage");
-
+        AtomicReference<String> csv_file_location = new AtomicReference<>("");
+        AtomicReference<Integer> column_containing_metric_data = new AtomicReference<>(2);
+        AtomicReference<Boolean> use_scaling_factor = new AtomicReference<>(false);
+        List<String> csv_file_contents = List.of();
+        
         JFrame frame = new JFrame("Data Input Form");
-        frame.setLayout(new GridLayout(9, 2, 5, 5));
-        String[] labels = {"Broker IP", "Broker Port", "Repetitions", "Min Bound", "Max Bound", "Interval between events","Broker Topic", "Application Name"};
+        frame.setLayout(new GridLayout(12, 2, 5, 5));
+        String[] labels = {"Broker IP", "Broker Port", "Repetitions", "Min Bound", "Max Bound", "Interval between events","Broker Topic", "Application Name", "CSV file location to load data from (supersedes random output)", "Column to read data from in CSV file","Use scaling factor"};
         JTextField[] fields = {
                 new JTextField("localhost"),
                 new JTextField("5672"),
@@ -91,14 +99,21 @@ public class MultiDataPublisher {
                 new JTextField("100"),
                 new JTextField("1"),
                 new JTextField("eu.nebulouscloud.monitoring.realtime.cpu_usage"),
-                new JTextField("_Application1")
+                new JTextField("_Application1"),
+                new JTextField(""),
+                new JTextField("1")
         };
+        JCheckBox checkbox_use_scaling = new JCheckBox();
 
         for (int i = 0; i < labels.length; i++) {
             frame.add(new JLabel(labels[i]));
-            frame.add(fields[i]);
+            if (i<(fields.length)) {
+                frame.add(fields[i]);
+            }else{
+                frame.add(checkbox_use_scaling);
+            }
         }
-
+        
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener((ActionEvent e) -> {
             broker_ip.set(fields[0].getText());
@@ -109,10 +124,15 @@ public class MultiDataPublisher {
             interval_between_events.set(Integer.parseInt(fields[5].getText()));
             broker_topic.set(fields[6].getText());
             application_name.set(fields[7].getText());
-
+            csv_file_location.set(fields[8].getText());
+            column_containing_metric_data.set(Integer.parseInt(fields[9].getText()));
+            use_scaling_factor.set(checkbox_use_scaling.isSelected());
+            
             submit_button_pressed.set(true);
         });
 
+
+        
         frame.add(submitButton);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setPreferredSize(new Dimension(400, 300));
@@ -120,13 +140,57 @@ public class MultiDataPublisher {
         frame.setVisible(true);
         while (true){
             if (submit_button_pressed.get()) {
-                CustomDataPublisher publisher = new CustomDataPublisher(broker_topic.toString(), broker_ip.toString(), Integer.parseInt(broker_port.get()), "admin", "admin", EMPTY, "demo_batch_publisher");
+                if (!csv_file_location.get().equals(EMPTY)) {
+                    try {
+                        csv_file_contents = Files.readAllLines(Paths.get(new File(csv_file_location.get()).getAbsolutePath()));
+                        if (csv_file_contents.get(0).chars().anyMatch(Character::isAlphabetic)){
+                            csv_file_contents.remove(0);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
 
+                }
+                
+                CustomDataPublisher publisher = new CustomDataPublisher(broker_topic.toString(), broker_ip.toString(), Integer.parseInt(broker_port.get()), "admin", "admin", EMPTY, "demo_batch_publisher");
+                
                 String message_payload;
+                Double scaling_factor = 1.0;
+                
+                if (!csv_file_contents.isEmpty()){
+                    message_count.set(csv_file_contents.size());
+                    Logger.getGlobal().log(info_logging_level,"Publishing data for "+csv_file_contents.size()+" events");
+                }
+                Double minimum_value_in_csv_file = Double.MAX_VALUE;
+                Double maximum_value_in_csv_file = Double.MIN_VALUE;
+                
                 for (int i = 0; i < message_count.get(); i++) {
-                    random_value.set(new Random().nextDouble() * (upper_bound.get() - lower_bound.get()) + lower_bound.get());
+                    if (!csv_file_contents.isEmpty()) {
+                        Double current_value = Double.parseDouble(csv_file_contents.get(i).split(",")[column_containing_metric_data.get() - 1]); 
+                        if (current_value > maximum_value_in_csv_file){
+                            maximum_value_in_csv_file = current_value;
+                        }else if (current_value < minimum_value_in_csv_file){
+                            minimum_value_in_csv_file = current_value;
+                        }
+                    }
+                }
+                scaling_factor = maximum_value_in_csv_file-minimum_value_in_csv_file;
+                
+                
+                for (int i = 0; i < message_count.get(); i++) {
+                    if (csv_file_contents.isEmpty()) {    
+                        metric_value_to_publish.set(new Random().nextDouble() * (upper_bound.get() - lower_bound.get()) + lower_bound.get());
+                    }
+                    else{
+                        Double current_value = Double.parseDouble(csv_file_contents.get(i).split(",")[column_containing_metric_data.get()-1]);
+                        if (use_scaling_factor.get()) {
+                            metric_value_to_publish.set(upper_bound.get()*current_value / scaling_factor+lower_bound.get());
+                        }else{
+                            metric_value_to_publish.set(upper_bound.get()*current_value+lower_bound.get());
+                        }
+                    }
                     message_payload = "{\n" +
-                            "    \"metricValue\": " + random_value + ",\n" +
+                            "    \"metricValue\": " + metric_value_to_publish + ",\n" +
                             "    \"level\": 1,\n" +
                             "    \"component_id\":\"postgresql_1\",\n" +
                             "    \"timestamp\": " + (System.currentTimeMillis()) + "\n" +
@@ -135,6 +199,7 @@ public class MultiDataPublisher {
                     Thread.sleep(interval_between_events.get() * 1000);
                 }
             }
+            Logger.getGlobal().log(info_logging_level,"Finished sending metrics, restarting sending");
             Thread.sleep(interval_between_events.get() * 1000);
         }
     }

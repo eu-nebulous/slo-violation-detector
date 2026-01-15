@@ -1,5 +1,6 @@
 package slo_violation_detector_engine.detector;
 
+import configuration.Constants;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import reinforcement_learning.QTable;
 import slo_rule_modelling.SLORule;
@@ -38,7 +39,7 @@ public class DetectorSubcomponentState{
     private DetectorSubcomponent associated_detector;
 
 
-    private Connection conn = DriverManager.getConnection(slo_violations_database_url,database_username,database_password);
+    private Connection conn = DriverManager.getConnection(slo_violations_database_url.replace(".mv.db",""),database_username,database_password);
     //Debugging variables
     public CircularFifoQueue<Long> slo_violation_event_recording_queue = new CircularFifoQueue<>(50);
     public CircularFifoQueue<String> severity_calculation_event_recording_queue = new CircularFifoQueue<>(50);
@@ -47,6 +48,7 @@ public class DetectorSubcomponentState{
     
     private QTable q_table = new QTable(conn);
     public DetectorSubcomponentState(DetectorSubcomponent detector) throws SQLException {
+        Logger.getGlobal().log(info_logging_level,"The connection is to "+slo_violations_database_url.replace(".mv.db",""));
         Statement statement = conn.createStatement();
         String createSLOViolationTableSQL = "CREATE TABLE IF NOT EXISTS slo_violations ("
                             + "id INT AUTO_INCREMENT PRIMARY KEY, "
@@ -58,8 +60,8 @@ public class DetectorSubcomponentState{
         String createQTableSQL = "CREATE TABLE IF NOT EXISTS q_table ("
                 + "id INT AUTO_INCREMENT, "
                 + "application_name VARCHAR(255) NOT NULL,"
-                + "severity_value REAL NOT NULL,"
-                + "current_threshold REAL NOT NULL,"
+                + "severity_value INT NOT NULL,"
+                + "current_threshold INT NOT NULL,"
                 + "action VARCHAR(255) NOT NULL,"
                 + "q_value REAL NOT NULL,"
                 + "PRIMARY KEY (application_name,severity_value,current_threshold,action)"
@@ -67,7 +69,7 @@ public class DetectorSubcomponentState{
         statement.executeUpdate(createSLOViolationTableSQL);
         
         statement.executeUpdate(createQTableSQL);
-        Logger.getGlobal().log(info_logging_level,"Sql tables for slo violations and the q-table were created");
+        Logger.getGlobal().log(info_logging_level,"Sql tables for slo violations and the q-table were created at "+slo_violations_database_url);
         associated_detector = detector; 
     }
 
@@ -186,11 +188,29 @@ public class DetectorSubcomponentState{
     
     public void add_q_table_database_entry(String application_name, double severity_value, double current_threshold, ViolationHandlingActionName action, double q_value){
         
-        double quantized_severity_value = (int) Math.round(severity_value*100);
-        double quantized_current_threshold = (int) Math.round(current_threshold*100);
+        double coarse_severity_value_index = severity_value/(1.0/ q_learning_severity_quantization_buckets);
+        double coarse_threshold_value_index = current_threshold/(1.0/q_learning_severity_quantization_buckets);
+        
+        if (coarse_severity_value_index > (int)(coarse_severity_value_index)){
+            coarse_severity_value_index = (int)coarse_severity_value_index+1;
+        }
+        
+        if (coarse_threshold_value_index > (int)(coarse_threshold_value_index)){
+            coarse_threshold_value_index = (int)coarse_threshold_value_index+1;
+        }
+
+
         
         int rowsAffected=0;
         try {
+            //double quantized_severity_value = (int) Math.round(severity_value*100);
+            int quantized_severity_value = Math.toIntExact(Math.round(coarse_severity_value_index *
+                    (100.0 / q_learning_severity_quantization_buckets)));
+            //double quantized_current_threshold = (int) Math.round(current_threshold*100);
+            int quantized_current_threshold = Math.toIntExact(Math.round(coarse_threshold_value_index *
+                    (100.0 / q_learning_severity_quantization_buckets)));
+
+
 
             //UPDATE slo_violations SET application_name = '_App1'
             //WHERE  current_threshold = 0.1
@@ -199,32 +219,56 @@ public class DetectorSubcomponentState{
 
             stmt.setDouble(1, q_value);
             stmt.setString(2, application_name);
-            stmt.setDouble(3, quantized_severity_value);
-            stmt.setDouble(4, quantized_current_threshold);
+            stmt.setInt(3, quantized_severity_value);
+            stmt.setInt(4, quantized_current_threshold);
             stmt.setString(5, String.valueOf(action));
-
+            
             rowsAffected = stmt.executeUpdate(); // Execute the insert query
             stmt.close();
             
             if (rowsAffected == 0) {
-                Logger.getGlobal().log(debug_logging_level,"Inserting new record into the Q table.");
+                Logger.getGlobal().log(info_logging_level,"Will need to insert a new record into the Q table.");
                 stmt = conn.prepareStatement("" +
                         "INSERT INTO Q_TABLE (application_name,severity_value,current_threshold,action,q_value) VALUES (?,?,?,?,?)"
                 );
 
                 stmt.setString(1, application_name);
-                stmt.setDouble(2, quantized_severity_value);
-                stmt.setDouble(3, quantized_current_threshold);
+                stmt.setInt(2, quantized_severity_value);
+                stmt.setInt(3, quantized_current_threshold);
                 stmt.setString(4, String.valueOf(action));
                 stmt.setDouble(5, q_value);
                 rowsAffected = stmt.executeUpdate(); // Execute the insert query
                 stmt.close();
+            }else{
+                Logger.getGlobal().log(info_logging_level,"Successfully updated existing record in the Q table.");
             }
             
 
         } catch (SQLException e) {
-            Logger.getGlobal().log(severe_logging_level,"Failed to connect to database: " + e.getMessage());
+            Logger.getGlobal().log(severe_logging_level,"Failed to insert new row to the database: " + e.getMessage());
             // Handle the exception appropriately
+            try {
+                PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Q_TABLE");
+                boolean result =  stmt.execute();
+                if (result){
+                    ResultSet rs = stmt.getResultSet();
+                    for (int i = 1; rs.next(); i++) {
+                        application_name = rs.getString("application_name");
+                        severity_value = rs.getFloat("severity_value");
+                        current_threshold = rs.getFloat("current_threshold");
+                        action = ViolationHandlingActionName.valueOf(rs.getString("action"));
+                        q_value = rs.getFloat("q_value");
+                        Logger.getGlobal().log(info_logging_level,"Db row: "+application_name+","+severity_value+","+current_threshold+","+action+","+q_value);
+                    }
+                }
+                stmt.close();
+            } catch (SQLException ex) {
+                Logger.getGlobal().log(severe_logging_level,"Also failed to show db contents: " + e.getMessage());
+            }
+
+        }
+        catch (Exception e){
+            Logger.getGlobal().log(severe_logging_level, "Exception occurred: "+ e.getMessage());
         }
 
         if (rowsAffected > 0) {

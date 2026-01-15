@@ -245,6 +245,7 @@ public class SLORule {
                     if (subrule_result<0){
                         //return -1; //all other rules are invalidated
                         and_subrules_invalidated = true;
+                        individual_severity_contributions.clear();
                     }else {
                         if (!and_subrules_invalidated /*&& !is_composite_rule(json_subrule_id)*/) {
                             //individual_severity_contributions.add(MonitoringAttribute.get_monitoring_attributes_values_map().get((String)json_subrule.get("id")));
@@ -282,23 +283,32 @@ public class SLORule {
         }
 
         else{
-            //String attribute_name = (String) rule_json.get("attribute");
-            //String operator = (String) rule_json.get("operator");
+            
             SLOSubRule.RuleType rule_type = find_rule_type(rule_operator);
-            //double threshold = Double.parseDouble((String) rule_json.get("threshold"));
+            
             Integer subrule_id=0;
             if (rule_format.equals(SLOFormatVersion.older)) {
                 subrule_id = Integer.parseInt((String) rule_json.get("id"));
             }else if (rule_format.equals(SLOFormatVersion.newer)){
                 subrule_id = get_id_for(rule_metric);
             }
+            
+            //First handling the realtime attributes in the case the rule is reactive 
+            
+            RealtimeMonitoringAttribute new_realtime_attribute = realtime_monitoring_attributes.get(rule_metric);
 
+            if (severity_calculation_method.equals("over_threshold")){
+                rule_result_value = SLOViolationCalculator.get_Severity_over_threshold_method(new_realtime_attribute,rule.slo_subrules.get(0)); //Choosing the first subrule - it must also be the only since we are not in a composite rule
+                return rule_result_value;
+            }
+
+            //Handling predicted attributes now as we did not need a reactive calculation
+            //If the particular attribute being evaluated is not forecasted for some reason then there is probably no reason to calculate if there is some severity for it
             if (getPredicted_monitoring_attributes().get(subrule_id)== null){
                 rule_result_value = -1;
                 return rule_result_value;
             }
             PredictedMonitoringAttribute new_prediction_attribute = getPredicted_monitoring_attributes().get(subrule_id).get(targeted_prediction_time);
-            RealtimeMonitoringAttribute new_realtime_attribute = realtime_monitoring_attributes.get(rule_metric);
 
             if (new_prediction_attribute==null || !new_prediction_attribute.isInitialized() || new_prediction_attribute.getDelta_for_less_than_rule()<LOWER_LIMIT_DELTA || new_prediction_attribute.getDelta_for_greater_than_rule() < LOWER_LIMIT_DELTA){ //delta is normalized so only this case is examined here
                 rule_result_value = -1;
@@ -308,8 +318,6 @@ public class SLORule {
                     rule_result_value = SLOViolationCalculator.get_Severity_all_metrics_method(new_prediction_attribute,rule_type);
                 }else if (severity_calculation_method.equals("prconf-delta")){
                     rule_result_value = SLOViolationCalculator.get_Severity_prconf_delta_method(new_prediction_attribute,rule_type);
-                }else if (severity_calculation_method.equals("over_threshold")){
-                    rule_result_value = SLOViolationCalculator.get_Severity_over_threshold_method(new_realtime_attribute,rule.slo_subrules.get(0)); //Choosing the first subrule - it must also be the only since we are not in a composite rule
                 }
             }
             calculation_logging_string.append(dashed_line).append("\nThe severity calculation for simple subrule ").append(rule_metric).append(rule_operator).append(rule_threshold).append(" is ").append(rule_result_value).append(dashed_line);

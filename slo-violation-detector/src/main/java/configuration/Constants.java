@@ -29,7 +29,8 @@ public class Constants {
     public static double q_learning_exploration_factor = 1;
     public static double q_learning_learning_rate = 0.1;
     public static double q_learning_discounting_factor = 0.95;
-    public static String slo_violations_database_url = "jdbc:h2:file:" + System.getProperty("user.dir") + "/sloviolations.db";
+    public static double q_learning_severity_quantization_buckets = 5;
+    public static String slo_violations_database_url = "jdbc:h2:file:" + System.getProperty("user.dir") + "/database/sloviolations.mv.db";
     public static String database_username="sa";
     public static String database_password="";
     public static Integer number_of_severity_classes;

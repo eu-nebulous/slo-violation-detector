@@ -1,5 +1,6 @@
 package reinforcement_learning;
 
+import configuration.Constants;
 import utility_beans.synchronization.SynchronizedDouble;
 
 import static configuration.Constants.maximum_adaptation_threshold_for_reconfigurations;
@@ -8,8 +9,8 @@ import static configuration.Constants.slo_violation_probability_threshold;
 public class SeverityClass{
     private Double minimum_severity_value;
     private Double maximum_severity_value;
-    private double decrease_factor = 0.05;
-    private double increase_factor = 0.05;
+    private double decrease_factor = 1.0/ Constants.q_learning_severity_quantization_buckets;
+    private double increase_factor = 1.0/Constants.q_learning_severity_quantization_buckets;
 
     private final SynchronizedDouble adaptation_threshold = new SynchronizedDouble(slo_violation_probability_threshold);
 
